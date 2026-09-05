@@ -185,13 +185,6 @@ button {
   cursor: pointer;
 }
 
-.preset-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
-.preset-button,
 .segment-button,
 .toggle-row,
 .map-action,
@@ -203,35 +196,12 @@ button {
   transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease;
 }
 
-.preset-button {
-  min-height: 60px;
-  padding: 8px 5px;
-  border-radius: 8px;
-  color: #535d59;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.preset-button span {
-  display: block;
-  margin: 0 auto 5px;
-  font-size: 17px;
-}
-
-.preset-button:hover,
-.preset-button:focus-visible,
 .segment-button:hover,
 .toggle-row:hover,
 .map-action:hover,
 .search-result:hover {
   border-color: #a9a296;
   transform: translateY(-1px);
-}
-
-.preset-button.active {
-  border-color: var(--accent);
-  background: #fff1eb;
-  color: var(--accent-dark);
 }
 
 .search-wrap {
@@ -511,7 +481,9 @@ button {
   bottom: 25px;
   left: 14px;
   width: 184px;
+  max-height: calc(100% - 72px);
   padding: 12px;
+  overflow-y: auto;
 }
 
 .legend-title {

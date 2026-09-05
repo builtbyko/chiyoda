@@ -191,14 +191,13 @@ export function MapAtlas() {
   const cityRef = useRef<GeoFeature | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
-  const [areaLayer, setAreaLayer] = useState<AreaLayer>("population");
-  const [basemap, setBasemap] = useState<Basemap>("pale");
+  const [areaLayer, setAreaLayer] = useState<AreaLayer>("none");
+  const [basemap, setBasemap] = useState<Basemap>("photo");
   const [overlays, setOverlays] = useState<Record<OverlayKey, boolean>>({
     roads: false,
     rail: false,
-    boundaries: true,
+    boundaries: false,
   });
-  const [preset, setPreset] = useState("population");
   const [detail, setDetail] = useState<Detail | null>(null);
   const [searchItems, setSearchItems] = useState<SearchItem[]>([]);
   const [query, setQuery] = useState("");
@@ -262,9 +261,9 @@ export function MapAtlas() {
               },
             },
             layers: [
-              { id: "base-pale", type: "raster", source: "pale" },
+              { id: "base-pale", type: "raster", source: "pale", layout: { visibility: "none" } },
               { id: "base-standard", type: "raster", source: "standard", layout: { visibility: "none" } },
-              { id: "base-photo", type: "raster", source: "photo", layout: { visibility: "none" } },
+              { id: "base-photo", type: "raster", source: "photo" },
             ],
           },
         });
@@ -441,6 +440,7 @@ export function MapAtlas() {
             id: "selection-point",
             type: "circle",
             source: "selection",
+            filter: ["==", ["geometry-type"], "Point"],
             paint: {
               "circle-radius": 9,
               "circle-color": "#fff6a8",
@@ -525,32 +525,14 @@ export function MapAtlas() {
 
   const changeArea = (value: AreaLayer) => {
     setAreaLayer(value);
-    setPreset("");
   };
 
   const changeBasemap = (value: Basemap) => {
     setBasemap(value);
-    setPreset("");
   };
 
   const toggleOverlay = (key: OverlayKey) => {
     setOverlays((current) => ({ ...current, [key]: !current[key] }));
-    setPreset("");
-  };
-
-  const applyPreset = (name: string) => {
-    setPreset(name);
-    setBasemap("pale");
-    if (name === "population") {
-      setAreaLayer("population");
-      setOverlays({ roads: false, rail: false, boundaries: true });
-    } else if (name === "planning") {
-      setAreaLayer("zoning");
-      setOverlays({ roads: true, rail: false, boundaries: false });
-    } else {
-      setAreaLayer("none");
-      setOverlays({ roads: true, rail: true, boundaries: false });
-    }
   };
 
   const resetMap = () => {
@@ -615,21 +597,6 @@ export function MapAtlas() {
               </div>
               <button className="close-panel" onClick={() => setPanelOpen(false)} aria-label="閉じる">×</button>
             </div>
-
-            <section>
-              <h2 className="section-title">見方のプリセット</h2>
-              <div className="preset-grid">
-                <button className={`preset-button ${preset === "population" ? "active" : ""}`} onClick={() => applyPreset("population")}>
-                  <span aria-hidden="true">◐</span>人口
-                </button>
-                <button className={`preset-button ${preset === "planning" ? "active" : ""}`} onClick={() => applyPreset("planning")}>
-                  <span aria-hidden="true">▦</span>都市計画
-                </button>
-                <button className={`preset-button ${preset === "transit" ? "active" : ""}`} onClick={() => applyPreset("transit")}>
-                  <span aria-hidden="true">⌁</span>交通
-                </button>
-              </div>
-            </section>
 
             <section className="search-wrap">
               <h2 className="section-title">町丁目・駅を探す</h2>
