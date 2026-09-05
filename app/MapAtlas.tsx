@@ -218,7 +218,7 @@ export function MapAtlas() {
 
     Promise.all([
       import("maplibre-gl"),
-      fetch("/data/map-data.json").then((response) => {
+      fetch("data/map-data.json").then((response) => {
         if (!response.ok) throw new Error("地図データを読み込めませんでした");
         return response.json() as Promise<AtlasData>;
       }),

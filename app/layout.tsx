@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+const basePath = process.env.GITHUB_ACTIONS === "true" ? "/chiyoda" : "";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -17,8 +19,8 @@ export const metadata: Metadata = {
   description:
     "人口、用途地域、主要道路、鉄道・駅から千代田区の都市構造を読み解く学習用Webマップ。",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: `${basePath}/favicon.svg`,
+    shortcut: `${basePath}/favicon.svg`,
   },
 };
 
