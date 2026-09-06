@@ -22,15 +22,16 @@ async function render() {
   );
 }
 
-test("server-renders the Chiyoda base atlas shell", async () => {
+test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>千代田区ベースアトラス<\/title>/i);
-  assert.match(html, /Chiyoda Base Atlas/);
+  assert.match(html, /<title>千代田区＋隣接区ベースアトラス<\/title>/i);
+  assert.match(html, /Chiyoda &amp; neighbors/);
   assert.match(html, /人口密度/);
   assert.match(html, /用途地域/);
-  assert.match(html, /地図を選択/);
+  assert.match(html, /町丁目境界/);
+  assert.doesNotMatch(html, /背景地図/);
 });

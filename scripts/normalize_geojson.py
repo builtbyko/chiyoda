@@ -34,14 +34,18 @@ def normalized_geometry(raw_geometry, clip=None):
 
 def main() -> None:
     bundle = json.loads(DATA_PATH.read_text(encoding="utf-8"))
-    city = polygonal(shape(bundle["city"]["geometry"]))
-    bundle["city"]["geometry"] = mapping(orient_polygons(city, exterior_cw=False))
+    scope = polygonal(shape(bundle["scope"]["geometry"]))
+    bundle["scope"]["geometry"] = mapping(orient_polygons(scope, exterior_cw=False))
+    bundle["city"]["geometry"] = normalized_geometry(bundle["city"]["geometry"])
+
+    for feature in bundle["wards"]["features"]:
+        feature["geometry"] = normalized_geometry(feature["geometry"])
 
     for feature in bundle["towns"]["features"]:
         feature["geometry"] = normalized_geometry(feature["geometry"])
 
     for feature in bundle["zoning"]["features"]:
-        feature["geometry"] = normalized_geometry(feature["geometry"], clip=city)
+        feature["geometry"] = normalized_geometry(feature["geometry"], clip=scope)
 
     DATA_PATH.write_text(
         json.dumps(bundle, ensure_ascii=False, separators=(",", ":")),
