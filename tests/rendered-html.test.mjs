@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render() {
@@ -32,6 +33,31 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /Chiyoda &amp; neighbors/);
   assert.match(html, /人口密度/);
   assert.match(html, /用途地域/);
+  assert.match(html, /防火指定/);
+  assert.match(html, /洪水浸水/);
+  assert.match(html, /公園・緑地/);
+  assert.match(html, /地価公示/);
+  assert.match(html, /指定避難所/);
   assert.match(html, /町丁目境界/);
   assert.doesNotMatch(html, /背景地図/);
+});
+
+test("map data includes the recommended reference layers", async () => {
+  const mapData = JSON.parse(
+    await readFile(new URL("../public/data/map-data.json", import.meta.url), "utf8"),
+  );
+
+  for (const key of ["fire", "flood", "parks", "landPrices", "shelters"]) {
+    assert.equal(mapData[key].type, "FeatureCollection");
+    assert.ok(mapData[key].features.length > 0, `${key} should not be empty`);
+  }
+
+  assert.equal(mapData.meta.parkCount, mapData.parks.features.length);
+  assert.equal(mapData.meta.landPriceCount, mapData.landPrices.features.length);
+  assert.equal(mapData.meta.shelterCount, mapData.shelters.features.length);
+  assert.ok(
+    mapData.flood.features.every(({ properties }) =>
+      Number.isInteger(properties.c) && properties.c >= 1 && properties.c <= 6,
+    ),
+  );
 });

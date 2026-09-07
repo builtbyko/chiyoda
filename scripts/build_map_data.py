@@ -78,6 +78,25 @@ ZONING_GROUPS = {
     13: "industrial",
 }
 
+FLOOD_DEPTHS = {
+    1: "0.5m未満",
+    2: "0.5–3.0m",
+    3: "3.0–5.0m",
+    4: "5.0–10.0m",
+    5: "10.0–20.0m",
+    6: "20.0m以上",
+}
+
+PARK_SOURCES = {
+    "都立公園.shp": "park",
+    "区市町村立公園(都市公園).shp": "park",
+    "区市町村立公園(都市公園以外).shp": "park",
+    "国営公園.shp": "park",
+    "国民公園.shp": "park",
+    "都市公園に準ずるもの.shp": "park",
+    "海上公園(開園区域).shp": "waterfront",
+}
+
 MAJOR_STATIONS = {
     "東京",
     "大手町",
@@ -128,6 +147,21 @@ def clean_name(value: object) -> str:
         return f"{numeral}丁目"
 
     return re.sub(r"(\d+)丁目", chome, name)
+
+
+def clean_text(value: object) -> str:
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return ""
+    text = unicodedata.normalize("NFKC", str(value)).strip()
+    return "" if text == "_" else re.sub(r"[ \t]+", " ", text)
+
+
+def decimal(value: object, default: float = 0.0) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    return default if math.isnan(result) else result
 
 
 def current_town_name(code: str, value: object) -> str:
@@ -356,6 +390,240 @@ def build_zoning(source_root: Path, ward_geometries):
     return features
 
 
+def build_fire(source_root: Path, ward_geometries):
+    features = []
+    base = source_root / "urbanplanning" / "13_東京都"
+    for code, ward_name in WARDS.items():
+        path = next(base.glob(f"{code}_*/{code}_bouka.geojson"))
+        for item in load_json(path)["features"]:
+            area_type = clean_text(item["properties"].get("AreaType"))
+            category = "semi" if "準" in area_type else "fire"
+            geometry = polygonal(shape(item["geometry"])).intersection(ward_geometries[code])
+            geometry = polygonal(geometry)
+            if geometry.is_empty:
+                continue
+            features.append(
+                {
+                    "type": "Feature",
+                    "properties": {"n": area_type, "c": category, "w": ward_name},
+                    "geometry": compact_geometry(geometry, 0.000004),
+                }
+            )
+    features.sort(key=lambda item: (item["properties"]["w"], item["properties"]["c"]))
+    return features
+
+
+def build_flood(source_root: Path, scope):
+    by_depth = defaultdict(list)
+    rivers_by_depth = defaultdict(set)
+    flood_root = source_root / "flood-2025"
+    paths = sorted(flood_root.glob("river-*/*想定最大規模/*.geojson"))
+
+    for path in paths:
+        frame = pyogrio.read_dataframe(
+            path,
+            bbox=scope.bounds,
+            columns=["A31a_202", "A31a_205"],
+        ).to_crs(4326)
+        if frame.empty:
+            continue
+        for row in frame.to_dict("records"):
+            depth = int(decimal(row.get("A31a_205")))
+            if depth not in FLOOD_DEPTHS:
+                continue
+            source_geometry = polygonal(row["geometry"])
+            if source_geometry.is_empty or not source_geometry.intersects(scope):
+                continue
+            geometry = polygonal(source_geometry.intersection(scope))
+            if geometry.is_empty:
+                continue
+            by_depth[depth].append(geometry)
+            river = clean_text(row.get("A31a_202"))
+            if river:
+                rivers_by_depth[depth].add(river)
+
+    # River-specific inundation polygons overlap.  Keep only the maximum depth
+    # at each location so color has one unambiguous meaning on the atlas.
+    covered = MultiPolygon()
+    exclusive = {}
+    for depth in sorted(by_depth, reverse=True):
+        merged = polygonal(unary_union(by_depth[depth])).intersection(scope)
+        merged = polygonal(merged)
+        geometry = polygonal(merged.difference(covered))
+        if not geometry.is_empty:
+            exclusive[depth] = geometry
+        covered = polygonal(unary_union([covered, merged]))
+
+    features = []
+    for depth in sorted(exclusive):
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": FLOOD_DEPTHS[depth],
+                    "c": depth,
+                    "s": "想定最大規模・河川別区域の最大値",
+                    "r": sorted(rivers_by_depth[depth]),
+                },
+                "geometry": compact_geometry(exclusive[depth], 0.000012),
+            }
+        )
+    return features
+
+
+def park_ward_names(geometry, ward_geometries) -> str:
+    names = []
+    for code, ward in ward_geometries.items():
+        intersection = geometry.intersection(ward)
+        if not intersection.is_empty and intersection.area > 0.000000000001:
+            names.append(WARDS[code])
+    return "・".join(names)
+
+
+def build_parks(source_root: Path, scope, ward_geometries):
+    park_root = source_root / "green-tokyo-2026" / "expanded"
+    source_scope = transform(
+        Transformer.from_crs(4326, 6677, always_xy=True).transform,
+        scope,
+    )
+    groups = defaultdict(lambda: {"geometries": [], "areas": []})
+
+    for path in sorted(park_root.rglob("*.shp")):
+        category = PARK_SOURCES.get(path.name)
+        if not category:
+            continue
+        frame = pyogrio.read_dataframe(path, bbox=source_scope.bounds).to_crs(4326)
+        for row in frame.to_dict("records"):
+            name = clean_text(row.get("公園名") or row.get("名称"))
+            if not name or name == "-":
+                continue
+            source_geometry = polygonal(row["geometry"])
+            if source_geometry.is_empty or not source_geometry.intersects(scope):
+                continue
+            geometry = polygonal(source_geometry.intersection(scope))
+            if geometry.is_empty:
+                continue
+            ward_name = park_ward_names(geometry, ward_geometries)
+            park_type = clean_text(row.get("種別") or row.get("区分"))
+            custodian = clean_text(row.get("所管"))
+            key = (name, category, ward_name, park_type, custodian)
+            groups[key]["geometries"].append(geometry)
+            groups[key]["areas"].append(decimal(row.get("面積m2")))
+
+    features = []
+    for (name, category, ward_name, park_type, custodian), item in groups.items():
+        geometry = polygonal(unary_union(item["geometries"]))
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": name,
+                    "c": category,
+                    "w": ward_name,
+                    "t": park_type or "公園・緑地",
+                    "a": int(round(max(item["areas"], default=0))),
+                    "o": custodian or "—",
+                },
+                "geometry": compact_geometry(geometry, 0.000003),
+            }
+        )
+    features.sort(key=lambda item: (item["properties"]["w"], item["properties"]["n"]))
+    return features
+
+
+def build_land_prices(source_root: Path, scope):
+    path = (
+        source_root
+        / "land-price-2026"
+        / "expanded"
+        / "L01-26_GML"
+        / "L01-26.shp"
+    )
+    columns = [
+        "L01_001",
+        "L01_002",
+        "L01_003",
+        "L01_008",
+        "L01_009",
+        "L01_025",
+        "L01_027",
+        "L01_028",
+        "L01_029",
+        "L01_048",
+        "L01_050",
+        "L01_051",
+    ]
+    frame = pyogrio.read_dataframe(path, bbox=scope.bounds, columns=columns).to_crs(4326)
+    frame = frame[
+        frame["L01_001"].astype(str).isin(WARDS)
+        & frame.geometry.apply(scope.covers)
+    ]
+
+    features = []
+    for row in frame.to_dict("records"):
+        code = str(row["L01_001"])
+        address = clean_text(row.get("L01_025")).replace("東京都 ", "", 1)
+        use_detail = clean_text(row.get("L01_029"))
+        use_group = clean_text(row.get("L01_028"))
+        point_id = f"{code}-{row.get('L01_002')}-{row.get('L01_003')}"
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": address,
+                    "w": WARDS[code],
+                    "p": int(decimal(row.get("L01_008"))),
+                    "q": round(decimal(row.get("L01_009")), 1),
+                    "a": int(decimal(row.get("L01_027"))),
+                    "u": use_detail or use_group or "—",
+                    "s": clean_text(row.get("L01_048")) or "—",
+                    "d": int(decimal(row.get("L01_050"))),
+                    "z": clean_text(row.get("L01_051")) or "—",
+                    "i": point_id,
+                },
+                "geometry": compact_geometry(row["geometry"]),
+            }
+        )
+    features.sort(key=lambda item: (item["properties"]["w"], item["properties"]["i"]))
+    return features
+
+
+def build_shelters(source_root: Path, scope, ward_geometries):
+    shelter_root = source_root / "shelters-gsi-2026-09-07"
+    features = []
+    seen = set()
+    for path in sorted(shelter_root.glob("*.geojson")):
+        category = "welfare" if path.name.startswith("sfh-") else "general"
+        for item in load_json(path)["features"]:
+            point = shape(item["geometry"])
+            if not scope.covers(point):
+                continue
+            props = item.get("properties", {})
+            name = clean_text(props.get("name"))
+            address = clean_text(props.get("address"))
+            key = (category, name, address, round(point.x, 6), round(point.y, 6))
+            if key in seen:
+                continue
+            seen.add(key)
+            features.append(
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "n": name or "指定避難所",
+                        "c": category,
+                        "w": "・".join(ward_names_for(point, ward_geometries)),
+                        "a": address or "—",
+                        "t": clean_text(props.get("accept")) or "—",
+                        "m": clean_text(props.get("necessary_matters")) or "—",
+                        "r": clean_text(props.get("remarks")) or "—",
+                    },
+                    "geometry": compact_geometry(point),
+                }
+            )
+    features.sort(key=lambda item: (item["properties"]["w"], item["properties"]["c"], item["properties"]["n"]))
+    return features
+
+
 def road_class(properties) -> str:
     highway = str(properties.get("highway") or "")
     other_tags = str(properties.get("other_tags") or "")
@@ -566,6 +834,11 @@ def main():
 
     towns, ward_geometries, scope, totals, scope_area = build_towns(source_root)
     zoning = build_zoning(source_root, ward_geometries)
+    fire = build_fire(source_root, ward_geometries)
+    flood = build_flood(source_root, scope)
+    parks = build_parks(source_root, scope, ward_geometries)
+    land_prices = build_land_prices(source_root, scope)
+    shelters = build_shelters(source_root, scope, ward_geometries)
     roads = build_roads(source_root, scope)
     rail, stations = build_rail(source_root, scope, ward_geometries)
 
@@ -599,14 +872,27 @@ def main():
             "scopeArea": round(scope_area, 2),
             "boundaryYear": 2020,
             "zoningYear": "2025年度（東京都は2026-07-01修正版）",
+            "fireYear": "2025年度（東京都は2026-07-01修正版）",
+            "floodYear": "2025年度（2026-05更新）",
+            "parksDate": "2026-02-02公開ファイル",
+            "landPriceDate": "2026-01-01",
+            "sheltersDate": "2026-09-07取得",
             "railDate": "2025-12-31",
             "roadsDate": "2026-08-30",
+            "parkCount": len(parks),
+            "landPriceCount": len(land_prices),
+            "shelterCount": len(shelters),
         },
         "scope": feature("千代田区と隣接5区", scope),
         "city": feature("千代田区", ward_geometries["13101"]),
         "wards": collection(ward_features),
         "towns": collection(towns),
         "zoning": collection(zoning),
+        "fire": collection(fire),
+        "flood": collection(flood),
+        "parks": collection(parks),
+        "landPrices": collection(land_prices),
+        "shelters": collection(shelters),
         "roads": collection(roads),
         "rail": collection(rail),
         "stations": collection(stations),
@@ -625,6 +911,11 @@ def main():
             "wards": len(ward_features),
             "towns": len(towns),
             "zoning": len(zoning),
+            "fire": len(fire),
+            "floodDepths": len(flood),
+            "parks": len(parks),
+            "landPrices": len(land_prices),
+            "shelters": len(shelters),
             "roads": len(roads),
             "railRoutes": len(rail),
             "stations": len(stations),

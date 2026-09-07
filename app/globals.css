@@ -40,6 +40,7 @@ button {
 .atlas-shell {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  height: 100svh;
   min-height: 100svh;
   overflow: hidden;
   background:
@@ -288,11 +289,15 @@ button {
 
 .segment-control {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   border-radius: 9px;
   background: #e9e6de;
+}
+
+.segment-button:last-child {
+  grid-column: 1 / -1;
 }
 
 .segment-button {
@@ -666,11 +671,14 @@ button {
     border-right: 0;
     box-shadow: 20px 0 45px rgb(18 26 23 / 18%);
     transform: translateX(-105%);
-    transition: transform 220ms ease;
+    visibility: hidden;
+    transition: transform 220ms ease, visibility 0s linear 220ms;
   }
 
   .sidebar.is-open {
     transform: translateX(0);
+    visibility: visible;
+    transition: transform 220ms ease;
   }
 
   .close-panel {
@@ -716,7 +724,13 @@ button {
     bottom: 13px;
     left: 10px;
     width: 150px;
+    max-height: 45vh;
     padding: 9px;
+  }
+
+  .segment-button,
+  .toggle-row {
+    min-height: 44px;
   }
 
   .legend-item {
