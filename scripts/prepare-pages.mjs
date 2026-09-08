@@ -8,10 +8,21 @@ const assets = resolve(output, "_next");
 const chunks = resolve(assets, "static/chunks");
 const maplibreDist = resolve("node_modules/maplibre-gl/dist");
 const maplibreWorkerFiles = ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"];
+const layerFiles = [
+  "zoning.json",
+  "fire.json",
+  "flood.json",
+  "land-prices.json",
+  "shelters.json",
+  "roads.json",
+  "rail.json",
+  "height-districts.json",
+];
 
 await Promise.all([
   access(indexFile),
   access(resolve(output, "data/map-data.json")),
+  ...layerFiles.map((file) => access(resolve(output, "data/layers", file))),
   access(prefixedAssets),
 ]);
 

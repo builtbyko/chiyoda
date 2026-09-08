@@ -50,18 +50,37 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
 });
 
 test("map data includes the recommended reference layers", async () => {
-  const mapData = JSON.parse(
-    await readFile(new URL("../public/data/map-data.json", import.meta.url), "utf8"),
+  const coreText = await readFile(
+    new URL("../public/data/map-data.json", import.meta.url),
+    "utf8",
+  );
+  const mapData = JSON.parse(coreText);
+  const layerFiles = {
+    zoning: "zoning.json",
+    fire: "fire.json",
+    flood: "flood.json",
+    landPrices: "land-prices.json",
+    shelters: "shelters.json",
+    roads: "roads.json",
+    rail: "rail.json",
+    heightDistricts: "height-districts.json",
+  };
+  const layers = Object.fromEntries(
+    await Promise.all(
+      Object.entries(layerFiles).map(async ([key, filename]) => [
+        key,
+        JSON.parse(
+          await readFile(new URL(`../public/data/layers/${filename}`, import.meta.url), "utf8"),
+        ),
+      ]),
+    ),
   );
 
   for (const key of [
-    "fire",
-    "flood",
+    "towns",
     "parks",
-    "landPrices",
-    "shelters",
+    "stations",
     "districtPlans",
-    "heightDistricts",
     "specialZones",
     "redevelopment",
   ]) {
@@ -69,11 +88,20 @@ test("map data includes the recommended reference layers", async () => {
     assert.ok(mapData[key].features.length > 0, `${key} should not be empty`);
   }
 
+  for (const [key, layer] of Object.entries(layers)) {
+    assert.equal(layer.type, "FeatureCollection");
+    assert.ok(layer.features.length > 0, `${key} should not be empty`);
+    assert.equal(mapData[key], undefined, `${key} should be lazy-loaded`);
+  }
+
+  assert.ok(Buffer.byteLength(coreText) < 2_000_000, "initial map data should stay compact");
+
   assert.equal(mapData.meta.parkCount, mapData.parks.features.length);
-  assert.equal(mapData.meta.landPriceCount, mapData.landPrices.features.length);
-  assert.equal(mapData.meta.shelterCount, mapData.shelters.features.length);
+  assert.equal(mapData.meta.stationCount, mapData.stations.features.length);
+  assert.equal(mapData.meta.landPriceCount, layers.landPrices.features.length);
+  assert.equal(mapData.meta.shelterCount, layers.shelters.features.length);
   assert.equal(mapData.meta.districtPlanCount, mapData.districtPlans.features.length);
-  assert.equal(mapData.meta.heightDistrictCount, mapData.heightDistricts.features.length);
+  assert.equal(mapData.meta.heightDistrictCount, layers.heightDistricts.features.length);
   assert.equal(mapData.meta.specialZoneCount, mapData.specialZones.features.length);
   assert.equal(mapData.meta.redevelopmentCount, mapData.redevelopment.features.length);
   assert.equal(mapData.meta.chiyodaDaytimePopulation, 903780);
@@ -89,8 +117,13 @@ test("map data includes the recommended reference layers", async () => {
     ),
   );
   assert.ok(
-    mapData.flood.features.every(({ properties }) =>
+    layers.flood.features.every(({ properties }) =>
       Number.isInteger(properties.c) && properties.c >= 1 && properties.c <= 6,
+    ),
+  );
+  assert.ok(
+    layers.heightDistricts.features.every(({ properties }) =>
+      !["千代田区", "中央区"].includes(properties.w),
     ),
   );
 });

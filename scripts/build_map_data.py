@@ -1,4 +1,4 @@
-"""Build the compact map bundle for Chiyoda and its five adjacent wards.
+"""Build the compact, lazy-loaded map data for Chiyoda and five adjacent wards.
 
 The source files are intentionally kept outside the web bundle because the OSM
 and national railway inputs are large.  By default this script reads the cache
@@ -37,6 +37,17 @@ from shapely.ops import linemerge, transform, unary_union
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE_ROOT = ROOT.parent / "work" / "chiyoda_map" / "data"
 OUTPUT_PATH = ROOT / "public" / "data" / "map-data.json"
+
+LAYER_FILES = {
+    "zoning": "zoning.json",
+    "fire": "fire.json",
+    "flood": "flood.json",
+    "landPrices": "land-prices.json",
+    "shelters": "shelters.json",
+    "roads": "roads.json",
+    "rail": "rail.json",
+    "heightDistricts": "height-districts.json",
+}
 
 WARDS = {
     "13101": "千代田区",
@@ -1277,19 +1288,22 @@ def main():
         "city": feature("千代田区", ward_geometries["13101"]),
         "wards": collection(ward_features),
         "towns": collection(towns),
+        "parks": collection(parks),
+        "stations": collection(stations),
+        "districtPlans": collection(district_plans),
+        "specialZones": collection(special_zones),
+        "redevelopment": collection(redevelopment),
+    }
+
+    layer_data = {
         "zoning": collection(zoning),
         "fire": collection(fire),
         "flood": collection(flood),
-        "parks": collection(parks),
         "landPrices": collection(land_prices),
         "shelters": collection(shelters),
         "roads": collection(roads),
         "rail": collection(rail),
-        "stations": collection(stations),
-        "districtPlans": collection(district_plans),
         "heightDistricts": collection(height_districts),
-        "specialZones": collection(special_zones),
-        "redevelopment": collection(redevelopment),
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -1297,10 +1311,21 @@ def main():
         json.dump(bundle, handle, ensure_ascii=False, separators=(",", ":"))
         handle.write("\n")
 
+    layer_root = args.output.parent / "layers"
+    layer_root.mkdir(parents=True, exist_ok=True)
+    layer_bytes = {}
+    for key, filename in LAYER_FILES.items():
+        layer_path = layer_root / filename
+        with layer_path.open("w", encoding="utf-8", newline="\n") as handle:
+            json.dump(layer_data[key], handle, ensure_ascii=False, separators=(",", ":"))
+            handle.write("\n")
+        layer_bytes[key] = layer_path.stat().st_size
+
     densities = sorted(item["properties"]["d"] for item in towns)
     report = {
         "output": str(args.output),
         "bytes": args.output.stat().st_size,
+        "layerBytes": layer_bytes,
         "counts": {
             "wards": len(ward_features),
             "towns": len(towns),

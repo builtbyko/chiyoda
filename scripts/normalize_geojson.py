@@ -1,4 +1,4 @@
-"""Normalize bundled polygon data for RFC 7946 / MapLibre rendering."""
+"""Normalize core and lazy polygon data for RFC 7946 / MapLibre rendering."""
 
 from __future__ import annotations
 
@@ -12,6 +12,16 @@ from shapely.ops import unary_union
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = ROOT / "public" / "data" / "map-data.json"
+LAYER_PATHS = {
+    "zoning": ROOT / "public" / "data" / "layers" / "zoning.json",
+    "fire": ROOT / "public" / "data" / "layers" / "fire.json",
+    "flood": ROOT / "public" / "data" / "layers" / "flood.json",
+    "landPrices": ROOT / "public" / "data" / "layers" / "land-prices.json",
+    "shelters": ROOT / "public" / "data" / "layers" / "shelters.json",
+    "roads": ROOT / "public" / "data" / "layers" / "roads.json",
+    "rail": ROOT / "public" / "data" / "layers" / "rail.json",
+    "heightDistricts": ROOT / "public" / "data" / "layers" / "height-districts.json",
+}
 
 
 def polygonal(geometry):
@@ -44,27 +54,32 @@ def main() -> None:
     for feature in bundle["towns"]["features"]:
         feature["geometry"] = normalized_geometry(feature["geometry"])
 
-    for key in (
-        "zoning",
-        "fire",
-        "flood",
-        "parks",
-        "districtPlans",
-        "heightDistricts",
-        "specialZones",
-    ):
+    for key in ("parks", "districtPlans", "specialZones"):
         for feature in bundle[key]["features"]:
             feature["geometry"] = normalized_geometry(feature["geometry"], clip=scope)
 
-    for key in ("landPrices", "shelters", "redevelopment"):
-        for feature in bundle[key]["features"]:
-            if not scope.covers(shape(feature["geometry"])):
-                raise ValueError(f"{key} contains a point outside the six-ward scope")
+    for feature in bundle["redevelopment"]["features"]:
+        if not scope.covers(shape(feature["geometry"])):
+            raise ValueError("redevelopment contains a point outside the six-ward scope")
 
     DATA_PATH.write_text(
         json.dumps(bundle, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
+
+    for key, path in LAYER_PATHS.items():
+        layer = json.loads(path.read_text(encoding="utf-8"))
+        if key in ("zoning", "fire", "flood", "heightDistricts"):
+            for feature in layer["features"]:
+                feature["geometry"] = normalized_geometry(feature["geometry"], clip=scope)
+        elif key in ("landPrices", "shelters"):
+            for feature in layer["features"]:
+                if not scope.covers(shape(feature["geometry"])):
+                    raise ValueError(f"{key} contains a point outside the six-ward scope")
+        path.write_text(
+            json.dumps(layer, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
 
 
 if __name__ == "__main__":

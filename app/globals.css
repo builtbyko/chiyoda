@@ -397,6 +397,17 @@ button {
   text-underline-offset: 2px;
 }
 
+.layer-notice {
+  color: var(--sage);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.layer-notice.is-error {
+  color: var(--accent-dark);
+}
+
 .reading-panel {
   padding: 13px;
   border-left: 3px solid var(--sage);

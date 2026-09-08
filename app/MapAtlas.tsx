@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
+import { createLazyGeoJsonLoader } from "./lazyGeoJson";
 
 type AreaLayer = "population" | "daytime" | "landUse" | "zoning" | "fire" | "flood" | "none";
 type OverlayKey =
@@ -27,6 +28,22 @@ type GeoCollection = {
   type: "FeatureCollection";
   features: GeoFeature[];
 };
+
+type DatasetKey =
+  | "towns"
+  | "zoning"
+  | "fire"
+  | "flood"
+  | "parks"
+  | "landPrices"
+  | "shelters"
+  | "roads"
+  | "rail"
+  | "stations"
+  | "districtPlans"
+  | "heightDistricts"
+  | "specialZones"
+  | "redevelopment";
 
 type AtlasData = {
   meta: {
@@ -68,17 +85,9 @@ type AtlasData = {
   city: GeoFeature;
   wards: GeoCollection;
   towns: GeoCollection;
-  zoning: GeoCollection;
-  fire: GeoCollection;
-  flood: GeoCollection;
   parks: GeoCollection;
-  landPrices: GeoCollection;
-  shelters: GeoCollection;
-  roads: GeoCollection;
-  rail: GeoCollection;
   stations: GeoCollection;
   districtPlans: GeoCollection;
-  heightDistricts: GeoCollection;
   specialZones: GeoCollection;
   redevelopment: GeoCollection;
 };
@@ -108,6 +117,95 @@ const DISTRICT_PLAN_LAYER_IDS = ["district-plans-casing", "district-plans-line",
 const HEIGHT_DISTRICT_LAYER_IDS = ["height-districts-fill", "height-districts-line"];
 const SPECIAL_ZONE_LAYER_IDS = ["special-zones-fill", "special-zones-line", "special-zones-hit"];
 const REDEVELOPMENT_LAYER_IDS = ["redevelopment-hit", "redevelopment-halo", "redevelopment-points"];
+
+const EMPTY_COLLECTION: GeoCollection = { type: "FeatureCollection", features: [] };
+
+const DATASET_FILES: Partial<Record<DatasetKey, string>> = {
+  zoning: "zoning.json",
+  fire: "fire.json",
+  flood: "flood.json",
+  landPrices: "land-prices.json",
+  shelters: "shelters.json",
+  roads: "roads.json",
+  rail: "rail.json",
+  heightDistricts: "height-districts.json",
+};
+
+const DATASET_SOURCES: Record<DatasetKey, string> = {
+  towns: "towns",
+  zoning: "zoning",
+  fire: "fire",
+  flood: "flood",
+  parks: "parks",
+  landPrices: "land-prices",
+  shelters: "shelters",
+  roads: "roads",
+  rail: "rail",
+  stations: "stations",
+  districtPlans: "district-plans",
+  heightDistricts: "height-districts",
+  specialZones: "special-zones",
+  redevelopment: "redevelopment",
+};
+
+const AREA_DATASETS: Partial<Record<AreaLayer, DatasetKey>> = {
+  population: "towns",
+  daytime: "towns",
+  landUse: "towns",
+  zoning: "zoning",
+  fire: "fire",
+  flood: "flood",
+};
+
+const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
+  roads: ["roads"],
+  rail: ["rail", "stations"],
+  parks: ["parks"],
+  landPrices: ["landPrices"],
+  shelters: ["shelters"],
+  boundaries: ["towns"],
+  districtPlans: ["districtPlans"],
+  heightDistricts: ["heightDistricts"],
+  specialZones: ["specialZones"],
+  redevelopment: ["redevelopment"],
+};
+
+const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
+  population: "住民密度",
+  daytime: "昼間人口",
+  landUse: "実土地利用",
+  zoning: "用途地域",
+  fire: "防火指定",
+  flood: "洪水浸水",
+  none: "面表示",
+  roads: "主要道路",
+  rail: "鉄道・駅",
+  parks: "公園・緑地",
+  landPrices: "地価公示",
+  shelters: "指定避難所",
+  boundaries: "町丁目境界",
+  districtPlans: "地区計画",
+  heightDistricts: "高度地区",
+  specialZones: "容積・再開発等の特例",
+  redevelopment: "事業中の再開発",
+};
+
+const DATASET_LABELS: Record<DatasetKey, string> = {
+  towns: "町丁目",
+  zoning: "用途地域",
+  fire: "防火指定",
+  flood: "洪水浸水",
+  parks: "公園・緑地",
+  landPrices: "地価公示",
+  shelters: "指定避難所",
+  roads: "主要道路",
+  rail: "鉄道",
+  stations: "駅",
+  districtPlans: "地区計画",
+  heightDistricts: "高度地区",
+  specialZones: "容積・再開発等の特例",
+  redevelopment: "事業中の再開発",
+};
 
 const PHOTO_OPTIONS: { value: PhotoEpoch; label: string; tile: string; maxzoom: number }[] = [
   { value: "latest", label: "最新", tile: "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg", maxzoom: 18 },
@@ -546,8 +644,18 @@ export function MapAtlas() {
   const mapElement = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const scopeRef = useRef<GeoFeature | null>(null);
+  const [datasetLoader] = useState(() =>
+    createLazyGeoJsonLoader<DatasetKey, GeoCollection>({
+      files: DATASET_FILES,
+      labels: DATASET_LABELS,
+    }),
+  );
+  const loadingOverlaysRef = useRef(new Set<OverlayKey>());
+  const areaActionRef = useRef(0);
+  const noticeActionRef = useRef(0);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
+  const [layerNotice, setLayerNotice] = useState<{ kind: "loading" | "error"; message: string } | null>(null);
   const [areaLayer, setAreaLayer] = useState<AreaLayer>("none");
   const [overlays, setOverlays] = useState<Record<OverlayKey, boolean>>({
     roads: false,
@@ -569,6 +677,13 @@ export function MapAtlas() {
   const [legendOpen, setLegendOpen] = useState(false);
   const [meta, setMeta] = useState<AtlasData["meta"] | null>(null);
 
+  const ensureDataset = useCallback((key: DatasetKey) => (
+    datasetLoader.ensure(key, (datasetKey) => {
+      const source = mapRef.current?.getSource(DATASET_SOURCES[datasetKey]) as GeoJSONSource | undefined;
+      return source ? { setData: (data) => source.setData(data as never) } : undefined;
+    })
+  ), [datasetLoader]);
+
   const filteredSearch = useMemo(() => {
     const value = query.trim().toLocaleLowerCase("ja");
     if (!value) return [];
@@ -589,6 +704,7 @@ export function MapAtlas() {
   useEffect(() => {
     if (!mapElement.current || mapRef.current) return;
     let disposed = false;
+    const loadingOverlays = loadingOverlaysRef.current;
 
     Promise.all([
       import("maplibre-gl"),
@@ -601,6 +717,14 @@ export function MapAtlas() {
         if (disposed || !mapElement.current) return;
         scopeRef.current = data.scope;
         setMeta(data.meta);
+        datasetLoader.prime({
+          towns: data.towns,
+          parks: data.parks,
+          stations: data.stations,
+          districtPlans: data.districtPlans,
+          specialZones: data.specialZones,
+          redevelopment: data.redevelopment,
+        });
 
         const map = new maplibregl.Map({
           container: mapElement.current,
@@ -645,54 +769,54 @@ export function MapAtlas() {
         map.on("load", () => {
           map.addSource("towns", {
             type: "geojson",
-            data: data.towns as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '人口・土地利用：<a href="https://catalog.data.metro.tokyo.lg.jp/" target="_blank">東京都</a>',
           });
-          map.addSource("zoning", { type: "geojson", data: data.zoning as never });
+          map.addSource("zoning", { type: "geojson", data: EMPTY_COLLECTION as never });
           map.addSource("fire", {
             type: "geojson",
-            data: data.fire as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '防火指定：<a href="https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html" target="_blank">国土交通省</a>',
           });
           map.addSource("flood", {
             type: "geojson",
-            data: data.flood as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '洪水浸水：<a href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-A31a-2025.html" target="_blank">国土数値情報</a>',
           });
           map.addSource("parks", {
             type: "geojson",
-            data: data.parks as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '公園・緑地：<a href="https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d2000000024" target="_blank">東京都</a>',
           });
           map.addSource("land-prices", {
             type: "geojson",
-            data: data.landPrices as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '地価公示：<a href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-L01-2026.html" target="_blank">国土数値情報</a>',
           });
           map.addSource("shelters", {
             type: "geojson",
-            data: data.shelters as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '指定避難所：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>',
           });
           map.addSource("roads", {
             type: "geojson",
-            data: data.roads as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '道路 © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>',
           });
-          map.addSource("rail", { type: "geojson", data: data.rail as never });
-          map.addSource("stations", { type: "geojson", data: data.stations as never });
+          map.addSource("rail", { type: "geojson", data: EMPTY_COLLECTION as never });
+          map.addSource("stations", { type: "geojson", data: EMPTY_COLLECTION as never });
           map.addSource("wards", { type: "geojson", data: data.wards as never });
           map.addSource("city", { type: "geojson", data: data.city as never });
           map.addSource("district-plans", {
             type: "geojson",
-            data: data.districtPlans as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '地区計画：<a href="https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028" target="_blank">東京都</a>',
           });
-          map.addSource("height-districts", { type: "geojson", data: data.heightDistricts as never });
-          map.addSource("special-zones", { type: "geojson", data: data.specialZones as never });
+          map.addSource("height-districts", { type: "geojson", data: EMPTY_COLLECTION as never });
+          map.addSource("special-zones", { type: "geojson", data: EMPTY_COLLECTION as never });
           map.addSource("redevelopment", {
             type: "geojson",
-            data: data.redevelopment as never,
+            data: EMPTY_COLLECTION as never,
             attribution: '再開発：<a href="https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu" target="_blank">東京都</a>',
           });
           map.addSource("selection", {
@@ -1323,8 +1447,10 @@ export function MapAtlas() {
       disposed = true;
       mapRef.current?.remove();
       mapRef.current = null;
+      loadingOverlays.clear();
+      datasetLoader.reset();
     };
-  }, []);
+  }, [datasetLoader]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1369,14 +1495,57 @@ export function MapAtlas() {
     source?.setData({ type: "FeatureCollection", features: [] });
   };
 
-  const changeArea = (value: AreaLayer) => {
-    setAreaLayer(value);
+  const changeArea = async (value: AreaLayer) => {
+    const areaAction = ++areaActionRef.current;
     clearSelection();
+    if (value === "none") {
+      setAreaLayer(value);
+      setLayerNotice(null);
+      return;
+    }
+    if (!ready) return;
+
+    const dataset = AREA_DATASETS[value];
+    if (!dataset) return;
+    const noticeAction = ++noticeActionRef.current;
+    setLayerNotice({ kind: "loading", message: `${LAYER_LABELS[value]}を読み込み中…` });
+    try {
+      await ensureDataset(dataset);
+      if (areaAction !== areaActionRef.current) return;
+      setAreaLayer(value);
+      if (noticeAction === noticeActionRef.current) setLayerNotice(null);
+    } catch (reason: unknown) {
+      if (areaAction !== areaActionRef.current) return;
+      setLayerNotice({
+        kind: "error",
+        message: reason instanceof Error ? reason.message : `${LAYER_LABELS[value]}を読み込めませんでした`,
+      });
+    }
   };
 
-  const toggleOverlay = (key: OverlayKey) => {
-    setOverlays((current) => ({ ...current, [key]: !current[key] }));
+  const toggleOverlay = async (key: OverlayKey) => {
     clearSelection();
+    if (overlays[key]) {
+      setOverlays((current) => ({ ...current, [key]: false }));
+      return;
+    }
+    if (!ready || loadingOverlaysRef.current.has(key)) return;
+
+    loadingOverlaysRef.current.add(key);
+    const noticeAction = ++noticeActionRef.current;
+    setLayerNotice({ kind: "loading", message: `${LAYER_LABELS[key]}を読み込み中…` });
+    try {
+      await Promise.all(OVERLAY_DATASETS[key].map(ensureDataset));
+      setOverlays((current) => ({ ...current, [key]: true }));
+      if (noticeAction === noticeActionRef.current) setLayerNotice(null);
+    } catch (reason: unknown) {
+      setLayerNotice({
+        kind: "error",
+        message: reason instanceof Error ? reason.message : `${LAYER_LABELS[key]}を読み込めませんでした`,
+      });
+    } finally {
+      loadingOverlaysRef.current.delete(key);
+    }
   };
 
   const resetMap = () => {
@@ -1415,7 +1584,7 @@ export function MapAtlas() {
     if (overlays.landPrices) groups.push({ title: "地価公示（円/m²）", items: LAND_PRICE_LEGEND });
     if (overlays.shelters) groups.push({ title: "指定避難所", items: SHELTER_LEGEND });
     if (overlays.districtPlans) groups.push({ title: "地区計画", items: DISTRICT_PLAN_LEGEND });
-    if (overlays.heightDistricts) groups.push({ title: "高度地区", items: HEIGHT_DISTRICT_LEGEND });
+    if (overlays.heightDistricts) groups.push({ title: "高度地区（千代田・中央は指定なし）", items: HEIGHT_DISTRICT_LEGEND });
     if (overlays.specialZones) groups.push({ title: "容積・再開発等の特例", items: SPECIAL_ZONE_LEGEND });
     if (overlays.redevelopment) groups.push({ title: "事業中の再開発", items: REDEVELOPMENT_LEGEND });
     return groups;
@@ -1435,7 +1604,7 @@ export function MapAtlas() {
     if (overlays.roads) add("主要道路", "都市の軸と区を越える連続性を見る。", meta?.roadsDate ?? "取得時点", "OpenStreetMap", "https://www.openstreetmap.org/copyright");
     if (overlays.rail) add("鉄道・駅", "駅勢圏と乗換拠点を道路・土地利用に重ねて読む。", meta?.railDate ?? "2025年", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html");
     if (overlays.districtPlans) add("地区計画", "区域を入口に、計画書・計画図へたどる。", meta?.districtPlanDate ?? "2025-05-02", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
-    if (overlays.heightDistricts) add("高度地区", "種別と数値指定を概観。用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
+    if (overlays.heightDistricts) add("高度地区", "千代田区・中央区は指定なし。隣接4区の種別と数値指定を用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.specialZones) add("容積・再開発等の特例", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.redevelopment) add("事業中の再開発", "現在動いている事業の所在を点で把握。区域は資料参照。", meta?.redevelopmentDate ?? "2025-10-31", "東京都", "https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu");
     if (overlays.parks) add("公園・緑地", "まとまりとネットワークを周辺区まで連続して見る。", meta?.parksDate ?? "公開時点", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d2000000024");
@@ -1568,6 +1737,12 @@ export function MapAtlas() {
                 <Toggle label="指定避難所" active={overlays.shelters} onClick={() => toggleOverlay("shelters")} />
               </div>
             </section>
+
+            {layerNotice && (
+              <div className={`layer-notice ${layerNotice.kind === "error" ? "is-error" : ""}`} role="status" aria-live="polite">
+                {layerNotice.message}
+              </div>
+            )}
 
             <section className="reading-panel" aria-live="polite">
               <h2 className="section-title">いまの地図の読み方</h2>
