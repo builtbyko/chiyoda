@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "千代田区＋隣接区ベースアトラス",
+  title: "千代田まちづくり基礎アトラス",
   description:
-    "千代田区と中央・港・新宿・文京・台東区の人口、都市計画、防災、交通、公園、地価を航空写真上で比較する学習用Webマップ。",
+    "千代田区と隣接5区の人口、土地利用、都市計画、再開発、防災、交通を航空写真上で学ぶ個人用Webマップ。",
   icons: {
     icon: `${basePath}/favicon.svg`,
     shortcut: `${basePath}/favicon.svg`,

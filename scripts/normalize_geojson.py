@@ -44,11 +44,19 @@ def main() -> None:
     for feature in bundle["towns"]["features"]:
         feature["geometry"] = normalized_geometry(feature["geometry"])
 
-    for key in ("zoning", "fire", "flood", "parks"):
+    for key in (
+        "zoning",
+        "fire",
+        "flood",
+        "parks",
+        "districtPlans",
+        "heightDistricts",
+        "specialZones",
+    ):
         for feature in bundle[key]["features"]:
             feature["geometry"] = normalized_geometry(feature["geometry"], clip=scope)
 
-    for key in ("landPrices", "shelters"):
+    for key in ("landPrices", "shelters", "redevelopment"):
         for feature in bundle[key]["features"]:
             if not scope.covers(shape(feature["geometry"])):
                 raise ValueError(f"{key} contains a point outside the six-ward scope")

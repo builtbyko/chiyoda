@@ -14,6 +14,46 @@ DEFAULT_SOURCE_ROOT = ROOT.parent / "work" / "chiyoda_map" / "data"
 
 SOURCES = (
     (
+        "daytime-population-2020",
+        "tj20zv1100.csv",
+        "https://www.toukei.metro.tokyo.lg.jp/tyukanj/2020/tj20zv1100.csv",
+    ),
+    (
+        "land-use-tokyo-2021",
+        "R03.zip",
+        "https://data.storage.data.metro.tokyo.lg.jp/toshiseibi/R03.zip",
+    ),
+    (
+        "planning-tokyo",
+        "gis02_koudochiku.zip",
+        "https://www.opendata.metro.tokyo.lg.jp/toshiseibi/gis02_koudochiku.zip",
+    ),
+    (
+        "planning-tokyo",
+        "gis04_chikukeikaku.zip",
+        "https://www.opendata.metro.tokyo.lg.jp/toshiseibi/gis04_chikukeikaku.zip",
+    ),
+    (
+        "planning-tokyo",
+        "gis05_saikaihatsuchikukeikaku.zip",
+        "https://www.opendata.metro.tokyo.lg.jp/toshiseibi/gis05_saikaihatsuchikukeikaku.zip",
+    ),
+    (
+        "planning-tokyo",
+        "gis06_koudoriyouchiku.zip",
+        "https://www.opendata.metro.tokyo.lg.jp/toshiseibi/gis06_koudoriyouchiku.zip",
+    ),
+    (
+        "planning-tokyo",
+        "gis07_tokuteigaiku.zip",
+        "https://www.opendata.metro.tokyo.lg.jp/toshiseibi/gis07_tokuteigaiku.zip",
+    ),
+    (
+        "planning-tokyo",
+        "gis08_toshisaiseitokubetsuchiku.zip",
+        "https://www.opendata.metro.tokyo.lg.jp/toshiseibi/gis08_toshisaiseitokubetsuchiku.zip",
+    ),
+    (
         "green-tokyo-2026",
         "green_chuui.pdf",
         "https://data.storage.data.metro.tokyo.lg.jp/toshiseibi/green_chuui.pdf",
@@ -51,6 +91,13 @@ SOURCES = (
 )
 
 EXTRACTIONS = {
+    "R03.zip": "expanded",
+    "gis02_koudochiku.zip": "koudochiku",
+    "gis04_chikukeikaku.zip": "chikukeikaku",
+    "gis05_saikaihatsuchikukeikaku.zip": "saikaihatsuchikukeikaku",
+    "gis06_koudoriyouchiku.zip": "koudoriyouchiku",
+    "gis07_tokuteigaiku.zip": "tokuteigaiku",
+    "gis08_toshisaiseitokubetsuchiku.zip": "toshisaiseitokubetsuchiku",
     "01_kouenryokuchi.zip": "expanded",
     "L01-26_GML.zip": "expanded",
     "A31a-25_13_10_GEOJSON.zip": "river-10",

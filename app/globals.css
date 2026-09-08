@@ -148,7 +148,7 @@ button {
 
 .sidebar-inner {
   display: grid;
-  gap: 22px;
+  gap: 19px;
   padding: 22px 22px 32px;
 }
 
@@ -287,7 +287,8 @@ button {
   font-size: 10px;
 }
 
-.segment-control {
+.segment-control,
+.area-choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
@@ -296,7 +297,7 @@ button {
   background: #e9e6de;
 }
 
-.segment-button:last-child {
+.segment-button.is-wide {
   grid-column: 1 / -1;
 }
 
@@ -316,6 +317,24 @@ button {
   background: #fff;
   color: var(--ink);
   box-shadow: 0 2px 8px rgb(23 33 31 / 8%);
+}
+
+.photo-select {
+  width: 100%;
+  height: 42px;
+  padding: 0 34px 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.photo-select:focus {
+  border-color: var(--sage);
+  outline: 3px solid rgb(53 107 99 / 12%);
 }
 
 .toggle-list {
@@ -375,6 +394,41 @@ button {
 
 .source-line a {
   color: var(--sage);
+  text-underline-offset: 2px;
+}
+
+.reading-panel {
+  padding: 13px;
+  border-left: 3px solid var(--sage);
+  background: #f4f1e9;
+}
+
+.guide-list {
+  display: grid;
+  gap: 12px;
+}
+
+.guide-item + .guide-item {
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.guide-item strong {
+  display: block;
+  font-size: 11px;
+}
+
+.guide-item p {
+  margin: 3px 0 4px;
+  color: #4f5955;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.guide-item a {
+  color: var(--sage);
+  font-size: 9px;
+  font-weight: 700;
   text-underline-offset: 2px;
 }
 
@@ -485,10 +539,41 @@ button {
 .legend-card {
   bottom: 25px;
   left: 14px;
-  width: 184px;
+  width: 78px;
   max-height: calc(100% - 72px);
-  padding: 12px;
+  padding: 0;
+  overflow: hidden;
+  transition: width 160ms ease;
+}
+
+.legend-card.is-open {
+  width: 196px;
+}
+
+.legend-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.legend-body {
+  max-height: calc(100vh - 245px);
+  padding: 0 11px 11px;
   overflow-y: auto;
+}
+
+.legend-group + .legend-group {
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 
 .legend-title {
@@ -524,6 +609,20 @@ button {
   bottom: 25px;
   width: min(286px, calc(100% - 32px));
   padding: 15px 16px;
+}
+
+.detail-close {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
 }
 
 .detail-eyebrow {
@@ -564,6 +663,29 @@ button {
   font-family: var(--font-geist-mono), monospace;
   font-size: 12px;
   font-weight: 650;
+}
+
+.detail-note {
+  margin: 11px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  color: #56605c;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.detail-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  margin-top: 7px;
+}
+
+.detail-sources a {
+  color: var(--sage);
+  font-size: 9px;
+  font-weight: 700;
+  text-underline-offset: 2px;
 }
 
 .map-error {
@@ -723,9 +845,17 @@ button {
   .legend-card {
     bottom: 13px;
     left: 10px;
-    width: 150px;
+    width: 72px;
     max-height: 45vh;
-    padding: 9px;
+  }
+
+  .legend-card.is-open {
+    width: 158px;
+  }
+
+  .legend-body {
+    max-height: calc(45vh - 38px);
+    padding-inline: 9px;
   }
 
   .segment-button,
@@ -738,10 +868,13 @@ button {
   }
 
   .detail-card {
+    top: 58px;
     right: 10px;
-    bottom: 13px;
-    width: min(255px, calc(100% - 174px));
+    bottom: auto;
+    width: min(300px, calc(100% - 24px));
+    max-height: 42vh;
     padding: 11px 12px;
+    overflow-y: auto;
   }
 
   .detail-title {
@@ -764,16 +897,12 @@ button {
 }
 
 @media (max-width: 480px) {
-  .legend-card {
-    width: 132px;
-  }
-
   .legend-swatch {
     width: 14px;
   }
 
   .detail-card {
-    width: calc(100% - 155px);
+    width: calc(100% - 24px);
   }
 
   .detail-grid {

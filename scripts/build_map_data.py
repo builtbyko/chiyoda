@@ -26,6 +26,7 @@ from shapely.geometry import (
     LineString,
     MultiLineString,
     MultiPolygon,
+    Point,
     Polygon,
     mapping,
     shape,
@@ -85,6 +86,25 @@ FLOOD_DEPTHS = {
     4: "5.0–10.0m",
     5: "10.0–20.0m",
     6: "20.0m以上",
+}
+
+LAND_USE_LABELS = {
+    "public": "公共・文教",
+    "business": "業務・商業",
+    "residential": "住宅",
+    "industrial": "工業・物流",
+    "open": "屋外利用・未利用",
+    "green": "公園・緑地",
+    "transport": "道路・鉄道",
+    "water": "水面",
+    "other": "その他",
+}
+
+HEIGHT_TYPES = {
+    1: "第一種高度地区",
+    2: "第二種高度地区",
+    3: "第三種高度地区",
+    4: "最低・最高限高度の数値指定",
 }
 
 PARK_SOURCES = {
@@ -268,6 +288,17 @@ def number(value: object) -> int:
     return 0 if raw in {"", "-", "－"} else int(float(raw))
 
 
+def optional_number(value: object) -> float | None:
+    raw = str(value or "").strip().replace(",", "")
+    if raw in {"", "-", "－", "nan", "None"}:
+        return None
+    try:
+        result = float(raw)
+    except (TypeError, ValueError):
+        return None
+    return None if math.isnan(result) else result
+
+
 def load_population(path: Path):
     rows = list(csv.DictReader(path.open("r", encoding="utf-8-sig", newline="")))
     statistics = {}
@@ -292,8 +323,83 @@ def load_population(path: Path):
     return statistics, totals
 
 
+def load_daytime_population(path: Path):
+    rows = list(csv.DictReader(path.open("r", encoding="utf-8-sig", newline="")))
+    by_code = {}
+    by_name = {}
+    totals = {}
+    for row in rows:
+        hierarchy_code = str(row["オリジナル地域階層コード"] or "").strip()
+        ward_code = hierarchy_code[:5]
+        if ward_code not in WARDS:
+            continue
+
+        values = {
+            "id": str(row["地域ＩＤ"]),
+            "dp": number(row["昼間人口（人）"]),
+            "da": optional_number(row["面積（平方キロメートル） "]),
+            "dd": optional_number(row["昼間人口密度（人／平方キロメートル） "]),
+            "rp": number(row["常住人口（人）"]),
+            "dr": optional_number(row["昼夜間人口比率"]),
+        }
+        if row["地域階層フラグ／区市町村"] == "●":
+            totals[ward_code] = values
+
+        if row["地域階層フラグ／丁目･小字相当"] not in {"●", "○"}:
+            continue
+        name = current_town_name(
+            ward_code,
+            row["表側表章地域（階層なし）／地域名称"],
+        )
+        by_name[(ward_code, name)] = values
+        national_code = str(row["対応する国の小地域集計町丁字コード"] or "").strip()
+        if national_code not in {"", "-", "－"}:
+            by_code[f"{ward_code}{national_code.zfill(6)}"] = values
+    return by_code, by_name, totals
+
+
+def land_use_group(code: int) -> str:
+    if 111 <= code <= 114:
+        return "public"
+    if 121 <= code <= 125:
+        return "business"
+    if 131 <= code <= 132:
+        return "residential"
+    if 141 <= code <= 150:
+        return "industrial"
+    if code in {210, 220, 400}:
+        return "open"
+    if code == 300 or 611 <= code <= 620 or code in {800, 900}:
+        return "green"
+    if code in {510, 520}:
+        return "transport"
+    if code == 700:
+        return "water"
+    return "other"
+
+
+def load_land_use(source_root: Path):
+    path = next((source_root / "land-use-tokyo-2021" / "expanded").rglob("R03土地利用現況.shp"))
+    frame = pyogrio.read_dataframe(
+        path,
+        columns=["AREA", "LU_1", "CODE2", "NAME2"],
+        read_geometry=False,
+        where="CODE2 >= 101 AND CODE2 <= 106",
+    )
+    grouped = defaultdict(lambda: defaultdict(float))
+    for row in frame.to_dict("records"):
+        ward_code = f"13{int(row['CODE2']):03d}"
+        name = current_town_name(ward_code, row["NAME2"])
+        grouped[(ward_code, name)][land_use_group(int(row["LU_1"]))] += decimal(row["AREA"])
+    return grouped
+
+
 def build_towns(source_root: Path):
     population, totals = load_population(source_root / "population-tokyo-2026-01.csv")
+    daytime_by_code, daytime_by_name, daytime_totals = load_daytime_population(
+        source_root / "daytime-population-2020" / "tj20zv1100.csv"
+    )
+    land_use = load_land_use(source_root)
     ward_geometries = {}
     grouped = {}
 
@@ -307,9 +413,13 @@ def build_towns(source_root: Path):
             if not name or name in {"-", "‐", "水面調査区"}:
                 continue
             key = (code, name)
-            item = grouped.setdefault(key, {"area": 0.0, "geometries": [], "ward": ward_name})
+            item = grouped.setdefault(
+                key,
+                {"area": 0.0, "geometries": [], "ward": ward_name, "codes": []},
+            )
             item["area"] += float(props.get("AREA") or 0)
             item["geometries"].append(geometry)
+            item["codes"].append(str(props.get("KEY_CODE") or ""))
 
     missing_population = sorted(set(grouped) - set(population))
     missing_geometry = sorted(set(population) - set(grouped))
@@ -334,6 +444,39 @@ def build_towns(source_root: Path):
         stats = population.get((code, name), {"h": 0, "p": 0, "m": 0, "f": 0})
         area = int(round(item["area"]))
         density = round(stats["p"] / (area / 1_000_000)) if area else 0
+        daytime_rows = {}
+        for key_code in item["codes"]:
+            if key_code in daytime_by_code:
+                day = daytime_by_code[key_code]
+                daytime_rows[day["id"]] = day
+        if not daytime_rows and (code, name) in daytime_by_name:
+            day = daytime_by_name[(code, name)]
+            daytime_rows[day["id"]] = day
+        daytime_population = sum(day["dp"] for day in daytime_rows.values())
+        daytime_residents = sum(day["rp"] for day in daytime_rows.values())
+        daytime_area = sum(day["da"] or 0 for day in daytime_rows.values())
+        daytime_density = (
+            round(daytime_population / daytime_area) if daytime_area else None
+        )
+        day_night_ratio = (
+            round(daytime_population / daytime_residents * 100, 1)
+            if daytime_residents
+            else None
+        )
+
+        use_areas = land_use.get((code, name), {})
+        use_total = sum(use_areas.values())
+        dominant_pool = {
+            key: value
+            for key, value in use_areas.items()
+            if key not in {"transport", "water", "other"}
+        }
+        dominant = max(dominant_pool, key=dominant_pool.get) if dominant_pool else "other"
+        ranked_uses = sorted(use_areas.items(), key=lambda pair: pair[1], reverse=True)
+        top_uses = [
+            (key, round(value / use_total * 100, 1))
+            for key, value in ranked_uses[:2]
+        ] if use_total else []
         geometry = polygonal(unary_union(item["geometries"]))
         features.append(
             {
@@ -345,6 +488,15 @@ def build_towns(source_root: Path):
                     **stats,
                     "a": area,
                     "d": density,
+                    "dp": daytime_population,
+                    "dd": daytime_density,
+                    "rp": daytime_residents,
+                    "dr": day_night_ratio,
+                    "lu": dominant,
+                    "u1": LAND_USE_LABELS.get(top_uses[0][0]) if top_uses else None,
+                    "s1": top_uses[0][1] if top_uses else None,
+                    "u2": LAND_USE_LABELS.get(top_uses[1][0]) if len(top_uses) > 1 else None,
+                    "s2": top_uses[1][1] if len(top_uses) > 1 else None,
                 },
                 "geometry": compact_geometry(geometry, 0.000002),
             }
@@ -354,7 +506,7 @@ def build_towns(source_root: Path):
     scope = polygonal(unary_union(list(ward_geometries.values())))
     area_transformer = Transformer.from_crs(4326, 6677, always_xy=True)
     scope_area = transform(area_transformer.transform, scope).area / 1_000_000
-    return features, ward_geometries, scope, totals, scope_area
+    return features, ward_geometries, scope, totals, daytime_totals, scope_area
 
 
 def zoning_group(code: int) -> str:
@@ -813,6 +965,220 @@ def build_rail(source_root: Path, scope, ward_geometries):
     return rail_features, station_features
 
 
+def yyyymmdd(value: object) -> str:
+    raw = re.sub(r"\D", "", str(value or ""))
+    if len(raw) != 8:
+        return clean_text(value) or "—"
+    return f"{raw[:4]}-{raw[4:6]}-{raw[6:]}"
+
+
+def clipped_planning_rows(path: Path, columns: list[str], scope):
+    frame = pyogrio.read_dataframe(path, columns=columns).to_crs(4326)
+    frame = frame[frame.geometry.intersects(scope)]
+    for row in frame.to_dict("records"):
+        geometry = polygonal(row["geometry"].intersection(scope))
+        if not geometry.is_empty:
+            yield row, geometry
+
+
+def build_planning(source_root: Path, scope, ward_geometries):
+    root = source_root / "planning-tokyo"
+    district_path = next(root.rglob("地区計画_*.shp"))
+    height_path = next(root.rglob("高度地区_*.shp"))
+    redevelopment_plan_path = next(root.rglob("再開発等促進区を定める地区計画_*.shp"))
+    high_use_path = next(root.rglob("高度利用地区_*.shp"))
+    special_block_path = next(root.rglob("特定街区_*.shp"))
+    urban_regeneration_path = next(root.rglob("都市再生特別地区_*.shp"))
+
+    district_plans = []
+    for row, geometry in clipped_planning_rows(
+        district_path,
+        ["TLP1F2", "TLP1F3", "TLP9010", "TLP9010D", "照会先"],
+        scope,
+    ):
+        district_plans.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": clean_text(row["TLP1F2"]),
+                    "a": optional_number(row["TLP1F3"]),
+                    "i": yyyymmdd(row["TLP9010"]),
+                    "d": yyyymmdd(row["TLP9010D"]),
+                    "o": clean_text(row["照会先"]),
+                    "w": "・".join(ward_names_for(geometry.representative_point(), ward_geometries)),
+                },
+                "geometry": compact_geometry(geometry, 0.000004),
+            }
+        )
+
+    height_districts = []
+    for row, geometry in clipped_planning_rows(
+        height_path,
+        ["TUP5F1", "TUP5F3", "TUP5F4"],
+        scope,
+    ):
+        type_code = int(decimal(row["TUP5F1"]))
+        minimum = optional_number(row["TUP5F3"])
+        maximum = optional_number(row["TUP5F4"])
+        height_districts.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": HEIGHT_TYPES.get(type_code, "高度地区"),
+                    "c": type_code,
+                    "mn": minimum if minimum and minimum > 0 else None,
+                    "mx": maximum if maximum and maximum > 0 else None,
+                    "w": "・".join(ward_names_for(geometry.representative_point(), ward_geometries)),
+                },
+                "geometry": compact_geometry(geometry, 0.000004),
+            }
+        )
+
+    special_zones = []
+    for row, geometry in clipped_planning_rows(
+        redevelopment_plan_path,
+        ["地区名", "計画面積", "当初決定", "最終決定", "照会先"],
+        scope,
+    ):
+        special_zones.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": clean_text(row["地区名"]),
+                    "t": "再開発等促進区",
+                    "c": "redevelopmentPlan",
+                    "a": optional_number(row["計画面積"]),
+                    "i": clean_text(row["当初決定"]),
+                    "d": clean_text(row["最終決定"]),
+                    "o": clean_text(row["照会先"]),
+                    "w": "・".join(ward_names_for(geometry.representative_point(), ward_geometries)),
+                },
+                "geometry": compact_geometry(geometry, 0.000004),
+            }
+        )
+
+    for row, geometry in clipped_planning_rows(
+        high_use_path,
+        ["地区名", "位置", "面積ha", "決定告示日", "変更告示日"],
+        scope,
+    ):
+        special_zones.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": clean_text(row["地区名"]),
+                    "t": "高度利用地区",
+                    "c": "highUse",
+                    "a": optional_number(row["面積ha"]),
+                    "d": clean_text(row["変更告示日"]) or clean_text(row["決定告示日"]),
+                    "l": clean_text(row["位置"]),
+                    "w": "・".join(ward_names_for(geometry.representative_point(), ward_geometries)),
+                },
+                "geometry": compact_geometry(geometry, 0.000004),
+            }
+        )
+
+    for row, geometry in clipped_planning_rows(
+        special_block_path,
+        ["名称", "所在地", "告示年月日", "街区規模ha", "建築物名称", "基準容積率", "指定容積率", "最高高"],
+        scope,
+    ):
+        designated_far = optional_number(row["指定容積率"])
+        special_zones.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": clean_text(row["名称"]),
+                    "t": "特定街区",
+                    "c": "specialBlock",
+                    "a": optional_number(row["街区規模ha"]),
+                    "d": yyyymmdd(row["告示年月日"]),
+                    "l": clean_text(row["所在地"]),
+                    "b": optional_number(row["基準容積率"]),
+                    "f": designated_far if designated_far and designated_far > 0 else None,
+                    "mx": clean_text(row["最高高"]),
+                    "u": clean_text(row["建築物名称"]),
+                    "w": "・".join(ward_names_for(geometry.representative_point(), ward_geometries)),
+                },
+                "geometry": compact_geometry(geometry, 0.000003),
+            }
+        )
+
+    for row, geometry in clipped_planning_rows(
+        urban_regeneration_path,
+        ["決定年月日", "告示番号", "地区名称", "位置", "面積_ha", "地域名称"],
+        scope,
+    ):
+        special_zones.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": clean_text(row["地区名称"]),
+                    "t": "都市再生特別地区",
+                    "c": "urbanRegeneration",
+                    "a": optional_number(row["面積_ha"]),
+                    "d": clean_text(row["決定年月日"]),
+                    "g": clean_text(row["告示番号"]),
+                    "l": clean_text(row["位置"]),
+                    "r": clean_text(row["地域名称"]),
+                    "w": "・".join(ward_names_for(geometry.representative_point(), ward_geometries)),
+                },
+                "geometry": compact_geometry(geometry, 0.000003),
+            }
+        )
+
+    district_plans.sort(key=lambda item: (item["properties"]["w"], item["properties"]["n"]))
+    height_districts.sort(key=lambda item: (item["properties"]["w"], item["properties"]["c"]))
+    special_zones.sort(key=lambda item: (item["properties"]["c"], item["properties"]["w"], item["properties"]["n"]))
+    return district_plans, height_districts, special_zones
+
+
+def build_redevelopment(towns):
+    snapshot = load_json(ROOT / "scripts" / "data" / "redevelopment-projects.json")
+    town_geometries = {
+        (item["properties"]["w"], item["properties"]["n"]): shape(item["geometry"])
+        for item in towns
+    }
+    features = []
+    missing = []
+    for record in snapshot["records"]:
+        geometries = []
+        labels = []
+        for target in record["t"]:
+            ward, raw_name = target.split("|", 1)
+            ward_code = next(code for code, label in WARDS.items() if label == ward)
+            name = current_town_name(ward_code, raw_name)
+            geometry = town_geometries.get((ward, name))
+            if geometry is not None:
+                geometries.append(geometry)
+                labels.append(f"{ward}{name}")
+        if not geometries:
+            missing.append(record["n"])
+            continue
+        point = unary_union(geometries).representative_point()
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "n": record["n"],
+                    "w": "・".join(record["w"]),
+                    "o": record["o"],
+                    "a": record["a"],
+                    "d": record["d"],
+                    "p": record["p"],
+                    "s": snapshot["status"],
+                    "q": labels,
+                    "l": "町丁目代表点",
+                },
+                "geometry": compact_geometry(point),
+            }
+        )
+    if missing:
+        raise ValueError(f"Redevelopment projects without a town anchor: {missing}")
+    features.sort(key=lambda item: (item["properties"]["w"], item["properties"]["n"]))
+    return features, snapshot
+
+
 def collection(features):
     return {"type": "FeatureCollection", "features": features}
 
@@ -832,7 +1198,7 @@ def main():
     args = parser.parse_args()
     source_root = args.source_root.resolve()
 
-    towns, ward_geometries, scope, totals, scope_area = build_towns(source_root)
+    towns, ward_geometries, scope, totals, daytime_totals, scope_area = build_towns(source_root)
     zoning = build_zoning(source_root, ward_geometries)
     fire = build_fire(source_root, ward_geometries)
     flood = build_flood(source_root, scope)
@@ -841,6 +1207,10 @@ def main():
     shelters = build_shelters(source_root, scope, ward_geometries)
     roads = build_roads(source_root, scope)
     rail, stations = build_rail(source_root, scope, ward_geometries)
+    district_plans, height_districts, special_zones = build_planning(
+        source_root, scope, ward_geometries
+    )
+    redevelopment, redevelopment_snapshot = build_redevelopment(towns)
 
     ward_features = []
     for code, ward_name in WARDS.items():
@@ -861,11 +1231,27 @@ def main():
 
     total_population = sum(item["p"] for item in totals.values())
     total_households = sum(item["h"] for item in totals.values())
+    area_transformer = Transformer.from_crs(4326, 6677, always_xy=True)
+    chiyoda_daytime = daytime_totals["13101"]
+    chiyoda_geometry_area = transform(
+        area_transformer.transform, ward_geometries["13101"]
+    ).area / 1_000_000
+    chiyoda_area = chiyoda_daytime["da"] or chiyoda_geometry_area
     bundle = {
         "meta": {
             "populationDate": "2026-01-01",
             "population": total_population,
             "households": total_households,
+            "chiyodaArea": round(chiyoda_area, 2),
+            "chiyodaPopulation": totals["13101"]["p"],
+            "chiyodaDaytimePopulation": chiyoda_daytime["dp"],
+            "chiyodaDayNightRatio": chiyoda_daytime["dr"],
+            "daytimeYear": "2020年国勢調査",
+            "landUseYear": "2021年度調査",
+            "districtPlanDate": "2025-05-02",
+            "heightDistrictDate": "2025-03-31",
+            "specialZoneDate": "2024-11-11〜2025-03-31",
+            "redevelopmentDate": redevelopment_snapshot["asOf"],
             "wardCount": len(WARDS),
             "townCount": len(towns),
             "stationCount": len(stations),
@@ -882,6 +1268,10 @@ def main():
             "parkCount": len(parks),
             "landPriceCount": len(land_prices),
             "shelterCount": len(shelters),
+            "districtPlanCount": len(district_plans),
+            "heightDistrictCount": len(height_districts),
+            "specialZoneCount": len(special_zones),
+            "redevelopmentCount": len(redevelopment),
         },
         "scope": feature("千代田区と隣接5区", scope),
         "city": feature("千代田区", ward_geometries["13101"]),
@@ -896,6 +1286,10 @@ def main():
         "roads": collection(roads),
         "rail": collection(rail),
         "stations": collection(stations),
+        "districtPlans": collection(district_plans),
+        "heightDistricts": collection(height_districts),
+        "specialZones": collection(special_zones),
+        "redevelopment": collection(redevelopment),
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -919,6 +1313,10 @@ def main():
             "roads": len(roads),
             "railRoutes": len(rail),
             "stations": len(stations),
+            "districtPlans": len(district_plans),
+            "heightDistricts": len(height_districts),
+            "specialZones": len(special_zones),
+            "redevelopment": len(redevelopment),
         },
         "population": total_population,
         "density": {
