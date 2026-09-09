@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
+import { buildLocationData, geolocationErrorMessage } from "./geolocation";
 import { createLazyGeoJsonLoader } from "./lazyGeoJson";
 
 type AreaLayer = "population" | "daytime" | "landUse" | "zoning" | "fire" | "flood" | "none";
@@ -653,9 +654,14 @@ export function MapAtlas() {
   const loadingOverlaysRef = useRef(new Set<OverlayKey>());
   const areaActionRef = useRef(0);
   const noticeActionRef = useRef(0);
+  const locationRequestRef = useRef(0);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [layerNotice, setLayerNotice] = useState<{ kind: "loading" | "error"; message: string } | null>(null);
+  const [locationState, setLocationState] = useState<{
+    status: "idle" | "locating" | "shown" | "error";
+    message: string;
+  }>({ status: "idle", message: "" });
   const [areaLayer, setAreaLayer] = useState<AreaLayer>("none");
   const [overlays, setOverlays] = useState<Record<OverlayKey, boolean>>({
     roads: false,
@@ -822,6 +828,14 @@ export function MapAtlas() {
           map.addSource("selection", {
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
+          });
+          map.addSource("user-location-accuracy", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+          });
+          map.addSource("user-location", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
           });
 
           map.addLayer({
@@ -1343,6 +1357,36 @@ export function MapAtlas() {
               "circle-stroke-width": 3,
             },
           });
+          map.addLayer({
+            id: "user-location-accuracy-fill",
+            type: "fill",
+            source: "user-location-accuracy",
+            paint: {
+              "fill-color": "#1479ff",
+              "fill-opacity": 0.14,
+            },
+          }, "ward-boundaries-halo");
+          map.addLayer({
+            id: "user-location-accuracy-line",
+            type: "line",
+            source: "user-location-accuracy",
+            paint: {
+              "line-color": "#1479ff",
+              "line-width": 1.6,
+              "line-opacity": 0.9,
+            },
+          }, "ward-boundaries-halo");
+          map.addLayer({
+            id: "user-location-point",
+            type: "circle",
+            source: "user-location",
+            paint: {
+              "circle-radius": 7,
+              "circle-color": "#1479ff",
+              "circle-stroke-color": "#fffdf8",
+              "circle-stroke-width": 3,
+            },
+          });
 
           data.wards.features.forEach((feature) => {
             const element = document.createElement("div");
@@ -1447,6 +1491,7 @@ export function MapAtlas() {
       disposed = true;
       mapRef.current?.remove();
       mapRef.current = null;
+      locationRequestRef.current += 1;
       loadingOverlays.clear();
       datasetLoader.reset();
     };
@@ -1548,12 +1593,82 @@ export function MapAtlas() {
     }
   };
 
+  const locateUser = () => {
+    if (!ready || locationState.status === "locating") return;
+    clearSelection();
+
+    if (typeof window === "undefined" || !window.isSecureContext) {
+      setLocationState({
+        status: "error",
+        message: "現在地はHTTPS接続でのみ利用できます。",
+      });
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocationState({
+        status: "error",
+        message: "このブラウザでは位置情報を利用できません。",
+      });
+      return;
+    }
+
+    const request = ++locationRequestRef.current;
+    setLocationState({ status: "locating", message: "現在地を取得しています。" });
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (request !== locationRequestRef.current) return;
+        const map = mapRef.current;
+        const pointSource = map?.getSource("user-location") as GeoJSONSource | undefined;
+        const accuracySource = map?.getSource("user-location-accuracy") as GeoJSONSource | undefined;
+        if (!map || !pointSource || !accuracySource) {
+          setLocationState({ status: "error", message: "現在地の表示準備ができていません。" });
+          return;
+        }
+
+        const { longitude, latitude, accuracy } = position.coords;
+        const location = buildLocationData(longitude, latitude, accuracy);
+        pointSource.setData(location.point as never);
+        accuracySource.setData(location.accuracyArea as never);
+        map.fitBounds(location.bounds, { padding: 90, maxZoom: 16.5, duration: 650 });
+
+        const roundedAccuracy = Number.isFinite(accuracy) ? Math.max(Math.round(accuracy), 0) : 0;
+        const accuracyText = roundedAccuracy >= 1_000
+          ? `${(roundedAccuracy / 1_000).toFixed(1)} km`
+          : `${roundedAccuracy} m`;
+        setLocationState({
+          status: "shown",
+          message: `現在地を表示しました。精度は約${accuracyText}です。`,
+        });
+      },
+      (locationError) => {
+        if (request !== locationRequestRef.current) return;
+        setLocationState({
+          status: "error",
+          message: geolocationErrorMessage(locationError.code),
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10_000,
+        maximumAge: 30_000,
+      },
+    );
+  };
+
+  const cancelPendingLocation = () => {
+    if (locationState.status !== "locating") return;
+    locationRequestRef.current += 1;
+    setLocationState({ status: "idle", message: "" });
+  };
+
   const resetMap = () => {
+    cancelPendingLocation();
     if (!mapRef.current || !scopeRef.current) return;
     mapRef.current.fitBounds(boundsFor(scopeRef.current), { padding: 42, duration: 600 });
   };
 
   const selectSearchItem = (item: SearchItem) => {
+    cancelPendingLocation();
     const map = mapRef.current;
     if (!map) return;
     setQuery("");
@@ -1775,8 +1890,20 @@ export function MapAtlas() {
             aria-expanded={panelOpen}
           >☰ レイヤー</button>
           <div className="map-top-actions">
+            <button
+              className="map-action"
+              onClick={locateUser}
+              disabled={!ready || locationState.status === "locating"}
+              aria-label={locationState.status === "shown" ? "現在地を更新" : "現在地を表示"}
+            >{locationState.status === "locating" ? "取得中…" : "現在地"}</button>
             <button className="map-action" onClick={resetMap}>6区全体へ戻る</button>
           </div>
+          {locationState.status === "error" && (
+            <div className="map-location-error" role="alert">{locationState.message}</div>
+          )}
+          {locationState.status !== "error" && (
+            <div className="sr-only" role="status" aria-live="polite">{locationState.message}</div>
+          )}
 
           {legendGroups.length > 0 && (
             <aside className={`legend-card ${legendOpen ? "is-open" : ""}`} aria-label="凡例">

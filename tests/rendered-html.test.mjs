@@ -45,6 +45,7 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /高度地区/);
   assert.match(html, /容積・再開発等の特例/);
   assert.match(html, /事業中の再開発/);
+  assert.match(html, /現在地/);
   assert.match(html, /1936–1942年頃/);
   assert.doesNotMatch(html, /背景地図/);
 });
