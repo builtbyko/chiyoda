@@ -37,6 +37,10 @@ from shapely.ops import linemerge, transform, unary_union
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE_ROOT = ROOT.parent / "work" / "chiyoda_map" / "data"
 OUTPUT_PATH = ROOT / "public" / "data" / "map-data.json"
+REGIONS_PATH = ROOT / "scripts" / "data" / "chiyoda-regions.json"
+LANDSCAPE_PROPERTIES_PATH = (
+    ROOT / "scripts" / "data" / "landscape-important-properties.json"
+)
 
 LAYER_FILES = {
     "zoning": "zoning.json",
@@ -1190,6 +1194,99 @@ def build_redevelopment(towns):
     return features, snapshot
 
 
+def build_chiyoda_regions(towns):
+    snapshot = load_json(REGIONS_PATH)
+    if len(snapshot.get("regions", [])) != 7:
+        raise ValueError("Chiyoda region snapshot must contain exactly seven regions")
+
+    town_geometries = {
+        clean_name(item["properties"]["n"]): shape(item["geometry"])
+        for item in towns
+        if item["properties"]["w"] == "千代田区"
+    }
+    assigned = []
+    features = []
+    for region in snapshot["regions"]:
+        town_names = [clean_name(name) for name in region["towns"]]
+        missing = sorted(set(town_names) - set(town_geometries))
+        if missing:
+            raise ValueError(f"Unknown towns in {region['name']}: {missing}")
+        assigned.extend(town_names)
+        geometry = polygonal(unary_union([town_geometries[name] for name in town_names]))
+        label = geometry.representative_point()
+        features.append(
+            feature(
+                region["name"],
+                geometry,
+                {
+                    "i": region["id"],
+                    "s": region["shortName"],
+                    "x": round(label.x, 6),
+                    "y": round(label.y, 6),
+                    "u": snapshot["officialPlanUrl"],
+                },
+            )
+        )
+
+    duplicates = sorted(name for name in set(assigned) if assigned.count(name) > 1)
+    unassigned = sorted(set(town_geometries) - set(assigned))
+    if duplicates or unassigned or len(assigned) != len(town_geometries):
+        raise ValueError(
+            f"Invalid Chiyoda region coverage; duplicates={duplicates}, unassigned={unassigned}"
+        )
+    return features, snapshot
+
+
+def build_landscape_properties(chiyoda_geometry):
+    snapshot = load_json(LANDSCAPE_PROPERTIES_PATH)
+    records = snapshot.get("records", [])
+    if len(records) != 64:
+        raise ValueError(f"Expected 64 landscape properties, found {len(records)}")
+
+    features = []
+    for record in records:
+        required = (
+            "designationNumber",
+            "designationDate",
+            "name",
+            "type",
+            "address",
+            "officialUrl",
+            "coordinates",
+        )
+        missing = [key for key in required if not record.get(key)]
+        if missing:
+            raise ValueError(f"Landscape property is missing {missing}: {record}")
+        if record["type"] not in {"建築物等", "橋梁"}:
+            raise ValueError(f"Unknown landscape property type: {record['type']}")
+        if not record["officialUrl"].startswith("https://www.city.chiyoda.lg.jp/"):
+            raise ValueError(f"Landscape property URL is not official: {record['officialUrl']}")
+
+        point = Point(record["coordinates"])
+        if not chiyoda_geometry.buffer(0.001).covers(point):
+            raise ValueError(f"Landscape property is outside Chiyoda: {record['name']}")
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "i": record["designationNumber"],
+                    "n": record["name"],
+                    "t": record["type"],
+                    "a": record["address"],
+                    "d": record["designationDate"],
+                    "u": record["officialUrl"],
+                    "g": record.get("note", ""),
+                    "c": record.get("coordinateSource", ""),
+                    "p": record.get("coordinatePrecision", ""),
+                },
+                "geometry": compact_geometry(point),
+            }
+        )
+
+    features.sort(key=lambda item: item["properties"]["n"])
+    return features, snapshot
+
+
 def collection(features):
     return {"type": "FeatureCollection", "features": features}
 
@@ -1222,6 +1319,10 @@ def main():
         source_root, scope, ward_geometries
     )
     redevelopment, redevelopment_snapshot = build_redevelopment(towns)
+    chiyoda_regions, region_snapshot = build_chiyoda_regions(towns)
+    landscape_properties, landscape_snapshot = build_landscape_properties(
+        ward_geometries["13101"]
+    )
 
     ward_features = []
     for code, ward_name in WARDS.items():
@@ -1263,6 +1364,8 @@ def main():
             "heightDistrictDate": "2025-03-31",
             "specialZoneDate": "2024-11-11〜2025-03-31",
             "redevelopmentDate": redevelopment_snapshot["asOf"],
+            "chiyodaRegionDate": region_snapshot["asOf"],
+            "landscapePropertyDate": landscape_snapshot["asOf"],
             "wardCount": len(WARDS),
             "townCount": len(towns),
             "stationCount": len(stations),
@@ -1283,6 +1386,8 @@ def main():
             "heightDistrictCount": len(height_districts),
             "specialZoneCount": len(special_zones),
             "redevelopmentCount": len(redevelopment),
+            "chiyodaRegionCount": len(chiyoda_regions),
+            "landscapePropertyCount": len(landscape_properties),
         },
         "scope": feature("千代田区と隣接5区", scope),
         "city": feature("千代田区", ward_geometries["13101"]),
@@ -1293,6 +1398,8 @@ def main():
         "districtPlans": collection(district_plans),
         "specialZones": collection(special_zones),
         "redevelopment": collection(redevelopment),
+        "chiyodaRegions": collection(chiyoda_regions),
+        "landscapeProperties": collection(landscape_properties),
     }
 
     layer_data = {
@@ -1342,6 +1449,8 @@ def main():
             "heightDistricts": len(height_districts),
             "specialZones": len(special_zones),
             "redevelopment": len(redevelopment),
+            "chiyodaRegions": len(chiyoda_regions),
+            "landscapeProperties": len(landscape_properties),
         },
         "population": total_population,
         "density": {

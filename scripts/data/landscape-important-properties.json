@@ -1,0 +1,974 @@
+{
+  "asOf": "2024-12",
+  "pageUpdated": "2026-02-05",
+  "officialListUrl": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kekan/ichiranhyo.html",
+  "officialGisUrl": "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html",
+  "gsiGeocoderUrl": "https://msearch.gsi.go.jp/address-search/AddressSearch",
+  "notes": [
+    "現行一覧64物件の名称・種別・所在地・指定日・個別PDFリンクは千代田区公式一覧による。",
+    "旧56地点は千代田区公式GIS（令和3年版行政基礎資料集を基に作成）の座標を使用。",
+    "指定25・60〜66は公式住所を国土地理院住所検索で位置化した街区等の代表点。"
+  ],
+  "records": [
+    {
+      "designationNumber": "1",
+      "designationDate": "平成15年6月9日",
+      "name": "九段会館本館",
+      "type": "建築物等",
+      "address": "九段南一丁目6番5号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/1-kudankaikanhonkan-r405.pdf",
+      "coordinates": [
+        139.75159,
+        35.69438
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "2",
+      "designationDate": "平成15年6月9日",
+      "name": "大成大手町ビル（旧大手町野村ビル）",
+      "type": "建築物等",
+      "address": "大手町二丁目1番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/2-otemachinomurabiru-r405_1.pdf",
+      "coordinates": [
+        139.76617,
+        35.68531
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "4",
+      "designationDate": "平成15年6月9日",
+      "name": "日比谷公会堂・市政会館",
+      "type": "建築物等",
+      "address": "日比谷公園",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/4-hibiyakokaido-shiseikaikan-r405.pdf",
+      "coordinates": [
+        139.7555634,
+        35.6715487
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "5",
+      "designationDate": "平成15年6月9日",
+      "name": "法曹会館",
+      "type": "建築物等",
+      "address": "霞が関一丁目1番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/5-hosokaikan-r405.pdf",
+      "coordinates": [
+        139.75259,
+        35.67511
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "6",
+      "designationDate": "平成15年6月9日",
+      "name": "日比谷高校資料館・正門・塀",
+      "type": "建築物等",
+      "address": "永田町二丁目16番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/6-hibiyakokoshiryokan-r405.pdf",
+      "coordinates": [
+        139.74051,
+        35.67614
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "7",
+      "designationDate": "平成15年6月9日",
+      "name": "上智大学1号館",
+      "type": "建築物等",
+      "address": "紀尾井町7番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/7-jochidaigaku1gokan-r405.pdf",
+      "coordinates": [
+        139.73274,
+        35.68319
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "8",
+      "designationDate": "平成15年6月9日",
+      "name": "区立九段小学校",
+      "type": "建築物等",
+      "address": "三番町16番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/8-kuritsukudanshogakko-r405.pdf",
+      "coordinates": [
+        139.7404,
+        35.69046
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "9-1",
+      "designationDate": "平成15年6月9日",
+      "name": "靖国神社本殿",
+      "type": "建築物等",
+      "address": "九段北三丁目1番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/9-1-yasukunijinjahonden-r405.pdf",
+      "coordinates": [
+        139.74281,
+        35.6944
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "9-2",
+      "designationDate": "平成15年6月9日",
+      "name": "靖国神社拝殿",
+      "type": "建築物等",
+      "address": "九段北三丁目1番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/9-2-yasukunijinjahaiden-r405.pdf",
+      "coordinates": [
+        139.74281,
+        35.6944
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "9-3",
+      "designationDate": "平成15年6月9日",
+      "name": "靖国会館",
+      "type": "建築物等",
+      "address": "九段北三丁目1番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/9-3-yasukunikaikan-r405.pdf",
+      "coordinates": [
+        139.74281,
+        35.6944
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "9-4",
+      "designationDate": "平成15年6月9日",
+      "name": "到着殿",
+      "type": "建築物等",
+      "address": "九段北三丁目1番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/9-4-tochakuden-r405.pdf",
+      "coordinates": [
+        139.74281,
+        35.6944
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "9-5",
+      "designationDate": "平成15年6月9日",
+      "name": "靖泉亭",
+      "type": "建築物等",
+      "address": "九段北三丁目1番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/9-5-seisentei-r405.pdf",
+      "coordinates": [
+        139.74281,
+        35.6944
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "9-6",
+      "designationDate": "平成15年6月9日",
+      "name": "能楽堂・舞台",
+      "type": "建築物等",
+      "address": "九段北三丁目1番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/9-6-nogakudobutai-r405.pdf",
+      "coordinates": [
+        139.74281,
+        35.6944
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "9-7",
+      "designationDate": "平成15年6月9日",
+      "name": "遊就館",
+      "type": "建築物等",
+      "address": "九段北三丁目1番2号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/9-7-yushukan-r405.pdf",
+      "coordinates": [
+        139.74281,
+        35.6944
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "10",
+      "designationDate": "平成15年6月9日",
+      "name": "東京ルーテルセンタービル",
+      "type": "建築物等",
+      "address": "富士見一丁目2番32号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/10-tokyorutensentabiru-r405.pdf",
+      "coordinates": [
+        139.74762,
+        35.6976
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "11",
+      "designationDate": "平成15年6月9日",
+      "name": "暁星学園塀",
+      "type": "建築物等",
+      "address": "富士見一丁目2番5号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/11-gyoseigakuenhori-r405.pdf",
+      "coordinates": [
+        139.74762,
+        35.6976
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "12",
+      "designationDate": "平成15年6月9日",
+      "name": "東方学会本館",
+      "type": "建築物等",
+      "address": "西神田二丁目4番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/12-tohogakkaihonkan-r405.pdf",
+      "coordinates": [
+        139.75455,
+        35.69807
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "13",
+      "designationDate": "平成15年6月9日",
+      "name": "文房堂ビル",
+      "type": "建築物等",
+      "address": "神田神保町一丁目21番地1",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/13-bumbodobiru-r405.pdf",
+      "coordinates": [
+        139.761,
+        35.69529
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "14",
+      "designationDate": "平成15年6月9日",
+      "name": "誠心堂書店",
+      "type": "建築物等",
+      "address": "神田神保町二丁目24番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/14-seishindoshoten-r405.pdf",
+      "coordinates": [
+        139.7571,
+        35.69761
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "15",
+      "designationDate": "平成15年6月9日",
+      "name": "今荘",
+      "type": "建築物等",
+      "address": "神田神保町三丁目15番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/15-imaso-r405.pdf",
+      "coordinates": [
+        139.75554,
+        35.69503
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "16",
+      "designationDate": "平成15年6月9日",
+      "name": "共立講堂",
+      "type": "建築物等",
+      "address": "一ツ橋二丁目2番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/16-kyouritsukodo-r405.pdf",
+      "coordinates": [
+        139.75755,
+        35.69331
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "17",
+      "designationDate": "平成15年6月9日",
+      "name": "猿楽町町会詰所",
+      "type": "建築物等",
+      "address": "神田猿楽町二丁目3番5号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/17-sarugakuchochokaitsumesho-r405.pdf",
+      "coordinates": [
+        139.75821,
+        35.69954
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "19",
+      "designationDate": "平成15年6月9日",
+      "name": "山の上ホテル本館",
+      "type": "建築物等",
+      "address": "神田駿河台一丁目1番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/19-yamanouehoterukaikan-r405.pdf",
+      "coordinates": [
+        139.7614,
+        35.69771
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "20",
+      "designationDate": "平成15年6月9日",
+      "name": "お茶の水スクエアA館",
+      "type": "建築物等",
+      "address": "神田駿河台一丁目6番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/20-ochanomizusukueaakan-r405.pdf",
+      "coordinates": [
+        139.76266,
+        35.69711
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "22",
+      "designationDate": "平成15年6月9日",
+      "name": "高畠宅",
+      "type": "建築物等",
+      "address": "神田駿河台四丁目2番地9",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/22-takahatataku-r405.pdf",
+      "coordinates": [
+        139.76619,
+        35.69768
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "24",
+      "designationDate": "平成15年6月9日",
+      "name": "鷹岡株式会社",
+      "type": "建築物等",
+      "address": "神田須田町一丁目3番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/24-takaokakabushikigaisha-r405.pdf",
+      "coordinates": [
+        139.76929,
+        35.69602
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "25",
+      "designationDate": "令和4年4月28日",
+      "name": "山本歯科医院",
+      "type": "建築物等",
+      "address": "神田須田町一丁目3番地3",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/25-yamamotoshikaiin-r405.pdf",
+      "coordinates": [
+        139.769287,
+        35.696018
+      ],
+      "coordinateSource": "gsi-address-search",
+      "coordinatePrecision": "block"
+    },
+    {
+      "designationNumber": "26",
+      "designationDate": "平成15年6月9日",
+      "name": "あんこう鍋 いせ源本館",
+      "type": "建築物等",
+      "address": "神田須田町一丁目11番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/26-isegenhonkan-r405.pdf",
+      "coordinates": [
+        139.76918,
+        35.69643
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "27",
+      "designationDate": "平成15年6月9日",
+      "name": "神田まつや",
+      "type": "建築物等",
+      "address": "神田須田町一丁目13番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/27-kandamatsuya-r405.pdf",
+      "coordinates": [
+        139.76883,
+        35.69619
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "28",
+      "designationDate": "平成15年6月9日",
+      "name": "ぼたん",
+      "type": "建築物等",
+      "address": "神田須田町一丁目15番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/28-botan-r405.pdf",
+      "coordinates": [
+        139.76874,
+        35.69637
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "29",
+      "designationDate": "平成15年6月9日",
+      "name": "竹むら",
+      "type": "建築物等",
+      "address": "神田須田町一丁目19番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/29-takemura-r405.pdf",
+      "coordinates": [
+        139.76894,
+        35.6968
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "30",
+      "designationDate": "平成15年6月9日",
+      "name": "海老原商店",
+      "type": "建築物等",
+      "address": "神田須田町二丁目13番地5",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/30-ebiharashoten-r801.pdf",
+      "coordinates": [
+        139.77448,
+        35.69634
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "31",
+      "designationDate": "平成15年6月9日",
+      "name": "柳森神社",
+      "type": "建築物等",
+      "address": "神田須田町二丁目25番地1",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/31-yanamorijinja-r405.pdf",
+      "coordinates": [
+        139.774,
+        35.6968
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "33",
+      "designationDate": "平成15年6月9日",
+      "name": "志村印刷",
+      "type": "建築物等",
+      "address": "神田司町二丁目10番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/33-shimurainsatsu-r405.pdf",
+      "coordinates": [
+        139.76814,
+        35.69453
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "34",
+      "designationDate": "平成15年6月9日",
+      "name": "山梨中央銀行東京支店",
+      "type": "建築物等",
+      "address": "鍛冶町一丁目6番10号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/34-yamanashichuoginkotokyoshiten-r405.pdf",
+      "coordinates": [
+        139.77156,
+        35.69017
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "35",
+      "designationDate": "平成15年6月9日",
+      "name": "明神下神田川本店",
+      "type": "建築物等",
+      "address": "外神田二丁目5番11号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/35-myojinkandagawahonten-r405.pdf",
+      "coordinates": [
+        139.76891,
+        35.69999
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "38",
+      "designationDate": "平成15年6月9日",
+      "name": "天野屋（あま酒）",
+      "type": "建築物等",
+      "address": "外神田二丁目18番15号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/38-amanoya-r405.pdf",
+      "coordinates": [
+        139.76691,
+        35.70163
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "39",
+      "designationDate": "平成15年8月8日",
+      "name": "旧第一生命館（DNタワー21）",
+      "type": "建築物等",
+      "address": "有楽町一丁目13番1号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/39-kyudaiichiseimeikan-r405.pdf",
+      "coordinates": [
+        139.76076,
+        35.67584
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "42",
+      "designationDate": "平成19年3月28日",
+      "name": "後楽橋",
+      "type": "橋梁",
+      "address": "神田三崎町二丁目22番,三丁目9番先～文京区後楽一丁目1,2番先",
+      "note": "神田川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/42-kourakubashi-r405.pdf",
+      "coordinates": [
+        139.7518733,
+        35.7025038
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "43",
+      "designationDate": "平成19年3月28日",
+      "name": "お茶の水橋",
+      "type": "橋梁",
+      "address": "神田駿河台二丁目3,6番地先～文京区湯島一丁目5番先",
+      "note": "神田川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/43-ochanomizubashi-r405.pdf",
+      "coordinates": [
+        139.7634901,
+        35.7000541
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "44",
+      "designationDate": "平成19年3月28日",
+      "name": "聖橋",
+      "type": "橋梁",
+      "address": "神田駿河台四丁目5,8番地先～文京区湯島一丁目4,5番先",
+      "note": "神田川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/44-hijiribashi-r707.pdf",
+      "coordinates": [
+        139.7655341,
+        35.6995559
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "45",
+      "designationDate": "平成19年3月28日",
+      "name": "昌平橋",
+      "type": "橋梁",
+      "address": "神田淡路町二丁目9番地,神田須田町一丁目25番地先～外神田一丁目1番,二丁目1番先",
+      "note": "神田川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/45-shoheibashi-r405.pdf",
+      "coordinates": [
+        139.768853,
+        35.6983989
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "46",
+      "designationDate": "平成19年3月28日",
+      "name": "万世橋",
+      "type": "橋梁",
+      "address": "神田須田町一丁目25番地,二丁目23番地先～外神田一丁目1,16番先",
+      "note": "神田川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/46-manseibashi-r405.pdf",
+      "coordinates": [
+        139.76994,
+        35.69735
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "47-1",
+      "designationDate": "平成19年3月28日",
+      "name": "和泉橋",
+      "type": "橋梁",
+      "address": "神田岩本町15番地,岩本町三丁目11番先～神田佐久間町一丁目11番地,神田佐久間河岸44番地先",
+      "note": "神田川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/47-1-izumibashi-r405.pdf",
+      "coordinates": [
+        139.7754332,
+        35.6969644
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "47-2",
+      "designationDate": "平成19年3月28日",
+      "name": "美倉橋",
+      "type": "橋梁",
+      "address": "東神田二丁目3,8番先～神田佐久間河岸92番地,東神田三丁目1番先",
+      "note": "神田川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/47-2-mikurabashi-r405.pdf",
+      "coordinates": [
+        139.7800468,
+        35.6968363
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "47-3",
+      "designationDate": "平成19年3月28日",
+      "name": "左衛門橋",
+      "type": "橋梁",
+      "address": "東神田二丁目8番,中央区日本橋馬喰町二丁目7番先～東神田三丁目1番,台東区浅草橋一丁目3番先",
+      "note": "神田川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/47-3-zaemombashi-r405.pdf",
+      "coordinates": [
+        139.7827075,
+        35.696648
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "48",
+      "designationDate": "平成19年3月28日",
+      "name": "新川橋",
+      "type": "橋梁",
+      "address": "飯田橋二丁目1,18番先～西神田三丁目5番,神田三崎町三丁目10番先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/48-shinkawabashi-r405.pdf",
+      "coordinates": [
+        139.7523007,
+        35.6988043
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "49",
+      "designationDate": "平成19年3月28日",
+      "name": "堀留橋",
+      "type": "橋梁",
+      "address": "九段北一丁目6番,飯田橋二丁目1番先～西神田三丁目3,5番先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/49-horitomebashi-r405.pdf",
+      "coordinates": [
+        139.7524817,
+        35.6978884
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "50",
+      "designationDate": "平成19年3月28日",
+      "name": "南堀留橋",
+      "type": "橋梁",
+      "address": "九段北一丁目1,6番先～神田神保町三丁目6番地,西神田三丁目3番先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/50-minamihoritomebashi-r405.pdf",
+      "coordinates": [
+        139.7526328,
+        35.6968732
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "51",
+      "designationDate": "平成19年3月28日",
+      "name": "雉子橋",
+      "type": "橋梁",
+      "address": "一ツ橋一丁目2番,九段南一丁目1番先～一ツ橋二丁目1番先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/51-kijibashi-r405.pdf",
+      "coordinates": [
+        139.7565336,
+        35.6924136
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "52",
+      "designationDate": "平成19年3月28日",
+      "name": "一ツ橋",
+      "type": "橋梁",
+      "address": "大手町一丁目4番,一ツ橋一丁目1番先～神田錦町三丁目19番地,一ツ橋二丁目1番先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/52-hitotsubashi-r405.pdf",
+      "coordinates": [
+        139.7589262,
+        35.6911484
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "53",
+      "designationDate": "平成19年3月28日",
+      "name": "錦橋",
+      "type": "橋梁",
+      "address": "大手町一丁目3,4番先～神田錦町三丁目19番地先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/53-nishikibashi-r405.pdf",
+      "coordinates": [
+        139.7609357,
+        35.6912985
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "54",
+      "designationDate": "平成19年3月28日",
+      "name": "鎌倉橋",
+      "type": "橋梁",
+      "address": "大手町一丁目9番,二丁目3番先～内神田一丁目1番,二丁目1番先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/54-kamakurabashi-r405.pdf",
+      "coordinates": [
+        139.7666814,
+        35.688727
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "55",
+      "designationDate": "平成19年3月28日",
+      "name": "旧常磐橋",
+      "type": "橋梁",
+      "address": "大手町二丁目7番先～中央区日本橋本石町二丁目1番,三丁目1番先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/55-kyutokiwabashi-r405.pdf",
+      "coordinates": [
+        139.7692701,
+        35.6875034
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "56",
+      "designationDate": "平成19年3月28日",
+      "name": "常盤橋",
+      "type": "橋梁",
+      "address": "大手町二丁目6,7番先～中央区日本橋本石町一丁目2番,二丁目1番先",
+      "note": "日本橋川系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/56-tokiwabashi-r405.pdf",
+      "coordinates": [
+        139.7706422,
+        35.6853475
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "57",
+      "designationDate": "平成19年3月28日",
+      "name": "四谷見附橋",
+      "type": "橋梁",
+      "address": "麹町六丁目5番地先～新宿区四谷一丁目1,5番地先",
+      "note": "外濠系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/57-yotsuyamitsukebashi-r405.pdf",
+      "coordinates": [
+        139.73137,
+        35.68465
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "58",
+      "designationDate": "平成19年3月28日",
+      "name": "弁慶橋",
+      "type": "橋梁",
+      "address": "紀尾井町1,4番先～港区元赤坂一丁目2番先",
+      "note": "外濠系",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/58-benkeibashi-r405.pdf",
+      "coordinates": [
+        139.7362448,
+        35.678918
+      ],
+      "coordinateSource": "chiyoda-official-gis",
+      "coordinatePrecision": "official-point"
+    },
+    {
+      "designationNumber": "60",
+      "designationDate": "令和5年3月30日",
+      "name": "ギャラリー蔵（御茶ノ水ソラシティ）",
+      "type": "建築物等",
+      "address": "神田駿河台四丁目6番地",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/60-gallery-kura.pdf",
+      "coordinates": [
+        139.766403,
+        35.698673
+      ],
+      "coordinateSource": "gsi-address-search",
+      "coordinatePrecision": "block"
+    },
+    {
+      "designationNumber": "61",
+      "designationDate": "令和5年3月30日",
+      "name": "旧李王家東京邸（赤坂プリンスクラシックハウス）",
+      "type": "建築物等",
+      "address": "紀尾井町1番2号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/61-prince-classi-chouse.pdf",
+      "coordinates": [
+        139.737183,
+        35.67992
+      ],
+      "coordinateSource": "gsi-address-search",
+      "coordinatePrecision": "block"
+    },
+    {
+      "designationNumber": "62",
+      "designationDate": "令和6年12月23日",
+      "name": "日本工業倶楽部会館",
+      "type": "建築物等",
+      "address": "丸の内一丁目4番6号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/bukken62.pdf",
+      "coordinates": [
+        139.764786,
+        35.684025
+      ],
+      "coordinateSource": "gsi-address-search",
+      "coordinatePrecision": "block"
+    },
+    {
+      "designationNumber": "63",
+      "designationDate": "令和6年12月23日",
+      "name": "遠藤家住宅（井政）",
+      "type": "建築物等",
+      "address": "外神田二丁目16番 宮本公園内",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/bukken63.pdf",
+      "coordinates": [
+        139.767715,
+        35.702129
+      ],
+      "coordinateSource": "gsi-address-search",
+      "coordinatePrecision": "block"
+    },
+    {
+      "designationNumber": "64",
+      "designationDate": "令和6年12月23日",
+      "name": "一誠堂書店",
+      "type": "建築物等",
+      "address": "神田神保町一丁目7番地6",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/bukken64.pdf",
+      "coordinates": [
+        139.759201,
+        35.695789
+      ],
+      "coordinateSource": "gsi-address-search",
+      "coordinatePrecision": "block"
+    },
+    {
+      "designationNumber": "65",
+      "designationDate": "令和6年12月23日",
+      "name": "三菱一号館",
+      "type": "建築物等",
+      "address": "丸の内二丁目6番2号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/bukken65.pdf",
+      "coordinates": [
+        139.7631088,
+        35.67832583
+      ],
+      "coordinateSource": "gsi-address-search",
+      "coordinatePrecision": "block"
+    },
+    {
+      "designationNumber": "66",
+      "designationDate": "令和6年12月23日",
+      "name": "田中商店",
+      "type": "建築物等",
+      "address": "岩本町一丁目8番16号",
+      "note": "",
+      "officialUrl": "https://www.city.chiyoda.lg.jp/documents/4200/bukken66.pdf",
+      "coordinates": [
+        139.777863,
+        35.692219
+      ],
+      "coordinateSource": "gsi-address-search",
+      "coordinatePrecision": "block"
+    }
+  ]
+}

@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "千代田まちづくり基礎アトラス",
+  title: "CHiYODA ATLAS | 千代田まちづくり基礎アトラス",
   description:
-    "千代田区と隣接5区の人口、土地利用、都市計画、再開発、防災、交通を航空写真上で学ぶ個人用Webマップ。",
+    "都市・地理・まちづくりを横断して千代田区を理解するための、自分用の都市アトラス。",
   icons: {
     icon: `${basePath}/favicon.svg`,
     shortcut: `${basePath}/favicon.svg`,

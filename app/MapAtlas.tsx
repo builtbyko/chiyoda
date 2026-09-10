@@ -16,7 +16,9 @@ type OverlayKey =
   | "districtPlans"
   | "heightDistricts"
   | "specialZones"
-  | "redevelopment";
+  | "redevelopment"
+  | "chiyodaRegions"
+  | "landscapeProperties";
 type PhotoEpoch = "latest" | "1987" | "1984" | "1979" | "1974" | "1961" | "1945" | "1936";
 
 type GeoFeature = {
@@ -44,7 +46,9 @@ type DatasetKey =
   | "districtPlans"
   | "heightDistricts"
   | "specialZones"
-  | "redevelopment";
+  | "redevelopment"
+  | "chiyodaRegions"
+  | "landscapeProperties";
 
 type AtlasData = {
   meta: {
@@ -61,6 +65,8 @@ type AtlasData = {
     heightDistrictDate: string;
     specialZoneDate: string;
     redevelopmentDate: string;
+    chiyodaRegionDate: string;
+    landscapePropertyDate: string;
     wardCount: number;
     townCount: number;
     stationCount: number;
@@ -81,6 +87,8 @@ type AtlasData = {
     heightDistrictCount: number;
     specialZoneCount: number;
     redevelopmentCount: number;
+    chiyodaRegionCount: number;
+    landscapePropertyCount: number;
   };
   scope: GeoFeature;
   city: GeoFeature;
@@ -91,12 +99,14 @@ type AtlasData = {
   districtPlans: GeoCollection;
   specialZones: GeoCollection;
   redevelopment: GeoCollection;
+  chiyodaRegions: GeoCollection;
+  landscapeProperties: GeoCollection;
 };
 
 type SearchItem = {
   name: string;
   ward: string;
-  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発";
+  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発" | "7地域" | "景観重要物件";
   layerId: string;
   feature: GeoFeature;
 };
@@ -107,6 +117,13 @@ type Detail = {
   rows: { label: string; value: string }[];
   note?: string;
   sources?: { label: string; url: string }[];
+  items?: {
+    name: string;
+    type: string;
+    address: string;
+    date: string;
+    url: string;
+  }[];
 };
 
 const ROAD_LAYER_IDS = ["roads-casing", "roads-line", "roads-hit"];
@@ -118,6 +135,8 @@ const DISTRICT_PLAN_LAYER_IDS = ["district-plans-casing", "district-plans-line",
 const HEIGHT_DISTRICT_LAYER_IDS = ["height-districts-fill", "height-districts-line"];
 const SPECIAL_ZONE_LAYER_IDS = ["special-zones-fill", "special-zones-line", "special-zones-hit"];
 const REDEVELOPMENT_LAYER_IDS = ["redevelopment-hit", "redevelopment-halo", "redevelopment-points"];
+const CHIYODA_REGION_LAYER_IDS = ["chiyoda-regions-fill", "chiyoda-regions-line", "chiyoda-regions-label"];
+const LANDSCAPE_PROPERTY_LAYER_IDS = ["landscape-properties-hit", "landscape-properties-halo", "landscape-properties-points"];
 
 const EMPTY_COLLECTION: GeoCollection = { type: "FeatureCollection", features: [] };
 
@@ -147,6 +166,8 @@ const DATASET_SOURCES: Record<DatasetKey, string> = {
   heightDistricts: "height-districts",
   specialZones: "special-zones",
   redevelopment: "redevelopment",
+  chiyodaRegions: "chiyoda-regions",
+  landscapeProperties: "landscape-properties",
 };
 
 const AREA_DATASETS: Partial<Record<AreaLayer, DatasetKey>> = {
@@ -169,6 +190,8 @@ const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
   heightDistricts: ["heightDistricts"],
   specialZones: ["specialZones"],
   redevelopment: ["redevelopment"],
+  chiyodaRegions: ["chiyodaRegions"],
+  landscapeProperties: ["landscapeProperties"],
 };
 
 const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
@@ -189,6 +212,8 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   heightDistricts: "高度地区",
   specialZones: "容積・再開発等の特例",
   redevelopment: "事業中の再開発",
+  chiyodaRegions: "千代田区の7地域",
+  landscapeProperties: "景観まちづくり重要物件",
 };
 
 const DATASET_LABELS: Record<DatasetKey, string> = {
@@ -206,6 +231,8 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   heightDistricts: "高度地区",
   specialZones: "容積・再開発等の特例",
   redevelopment: "事業中の再開発",
+  chiyodaRegions: "千代田区の7地域",
+  landscapeProperties: "景観まちづくり重要物件",
 };
 
 const PHOTO_OPTIONS: { value: PhotoEpoch; label: string; tile: string; maxzoom: number }[] = [
@@ -327,6 +354,21 @@ const SPECIAL_ZONE_LEGEND = [
 
 const REDEVELOPMENT_LEGEND = [["市街地再開発事業（事業中）", "#ff553d"]];
 
+const CHIYODA_REGION_LEGEND = [
+  ["麹町・番町", "#f2b134"],
+  ["飯田橋・富士見", "#2aa89a"],
+  ["神保町", "#4f7dd8"],
+  ["神田公園", "#8756b3"],
+  ["万世橋", "#d45783"],
+  ["和泉橋", "#df6d3e"],
+  ["大手町・丸の内・有楽町・永田町", "#b73e52"],
+];
+
+const LANDSCAPE_PROPERTY_LEGEND = [
+  ["建築物等", "#ff6b35"],
+  ["橋梁", "#16a89a"],
+];
+
 const FLOOD_DEPTH: Record<string, string> = {
   "1": "0.5m未満",
   "2": "0.5m以上3m未満",
@@ -406,6 +448,30 @@ function detailFor(
   meta: AtlasData["meta"] | null = null,
 ): Detail {
   const p = properties;
+  if (layerId.includes("chiyoda-region")) {
+    return {
+      eyebrow: "Master plan region",
+      title: String(p.n ?? "千代田区の地域区分"),
+      rows: [],
+      sources: [{
+        label: "千代田区都市計画マスタープラン",
+        url: String(p.u ?? "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf"),
+      }],
+    };
+  }
+  if (layerId.includes("landscape-propert")) {
+    return {
+      eyebrow: "Important landscape property",
+      title: String(p.n ?? "景観まちづくり重要物件"),
+      rows: [
+        { label: "種別", value: textValue(p.t) },
+        { label: "所在地", value: textValue(p.a) },
+        { label: "指定年月日", value: textValue(p.d) },
+      ],
+      note: p.p === "block" ? "位置は公式住所を国土地理院住所検索で位置化した代表点です。" : undefined,
+      sources: [{ label: "千代田区公式情報", url: String(p.u) }],
+    };
+  }
   if (layerId === "town-place") {
     return {
       eyebrow: "Place",
@@ -641,6 +707,22 @@ function detailFor(
   };
 }
 
+function landscapeGroupDetail(properties: Record<string, unknown>[]): Detail {
+  return {
+    eyebrow: "Important landscape properties",
+    title: `同じ位置の${properties.length}物件`,
+    rows: [],
+    note: "公式GISの同一点に登録された物件をまとめて表示しています。",
+    items: properties.map((item) => ({
+      name: textValue(item.n),
+      type: textValue(item.t),
+      address: textValue(item.a),
+      date: textValue(item.d),
+      url: textValue(item.u),
+    })),
+  };
+}
+
 export function MapAtlas() {
   const mapElement = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -674,6 +756,8 @@ export function MapAtlas() {
     heightDistricts: false,
     specialZones: false,
     redevelopment: false,
+    chiyodaRegions: false,
+    landscapeProperties: false,
   });
   const [photoEpoch, setPhotoEpoch] = useState<PhotoEpoch>("latest");
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -681,6 +765,7 @@ export function MapAtlas() {
   const [query, setQuery] = useState("");
   const [panelOpen, setPanelOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [atlasInfoOpen, setAtlasInfoOpen] = useState(false);
   const [meta, setMeta] = useState<AtlasData["meta"] | null>(null);
 
   const ensureDataset = useCallback((key: DatasetKey) => (
@@ -730,6 +815,8 @@ export function MapAtlas() {
           districtPlans: data.districtPlans,
           specialZones: data.specialZones,
           redevelopment: data.redevelopment,
+          chiyodaRegions: data.chiyodaRegions,
+          landscapeProperties: data.landscapeProperties,
         });
 
         const map = new maplibregl.Map({
@@ -824,6 +911,16 @@ export function MapAtlas() {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
             attribution: '再開発：<a href="https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu" target="_blank">東京都</a>',
+          });
+          map.addSource("chiyoda-regions", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            attribution: '7地域：<a href="https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf" target="_blank">千代田区都市計画マスタープラン</a>',
+          });
+          map.addSource("landscape-properties", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            attribution: '景観重要物件：<a href="https://www.city.chiyoda.lg.jp/koho/machizukuri/kekan/ichiranhyo.html" target="_blank">千代田区</a>',
           });
           map.addSource("selection", {
             type: "geojson",
@@ -949,6 +1046,47 @@ export function MapAtlas() {
               ],
               "fill-opacity": 0.38,
               "fill-outline-color": "rgba(255,255,255,0.35)",
+            },
+          });
+          map.addLayer({
+            id: "chiyoda-regions-fill",
+            type: "fill",
+            source: "chiyoda-regions",
+            layout: { visibility: "none" },
+            paint: {
+              "fill-color": [
+                "match", ["get", "i"],
+                1, "#f2b134",
+                2, "#2aa89a",
+                3, "#4f7dd8",
+                4, "#8756b3",
+                5, "#d45783",
+                6, "#df6d3e",
+                7, "#b73e52",
+                "#64748b",
+              ],
+              "fill-opacity": 0.13,
+            },
+          });
+          map.addLayer({
+            id: "chiyoda-regions-line",
+            type: "line",
+            source: "chiyoda-regions",
+            layout: { visibility: "none" },
+            paint: {
+              "line-color": [
+                "match", ["get", "i"],
+                1, "#f2b134",
+                2, "#2aa89a",
+                3, "#4f7dd8",
+                4, "#8756b3",
+                5, "#d45783",
+                6, "#df6d3e",
+                7, "#b73e52",
+                "#64748b",
+              ],
+              "line-width": 2.2,
+              "line-opacity": 0.92,
             },
           });
           map.addLayer({
@@ -1334,6 +1472,62 @@ export function MapAtlas() {
             },
           });
           map.addLayer({
+            id: "landscape-properties-hit",
+            type: "circle",
+            source: "landscape-properties",
+            layout: { visibility: "none" },
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 16, 19],
+              "circle-color": "#ffffff",
+              "circle-opacity": 0.01,
+            },
+          });
+          map.addLayer({
+            id: "landscape-properties-halo",
+            type: "circle",
+            source: "landscape-properties",
+            layout: { visibility: "none" },
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 5.6, 16, 9],
+              "circle-color": "#17211f",
+              "circle-opacity": 0.9,
+            },
+          });
+          map.addLayer({
+            id: "landscape-properties-points",
+            type: "circle",
+            source: "landscape-properties",
+            layout: { visibility: "none" },
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3.6, 16, 6.8],
+              "circle-color": [
+                "match", ["get", "t"],
+                "建築物等", "#ff6b35",
+                "橋梁", "#16a89a",
+                "#64748b",
+              ],
+              "circle-stroke-color": "#fffdf8",
+              "circle-stroke-width": 1.35,
+            },
+          });
+          map.addLayer({
+            id: "chiyoda-regions-label",
+            type: "symbol",
+            source: "chiyoda-regions",
+            layout: {
+              visibility: "none",
+              "text-field": ["get", "s"],
+              "text-size": ["interpolate", ["linear"], ["zoom"], 11, 10, 14, 13],
+              "text-max-width": 11,
+              "text-letter-spacing": 0.04,
+            },
+            paint: {
+              "text-color": "#fffdf8",
+              "text-halo-color": "rgba(22, 31, 30, 0.92)",
+              "text-halo-width": 1.4,
+            },
+          });
+          map.addLayer({
             id: "selection-fill",
             type: "fill",
             source: "selection",
@@ -1441,14 +1635,30 @@ export function MapAtlas() {
               layerId: "redevelopment-points",
               feature,
             })),
+            ...data.chiyodaRegions.features.map((feature) => ({
+              name: String(feature.properties.n),
+              ward: "千代田区",
+              kind: "7地域" as const,
+              layerId: "chiyoda-regions-fill",
+              feature,
+            })),
+            ...data.landscapeProperties.features.map((feature) => ({
+              name: String(feature.properties.n),
+              ward: "千代田区",
+              kind: "景観重要物件" as const,
+              layerId: "landscape-properties-points",
+              feature,
+            })),
           ].sort((a, b) => a.name.localeCompare(b.name, "ja"));
           setSearchItems(allSearch);
 
           const clickable = [
+            "landscape-properties-points", "landscape-properties-halo", "landscape-properties-hit",
             "redevelopment-points", "redevelopment-hit",
             "shelters", "shelters-hit", "land-prices", "land-prices-hit",
             "station-core", "stations", "rail-hit", "roads-hit",
             "district-plans-hit", "district-plans-line", "special-zones-hit", "special-zones-fill",
+            "chiyoda-regions-label", "chiyoda-regions-line", "chiyoda-regions-fill",
             "height-districts-fill", "parks-fill", "flood-fill", "fire-fill", "zoning-fill",
             "land-use-fill", "daytime-fill", "population-fill",
           ];
@@ -1457,14 +1667,40 @@ export function MapAtlas() {
             map.getCanvas().style.cursor = hit ? "pointer" : "";
           });
           map.on("click", (event) => {
-            const feature = map.queryRenderedFeatures(event.point, { layers: clickable })[0];
+            const rendered = map.queryRenderedFeatures(event.point, { layers: clickable });
+            const feature =
+              rendered.find((item) => item.layer.id === "chiyoda-regions-label") ??
+              rendered.find((item) => !item.layer.id.startsWith("chiyoda-regions")) ??
+              rendered[0];
             const source = map.getSource("selection") as GeoJSONSource;
             if (!feature) {
               setDetail(null);
               source.setData({ type: "FeatureCollection", features: [] });
               return;
             }
-            setDetail(detailFor(feature.layer.id, feature.properties ?? {}, data.meta));
+            if (feature.layer.id.startsWith("landscape-properties")) {
+              const coordinates = JSON.stringify(feature.geometry.coordinates);
+              const seen = new Set<string>();
+              const properties = rendered
+                .filter((item) => (
+                  item.layer.id.startsWith("landscape-properties") &&
+                  JSON.stringify(item.geometry.coordinates) === coordinates
+                ))
+                .map((item) => item.properties ?? {})
+                .filter((item) => {
+                  const id = String(item.i ?? "");
+                  if (!id || seen.has(id)) return false;
+                  seen.add(id);
+                  return true;
+                });
+              setDetail(
+                properties.length > 1
+                  ? landscapeGroupDetail(properties)
+                  : detailFor(feature.layer.id, feature.properties ?? {}, data.meta),
+              );
+            } else {
+              setDetail(detailFor(feature.layer.id, feature.properties ?? {}, data.meta));
+            }
             source.setData(
               feature.layer.id === "flood-fill"
                 ? { type: "FeatureCollection", features: [] }
@@ -1521,6 +1757,8 @@ export function MapAtlas() {
     setLayerVisibility(map, HEIGHT_DISTRICT_LAYER_IDS, overlays.heightDistricts);
     setLayerVisibility(map, SPECIAL_ZONE_LAYER_IDS, overlays.specialZones);
     setLayerVisibility(map, REDEVELOPMENT_LAYER_IDS, overlays.redevelopment);
+    setLayerVisibility(map, CHIYODA_REGION_LAYER_IDS, overlays.chiyodaRegions);
+    setLayerVisibility(map, LANDSCAPE_PROPERTY_LAYER_IDS, overlays.landscapeProperties);
   }, [overlays, ready]);
 
   useEffect(() => {
@@ -1702,6 +1940,8 @@ export function MapAtlas() {
     if (overlays.heightDistricts) groups.push({ title: "高度地区（千代田・中央は指定なし）", items: HEIGHT_DISTRICT_LEGEND });
     if (overlays.specialZones) groups.push({ title: "容積・再開発等の特例", items: SPECIAL_ZONE_LEGEND });
     if (overlays.redevelopment) groups.push({ title: "事業中の再開発", items: REDEVELOPMENT_LEGEND });
+    if (overlays.chiyodaRegions) groups.push({ title: "千代田区の7地域", items: CHIYODA_REGION_LEGEND });
+    if (overlays.landscapeProperties) groups.push({ title: "景観まちづくり重要物件", items: LANDSCAPE_PROPERTY_LEGEND });
     return groups;
   }, [areaLayer, overlays]);
 
@@ -1722,6 +1962,8 @@ export function MapAtlas() {
     if (overlays.heightDistricts) add("高度地区", "千代田区・中央区は指定なし。隣接4区の種別と数値指定を用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.specialZones) add("容積・再開発等の特例", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.redevelopment) add("事業中の再開発", "現在動いている事業の所在を点で把握。区域は資料参照。", meta?.redevelopmentDate ?? "2025-10-31", "東京都", "https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu");
+    if (overlays.chiyodaRegions) add("千代田区の7地域", "都市計画マスタープランが地域別に示す将来像の単位。", meta?.chiyodaRegionDate ?? "2021-05", "千代田区", "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf");
+    if (overlays.landscapeProperties) add("景観まちづくり重要物件", "区指定の建築物等と橋梁。重複地点はクリック時にまとめて表示。", meta?.landscapePropertyDate ?? "2024-12", "千代田区", "https://www.city.chiyoda.lg.jp/koho/machizukuri/kekan/ichiranhyo.html");
     if (overlays.parks) add("公園・緑地", "まとまりとネットワークを周辺区まで連続して見る。", meta?.parksDate ?? "公開時点", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d2000000024");
     if (overlays.landPrices) add("地価公示", "標準地の点比較。個別不動産の価格ではない。", meta?.landPriceDate ?? "2026-01-01", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-L01-2026.html");
     if (overlays.shelters) add("指定避難所", "概略位置を確認し、実際の避難時は各区の最新案内を見る。", meta?.sheltersDate ?? "取得時点", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
@@ -1735,15 +1977,40 @@ export function MapAtlas() {
     <div className="atlas-shell">
       <header className="topbar">
         <div className="brand">
-          <div className="brand-kicker">Chiyoda study atlas · with 5 neighbors</div>
-          <h1>千代田まちづくり基礎アトラス</h1>
+          <h1>CHiYODA ATLAS</h1>
         </div>
-        <div className="metrics" aria-label="千代田区の基礎指標">
-          <Metric label="面積" value={meta ? meta.chiyodaArea.toFixed(2) : "—"} unit="km²" />
-          <Metric label="住民人口 2026" value={meta ? NUMBER.format(meta.chiyodaPopulation) : "—"} unit="人" />
-          <Metric label="昼間人口 2020" value={meta ? NUMBER.format(meta.chiyodaDaytimePopulation) : "—"} unit="人" />
-          <Metric label="昼夜間比 2020" value={meta ? NUMBER.format(meta.chiyodaDayNightRatio) : "—"} unit="%" />
-        </div>
+        <button
+          className={`atlas-info-toggle ${atlasInfoOpen ? "is-open" : ""}`}
+          onClick={() => setAtlasInfoOpen((current) => !current)}
+          aria-controls="atlas-info-panel"
+          aria-expanded={atlasInfoOpen}
+          aria-label={atlasInfoOpen ? "統計と地図情報を閉じる" : "統計と地図情報を表示"}
+          title="統計と地図情報"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 19V11M12 19V5M19 19v-9M3 19h18" />
+          </svg>
+        </button>
+        {atlasInfoOpen && (
+          <aside id="atlas-info-panel" className="atlas-info-panel" aria-label="千代田区の統計と地図情報">
+            <div className="metrics" aria-label="千代田区の基礎指標">
+              <Metric label="面積" value={meta ? meta.chiyodaArea.toFixed(2) : "—"} unit="km²" />
+              <Metric label="住民人口 2026" value={meta ? NUMBER.format(meta.chiyodaPopulation) : "—"} unit="人" />
+              <Metric label="昼間人口 2020" value={meta ? NUMBER.format(meta.chiyodaDaytimePopulation) : "—"} unit="人" />
+              <Metric label="昼夜間比 2020" value={meta ? NUMBER.format(meta.chiyodaDayNightRatio) : "—"} unit="%" />
+            </div>
+            <div className="guide-list" aria-live="polite">
+              {activeGuides.map((item) => (
+                <div className="guide-item" key={item.label}>
+                  <strong>{item.label}</strong>
+                  <p>{item.text}</p>
+                  <a href={item.url} target="_blank" rel="noreferrer">{item.source} · {item.asOf}</a>
+                </div>
+              ))}
+            </div>
+            <p className="atlas-info-note">対象：千代田・中央・港・新宿・文京・台東。学習・概況把握用です。行政上の確認は各公式図書で行ってください。</p>
+          </aside>
+        )}
       </header>
 
       <main className="workspace">
@@ -1756,11 +2023,7 @@ export function MapAtlas() {
         />
         <aside id="layer-panel" className={`sidebar ${panelOpen ? "is-open" : ""}`} aria-label="地図の操作">
           <div className="sidebar-inner">
-            <div className="sidebar-header">
-              <div>
-                <h2 className="section-title">Read the city</h2>
-                <p>一つずつ読み、必要な情報だけ航空写真に重ねます。</p>
-              </div>
+            <div className="sidebar-close-row">
               <button
                 className="close-panel"
                 onClick={() => setPanelOpen(false)}
@@ -1771,12 +2034,11 @@ export function MapAtlas() {
             </div>
 
             <section className="search-wrap">
-              <h2 className="section-title">場所を探す</h2>
               <div className="search-field">
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="町丁目・駅・地区計画・再開発"
+                  placeholder="町丁目・駅・地域・物件を検索"
                   aria-label="場所や計画を検索"
                   autoComplete="off"
                 />
@@ -1793,7 +2055,7 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <label className="section-title" htmlFor="photo-epoch">航空写真の年代</label>
+              <label className="section-title" htmlFor="photo-epoch">航空写真</label>
               <select
                 id="photo-epoch"
                 className="photo-select"
@@ -1807,7 +2069,7 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <h2 className="section-title">人はどこにいる？</h2>
+              <h2 className="section-title">人口</h2>
               <div className="area-choice-grid">
                 <AreaButton label="住民密度" active={areaLayer === "population"} onClick={() => changeArea("population")} />
                 <AreaButton label="昼間人口" active={areaLayer === "daytime"} onClick={() => changeArea("daytime")} />
@@ -1815,18 +2077,18 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <h2 className="section-title">土地とルールは？</h2>
+              <h2 className="section-title">土地・制度</h2>
               <div className="area-choice-grid">
                 <AreaButton label="実土地利用" active={areaLayer === "landUse"} onClick={() => changeArea("landUse")} />
                 <AreaButton label="用途地域" active={areaLayer === "zoning"} onClick={() => changeArea("zoning")} />
                 <AreaButton label="防火指定" active={areaLayer === "fire"} onClick={() => changeArea("fire")} />
                 <AreaButton label="洪水浸水" active={areaLayer === "flood"} onClick={() => changeArea("flood")} />
-                <AreaButton label="面を消す" active={areaLayer === "none"} onClick={() => changeArea("none")} wide />
+                <AreaButton label="表示なし" active={areaLayer === "none"} onClick={() => changeArea("none")} wide />
               </div>
             </section>
 
             <section>
-              <h2 className="section-title">都市の骨格は？</h2>
+              <h2 className="section-title">都市構造</h2>
               <div className="toggle-list">
                 <Toggle label="主要道路" active={overlays.roads} onClick={() => toggleOverlay("roads")} />
                 <Toggle label="鉄道・駅" active={overlays.rail} onClick={() => toggleOverlay("rail")} />
@@ -1835,8 +2097,9 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <h2 className="section-title">計画と変化は？</h2>
+              <h2 className="section-title">計画・変化</h2>
               <div className="toggle-list">
+                <Toggle label="千代田区の7地域" active={overlays.chiyodaRegions} onClick={() => toggleOverlay("chiyodaRegions")} />
                 <Toggle label="地区計画" active={overlays.districtPlans} onClick={() => toggleOverlay("districtPlans")} />
                 <Toggle label="高度地区" active={overlays.heightDistricts} onClick={() => toggleOverlay("heightDistricts")} />
                 <Toggle label="容積・再開発等の特例" active={overlays.specialZones} onClick={() => toggleOverlay("specialZones")} />
@@ -1845,8 +2108,9 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <h2 className="section-title">暮らしと備えは？</h2>
+              <h2 className="section-title">暮らし・景観</h2>
               <div className="toggle-list">
+                <Toggle label="景観まちづくり重要物件" active={overlays.landscapeProperties} onClick={() => toggleOverlay("landscapeProperties")} />
                 <Toggle label="公園・緑地" active={overlays.parks} onClick={() => toggleOverlay("parks")} />
                 <Toggle label="地価公示" active={overlays.landPrices} onClick={() => toggleOverlay("landPrices")} />
                 <Toggle label="指定避難所" active={overlays.shelters} onClick={() => toggleOverlay("shelters")} />
@@ -1859,20 +2123,6 @@ export function MapAtlas() {
               </div>
             )}
 
-            <section className="reading-panel" aria-live="polite">
-              <h2 className="section-title">いまの地図の読み方</h2>
-              <div className="guide-list">
-                {activeGuides.map((item) => (
-                  <div className="guide-item" key={item.label}>
-                    <strong>{item.label}</strong>
-                    <p>{item.text}</p>
-                    <a href={item.url} target="_blank" rel="noreferrer">{item.source} · {item.asOf}</a>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <div className="source-line">対象：千代田・中央・港・新宿・文京・台東。学習・概況把握用で、行政上の確認は各公式図書で行ってください。</div>
           </div>
         </aside>
 
@@ -1943,6 +2193,17 @@ export function MapAtlas() {
                 ))}
               </dl>
               {detail.note && <p className="detail-note">{detail.note}</p>}
+              {detail.items && (
+                <div className="detail-related">
+                  {detail.items.map((item, index) => (
+                    <article className="detail-related-item" key={`${item.name}-${index}`}>
+                      <a href={item.url} target="_blank" rel="noreferrer">{item.name}</a>
+                      <span>{item.type} · {item.address}</span>
+                      {item.date !== "—" && <small>{item.date}</small>}
+                    </article>
+                  ))}
+                </div>
+              )}
               {detail.sources && (
                 <div className="detail-sources">
                   {detail.sources.map((source) => (
