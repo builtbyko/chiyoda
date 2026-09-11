@@ -427,8 +427,8 @@ function mapPixelRatioForViewport(container: HTMLElement) {
       (container.clientHeight || window.innerHeight),
     1,
   );
-  const desktopRatio = Math.sqrt(1_600_000 / viewportPixels);
-  return Math.round(Math.max(0.6, Math.min(deviceRatio, 0.8, desktopRatio)) * 100) / 100;
+  const desktopRatio = Math.sqrt(1_200_000 / viewportPixels);
+  return Math.round(Math.max(0.5, Math.min(deviceRatio, 0.65, desktopRatio)) * 100) / 100;
 }
 
 function boundsFor(feature: GeoFeature): [[number, number], [number, number]] {
@@ -862,6 +862,11 @@ export function MapAtlas() {
     ])
       .then(([maplibregl, data]) => {
         if (disposed || !mapElement.current) return;
+        const isMobileViewport = window.innerWidth <= 760;
+        const geoJsonOptions = isMobileViewport ? {} : { buffer: 64, tolerance: 1.25 };
+        if (!isMobileViewport && maplibregl.getWorkerCount() < 2) {
+          maplibregl.setWorkerCount(2);
+        }
         scopeRef.current = data.scope;
         setMeta(data.meta);
 
@@ -875,7 +880,7 @@ export function MapAtlas() {
           dragRotate: false,
           renderWorldCopies: false,
           pixelRatio: mapPixelRatioForViewport(mapElement.current),
-          maxTileCacheZoomLevels: 1,
+          maxTileCacheZoomLevels: isMobileViewport ? 1 : 2,
           refreshExpiredTiles: false,
           fadeDuration: 0,
           attributionControl: false,
@@ -907,6 +912,11 @@ export function MapAtlas() {
           },
         });
 
+        if (!isMobileViewport) {
+          map.scrollZoom.setZoomRate(1 / 140);
+          map.scrollZoom.setWheelZoomRate(1 / 600);
+        }
+
         mapRef.current = map;
         const handleViewportResize = () => {
           window.clearTimeout(viewportTimer);
@@ -928,22 +938,30 @@ export function MapAtlas() {
           map.addSource("towns", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
             attribution: '人口・土地利用：<a href="https://catalog.data.metro.tokyo.lg.jp/" target="_blank">東京都</a>',
           });
-          map.addSource("zoning", { type: "geojson", data: EMPTY_COLLECTION as never });
+          map.addSource("zoning", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+          });
           map.addSource("fire", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
             attribution: '防火指定：<a href="https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html" target="_blank">国土交通省</a>',
           });
           map.addSource("flood", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
             attribution: '洪水浸水：<a href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-A31a-2025.html" target="_blank">国土数値情報</a>',
           });
           map.addSource("parks", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
             attribution: '公園・緑地：<a href="https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d2000000024" target="_blank">東京都</a>',
           });
           map.addSource("land-prices", {
@@ -959,19 +977,41 @@ export function MapAtlas() {
           map.addSource("roads", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
             attribution: '道路 © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>',
           });
-          map.addSource("rail", { type: "geojson", data: EMPTY_COLLECTION as never });
+          map.addSource("rail", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+          });
           map.addSource("stations", { type: "geojson", data: EMPTY_COLLECTION as never });
-          map.addSource("wards", { type: "geojson", data: data.wards as never });
-          map.addSource("city", { type: "geojson", data: data.city as never });
+          map.addSource("wards", {
+            type: "geojson",
+            data: data.wards as never,
+            ...geoJsonOptions,
+          });
+          map.addSource("city", {
+            type: "geojson",
+            data: data.city as never,
+            ...geoJsonOptions,
+          });
           map.addSource("district-plans", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
             attribution: '地区計画：<a href="https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028" target="_blank">東京都</a>',
           });
-          map.addSource("height-districts", { type: "geojson", data: EMPTY_COLLECTION as never });
-          map.addSource("special-zones", { type: "geojson", data: EMPTY_COLLECTION as never });
+          map.addSource("height-districts", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+          });
+          map.addSource("special-zones", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+          });
           map.addSource("redevelopment", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
@@ -980,6 +1020,7 @@ export function MapAtlas() {
           map.addSource("chiyoda-regions", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
             attribution: '7地域：<a href="https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf" target="_blank">千代田区都市計画マスタープラン</a>',
           });
           map.addSource("landscape-properties", {

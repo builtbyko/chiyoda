@@ -222,12 +222,19 @@ test("desktop map keeps its low-cost rendering settings", async () => {
     "utf8",
   );
 
-  assert.match(source, /Math\.sqrt\(1_600_000 \/ viewportPixels\)/);
+  assert.match(source, /Math\.sqrt\(1_200_000 \/ viewportPixels\)/);
   assert.match(
     source,
-    /Math\.max\(0\.6, Math\.min\(deviceRatio, 0\.8, desktopRatio\)\)/,
+    /Math\.max\(0\.5, Math\.min\(deviceRatio, 0\.65, desktopRatio\)\)/,
   );
   assert.match(source, /if \(window\.innerWidth <= 760\) return Math\.min\(deviceRatio, 1\.5\)/);
+  assert.match(source, /getWorkerCount\(\) < 2/);
+  assert.match(source, /setWorkerCount\(2\)/);
+  assert.match(source, /maxTileCacheZoomLevels: isMobileViewport \? 1 : 2/);
+  assert.match(source, /setZoomRate\(1 \/ 140\)/);
+  assert.match(source, /setWheelZoomRate\(1 \/ 600\)/);
+  assert.match(source, /\{ buffer: 64, tolerance: 1\.25 \}/);
+  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 13);
   assert.equal(
     source.match(/"(?:fill|line|circle)-opacity": 0(?:,|\s*})/g)?.length,
     8,
