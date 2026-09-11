@@ -849,7 +849,9 @@ export function MapAtlas() {
     let disposed = false;
     let cursorTimer = 0;
     let viewportTimer = 0;
+    let wheelTimer = 0;
     let removeViewportListener = () => {};
+    let removeWheelListener = () => {};
     let pendingCursorPoint: [number, number] | null = null;
     const loadingOverlays = loadingOverlaysRef.current;
 
@@ -867,6 +869,7 @@ export function MapAtlas() {
         if (!isMobileViewport && maplibregl.getWorkerCount() < 2) {
           maplibregl.setWorkerCount(2);
         }
+        const initialPhoto = PHOTO_OPTIONS[0];
         scopeRef.current = data.scope;
         setMeta(data.meta);
 
@@ -886,35 +889,85 @@ export function MapAtlas() {
           attributionControl: false,
           style: {
             version: 8,
-            sources: Object.fromEntries(PHOTO_OPTIONS.map((option) => [
-              `photo-${option.value}`,
-              {
+            sources: {
+              [`photo-${initialPhoto.value}`]: {
                 type: "raster",
-                tiles: [option.tile],
+                tiles: [initialPhoto.tile],
                 tileSize: 256,
-                minzoom: option.value === "1936" ? 13 : 10,
-                maxzoom: option.maxzoom,
+                minzoom: 10,
+                maxzoom: initialPhoto.maxzoom,
                 attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>',
               },
-            ])) as never,
-            layers: PHOTO_OPTIONS.map((option) => ({
-                id: `base-photo-${option.value}`,
+            } as never,
+            layers: [{
+                id: "base-photo",
                 type: "raster",
-                source: `photo-${option.value}`,
-                layout: { visibility: option.value === "latest" ? "visible" : "none" },
+                source: `photo-${initialPhoto.value}`,
                 paint: {
-                  "raster-saturation": option.value === "latest" ? -0.36 : -0.16,
+                  "raster-saturation": -0.36,
                   "raster-contrast": -0.08,
                   "raster-brightness-max": 0.92,
                   "raster-fade-duration": 0,
                 },
-              })) as never,
+              }] as never,
           },
         });
 
         if (!isMobileViewport) {
-          map.scrollZoom.setZoomRate(1 / 140);
-          map.scrollZoom.setWheelZoomRate(1 / 600);
+          map.scrollZoom.disable();
+          const wheelTarget = map.getCanvas();
+          let accumulatedWheelDelta = 0;
+          let lastWheelPoint: [number, number] = [0, 0];
+          let lastWheelStepAt = -Infinity;
+
+          const applyDiscreteWheel = () => {
+            wheelTimer = 0;
+            if (Math.abs(accumulatedWheelDelta) < 4) {
+              accumulatedWheelDelta = 0;
+              return;
+            }
+            const delta = accumulatedWheelDelta;
+            accumulatedWheelDelta = 0;
+            const currentZoom = map.getZoom();
+            const targetZoom = Math.min(
+              map.getMaxZoom(),
+              Math.max(map.getMinZoom(), currentZoom + (delta > 0 ? -0.5 : 0.5)),
+            );
+            lastWheelStepAt = performance.now();
+            if (Math.abs(targetZoom - currentZoom) < 0.001) return;
+            map.easeTo({
+              zoom: targetZoom,
+              around: map.unproject(lastWheelPoint),
+              duration: 0,
+            });
+          };
+
+          const scheduleDiscreteWheel = (minimumDelay: number) => {
+            if (wheelTimer) return;
+            const cooldown = Math.max(0, 90 - (performance.now() - lastWheelStepAt));
+            wheelTimer = window.setTimeout(applyDiscreteWheel, Math.max(minimumDelay, cooldown));
+          };
+
+          const handleDiscreteWheel = (event: WheelEvent) => {
+            event.preventDefault();
+            const rect = wheelTarget.getBoundingClientRect();
+            lastWheelPoint = [event.clientX - rect.left, event.clientY - rect.top];
+            const deltaScale = event.deltaMode === 1
+              ? 16
+              : event.deltaMode === 2
+                ? Math.max(wheelTarget.clientHeight, 1)
+                : 1;
+            accumulatedWheelDelta += event.deltaY * deltaScale;
+            const minimumDelay = event.deltaMode === 0 && Math.abs(accumulatedWheelDelta) < 18
+              ? 90
+              : 0;
+            scheduleDiscreteWheel(minimumDelay);
+          };
+
+          wheelTarget.addEventListener("wheel", handleDiscreteWheel, { passive: false });
+          removeWheelListener = () => {
+            wheelTarget.removeEventListener("wheel", handleDiscreteWheel);
+          };
         }
 
         mapRef.current = map;
@@ -1798,7 +1851,9 @@ export function MapAtlas() {
       disposed = true;
       window.clearTimeout(cursorTimer);
       window.clearTimeout(viewportTimer);
+      window.clearTimeout(wheelTimer);
       removeViewportListener();
+      removeWheelListener();
       mapRef.current?.remove();
       mapRef.current = null;
       locationRequestRef.current += 1;
@@ -1839,11 +1894,37 @@ export function MapAtlas() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    PHOTO_OPTIONS.forEach((option) => {
-      setLayerVisibility(map, [`base-photo-${option.value}`], option.value === photoEpoch);
-    });
+    const option = PHOTO_OPTIONS.find((item) => item.value === photoEpoch);
+    if (!option) return;
+    const sourceId = `photo-${option.value}`;
+    if (!map.getSource(sourceId) || !map.getLayer("base-photo")) {
+      if (map.getLayer("base-photo")) map.removeLayer("base-photo");
+      PHOTO_OPTIONS.forEach((item) => {
+        const existingSourceId = `photo-${item.value}`;
+        if (map.getSource(existingSourceId)) map.removeSource(existingSourceId);
+      });
+      map.addSource(sourceId, {
+        type: "raster",
+        tiles: [option.tile],
+        tileSize: 256,
+        minzoom: option.value === "1936" ? 13 : 10,
+        maxzoom: option.maxzoom,
+        attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>',
+      });
+      map.addLayer({
+        id: "base-photo",
+        type: "raster",
+        source: sourceId,
+        paint: {
+          "raster-saturation": option.value === "latest" ? -0.36 : -0.16,
+          "raster-contrast": -0.08,
+          "raster-brightness-max": 0.92,
+          "raster-fade-duration": 0,
+        },
+      }, "population-fill");
+    }
     if (photoEpoch === "1936" && map.getZoom() < 13) {
-      map.easeTo({ zoom: 13, duration: 450 });
+      map.easeTo({ zoom: 13, duration: 0 });
     }
   }, [photoEpoch, ready]);
 

@@ -231,8 +231,15 @@ test("desktop map keeps its low-cost rendering settings", async () => {
   assert.match(source, /getWorkerCount\(\) < 2/);
   assert.match(source, /setWorkerCount\(2\)/);
   assert.match(source, /maxTileCacheZoomLevels: isMobileViewport \? 1 : 2/);
-  assert.match(source, /setZoomRate\(1 \/ 140\)/);
-  assert.match(source, /setWheelZoomRate\(1 \/ 600\)/);
+  assert.match(source, /map\.scrollZoom\.disable\(\)/);
+  assert.match(source, /currentZoom \+ \(delta > 0 \? -0\.5 : 0\.5\)/);
+  assert.match(
+    source,
+    /addEventListener\("wheel", handleDiscreteWheel, \{ passive: false \}\)/,
+  );
+  assert.doesNotMatch(source, /sources: Object\.fromEntries\(PHOTO_OPTIONS/);
+  assert.doesNotMatch(source, /id: `base-photo-\$\{option\.value\}`/);
+  assert.match(source, /if \(!map\.getSource\(sourceId\) \|\| !map\.getLayer\("base-photo"\)\)/);
   assert.match(source, /\{ buffer: 64, tolerance: 1\.25 \}/);
   assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 13);
   assert.equal(
