@@ -137,6 +137,29 @@ const REDEVELOPMENT_LAYER_IDS = ["redevelopment-hit", "redevelopment-halo", "red
 const CHIYODA_REGION_LAYER_IDS = ["chiyoda-regions-fill", "chiyoda-regions-line", "chiyoda-regions-label"];
 const LANDSCAPE_PROPERTY_LAYER_IDS = ["landscape-properties-hit", "landscape-properties-halo", "landscape-properties-points"];
 
+const AREA_INTERACTIVE_LAYERS: Record<Exclude<AreaLayer, "none">, string[]> = {
+  population: ["population-fill"],
+  daytime: ["daytime-fill"],
+  landUse: ["land-use-fill"],
+  zoning: ["zoning-fill"],
+  fire: ["fire-fill"],
+  flood: ["flood-fill"],
+};
+
+const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
+  roads: ["roads-hit"],
+  rail: ["stations", "rail-hit"],
+  parks: ["parks-fill"],
+  landPrices: ["land-prices-hit"],
+  shelters: ["shelters-hit"],
+  districtPlans: ["district-plans-hit"],
+  heightDistricts: ["height-districts-fill"],
+  specialZones: ["special-zones-hit"],
+  redevelopment: ["redevelopment-hit"],
+  chiyodaRegions: ["chiyoda-regions-label", "chiyoda-regions-fill"],
+  landscapeProperties: ["landscape-properties-hit"],
+};
+
 const EMPTY_COLLECTION: GeoCollection = { type: "FeatureCollection", features: [] };
 
 const DATASET_FILES: Record<DatasetKey, string> = {
@@ -394,6 +417,18 @@ function setLayerVisibility(map: MapLibreMap, ids: string[], visible: boolean) {
     const current = map.getLayoutProperty(id, "visibility") ?? "visible";
     if (current !== visibility) map.setLayoutProperty(id, "visibility", visibility);
   });
+}
+
+function mapPixelRatioForViewport(container: HTMLElement) {
+  const deviceRatio = window.devicePixelRatio || 1;
+  if (window.innerWidth <= 760) return Math.min(deviceRatio, 1.5);
+  const viewportPixels = Math.max(
+    (container.clientWidth || window.innerWidth) *
+      (container.clientHeight || window.innerHeight),
+    1,
+  );
+  const desktopRatio = Math.sqrt(2_500_000 / viewportPixels);
+  return Math.round(Math.max(0.7, Math.min(deviceRatio, 1, desktopRatio)) * 100) / 100;
 }
 
 function boundsFor(feature: GeoFeature): [[number, number], [number, number]] {
@@ -742,6 +777,7 @@ export function MapAtlas() {
     }),
   );
   const loadingOverlaysRef = useRef(new Set<OverlayKey>());
+  const interactiveLayersRef = useRef<string[]>([]);
   const areaActionRef = useRef(0);
   const noticeActionRef = useRef(0);
   const locationRequestRef = useRef(0);
@@ -801,8 +837,20 @@ export function MapAtlas() {
   }, [query, searchItems]);
 
   useEffect(() => {
+    const layers = areaLayer === "none" ? [] : [...AREA_INTERACTIVE_LAYERS[areaLayer]];
+    for (const [key, enabled] of Object.entries(overlays) as [OverlayKey, boolean][]) {
+      if (enabled) layers.push(...(OVERLAY_INTERACTIVE_LAYERS[key] ?? []));
+    }
+    interactiveLayersRef.current = layers;
+  }, [areaLayer, overlays]);
+
+  useEffect(() => {
     if (!mapElement.current || mapRef.current) return;
     let disposed = false;
+    let cursorTimer = 0;
+    let viewportTimer = 0;
+    let removeViewportListener = () => {};
+    let pendingCursorPoint: [number, number] | null = null;
     const loadingOverlays = loadingOverlaysRef.current;
 
     Promise.all([
@@ -826,8 +874,8 @@ export function MapAtlas() {
           pitchWithRotate: false,
           dragRotate: false,
           renderWorldCopies: false,
-          pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
-          maxTileCacheZoomLevels: 2,
+          pixelRatio: mapPixelRatioForViewport(mapElement.current),
+          maxTileCacheZoomLevels: 1,
           refreshExpiredTiles: false,
           fadeDuration: 0,
           attributionControl: false,
@@ -860,6 +908,19 @@ export function MapAtlas() {
         });
 
         mapRef.current = map;
+        const handleViewportResize = () => {
+          window.clearTimeout(viewportTimer);
+          viewportTimer = window.setTimeout(() => {
+            const container = mapElement.current;
+            if (disposed || !container) return;
+            const pixelRatio = mapPixelRatioForViewport(container);
+            if (Math.abs(map.getPixelRatio() - pixelRatio) >= 0.05) {
+              map.setPixelRatio(pixelRatio);
+            }
+          }, 160);
+        };
+        window.addEventListener("resize", handleViewportResize, { passive: true });
+        removeViewportListener = () => window.removeEventListener("resize", handleViewportResize);
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
@@ -1609,29 +1670,34 @@ export function MapAtlas() {
           });
           setSearchItems(allSearch);
 
-          const clickable = [
-            "landscape-properties-points", "landscape-properties-halo", "landscape-properties-hit",
-            "redevelopment-points", "redevelopment-hit",
-            "shelters", "shelters-hit", "land-prices", "land-prices-hit",
-            "station-core", "stations", "rail-hit", "roads-hit",
-            "district-plans-hit", "district-plans-line", "special-zones-hit", "special-zones-fill",
-            "chiyoda-regions-label", "chiyoda-regions-line", "chiyoda-regions-fill",
-            "height-districts-fill", "parks-fill", "flood-fill", "fire-fill", "zoning-fill",
-            "land-use-fill", "daytime-fill", "population-fill",
-          ];
-          let cursorFrame = 0;
+          let cursorStyle = "";
+          const setMapCursor = (value: string) => {
+            if (cursorStyle === value) return;
+            cursorStyle = value;
+            map.getCanvas().style.cursor = value;
+          };
           map.on("mousemove", (event) => {
-            if (cursorFrame) return;
-            const point = event.point;
-            cursorFrame = window.requestAnimationFrame(() => {
-              cursorFrame = 0;
-              if (disposed) return;
-              const hit = map.queryRenderedFeatures(point, { layers: clickable }).length > 0;
-              map.getCanvas().style.cursor = hit ? "pointer" : "";
-            });
+            const layers = interactiveLayersRef.current;
+            if (layers.length === 0 || map.isMoving()) {
+              setMapCursor("");
+              return;
+            }
+            pendingCursorPoint = [event.point.x, event.point.y];
+            if (cursorTimer) return;
+            cursorTimer = window.setTimeout(() => {
+              cursorTimer = 0;
+              if (disposed || map.isMoving() || !pendingCursorPoint) return;
+              const activeLayers = interactiveLayersRef.current;
+              const hit = activeLayers.length > 0 &&
+                map.queryRenderedFeatures(pendingCursorPoint, { layers: activeLayers }).length > 0;
+              setMapCursor(hit ? "pointer" : "");
+            }, 80);
           });
           map.on("click", (event) => {
-            const rendered = map.queryRenderedFeatures(event.point, { layers: clickable });
+            const activeLayers = interactiveLayersRef.current;
+            const rendered = activeLayers.length > 0
+              ? map.queryRenderedFeatures(event.point, { layers: activeLayers })
+              : [];
             const feature =
               rendered.find((item) => item.layer.id === "chiyoda-regions-label") ??
               rendered.find((item) => !item.layer.id.startsWith("chiyoda-regions")) ??
@@ -1689,10 +1755,14 @@ export function MapAtlas() {
 
     return () => {
       disposed = true;
+      window.clearTimeout(cursorTimer);
+      window.clearTimeout(viewportTimer);
+      removeViewportListener();
       mapRef.current?.remove();
       mapRef.current = null;
       locationRequestRef.current += 1;
       loadingOverlays.clear();
+      interactiveLayersRef.current = [];
       datasetLoader.reset();
     };
   }, [datasetLoader]);
