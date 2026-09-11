@@ -215,3 +215,22 @@ test("map data includes the recommended reference layers", async () => {
   assert.equal(coordinateSourceCounts["chiyoda-official-gis"]?.length, 56);
   assert.equal(coordinateSourceCounts["gsi-address-search"]?.length, 8);
 });
+
+test("desktop map keeps its low-cost rendering settings", async () => {
+  const source = await readFile(
+    new URL("../app/MapAtlas.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /Math\.sqrt\(1_600_000 \/ viewportPixels\)/);
+  assert.match(
+    source,
+    /Math\.max\(0\.6, Math\.min\(deviceRatio, 0\.8, desktopRatio\)\)/,
+  );
+  assert.match(source, /if \(window\.innerWidth <= 760\) return Math\.min\(deviceRatio, 1\.5\)/);
+  assert.equal(
+    source.match(/"(?:fill|line|circle)-opacity": 0(?:,|\s*})/g)?.length,
+    8,
+  );
+  assert.doesNotMatch(source, /"(?:fill|line|circle)-opacity": 0\.01/);
+});

@@ -427,8 +427,8 @@ function mapPixelRatioForViewport(container: HTMLElement) {
       (container.clientHeight || window.innerHeight),
     1,
   );
-  const desktopRatio = Math.sqrt(2_500_000 / viewportPixels);
-  return Math.round(Math.max(0.7, Math.min(deviceRatio, 1, desktopRatio)) * 100) / 100;
+  const desktopRatio = Math.sqrt(1_600_000 / viewportPixels);
+  return Math.round(Math.max(0.6, Math.min(deviceRatio, 0.8, desktopRatio)) * 100) / 100;
 }
 
 function boundsFor(feature: GeoFeature): [[number, number], [number, number]] {
@@ -1246,7 +1246,7 @@ export function MapAtlas() {
             type: "fill",
             source: "special-zones",
             layout: { visibility: "none" },
-            paint: { "fill-color": "#ffffff", "fill-opacity": 0.01 },
+            paint: { "fill-color": "#ffffff", "fill-opacity": 0 },
           });
           map.addLayer({
             id: "district-plans-casing",
@@ -1275,7 +1275,7 @@ export function MapAtlas() {
             type: "fill",
             source: "district-plans",
             layout: { visibility: "none" },
-            paint: { "fill-color": "#ffffff", "fill-opacity": 0.01 },
+            paint: { "fill-color": "#ffffff", "fill-opacity": 0 },
           });
           map.addLayer({
             id: "town-boundaries",
@@ -1327,7 +1327,7 @@ export function MapAtlas() {
             type: "line",
             source: "roads",
             layout: { visibility: "none" },
-            paint: { "line-color": "#ffffff", "line-width": 14, "line-opacity": 0.01 },
+            paint: { "line-color": "#ffffff", "line-width": 14, "line-opacity": 0 },
           });
           map.addLayer({
             id: "rail-casing",
@@ -1359,7 +1359,7 @@ export function MapAtlas() {
             type: "line",
             source: "rail",
             layout: { visibility: "none" },
-            paint: { "line-color": "#ffffff", "line-width": 15, "line-opacity": 0.01 },
+            paint: { "line-color": "#ffffff", "line-width": 15, "line-opacity": 0 },
           });
           map.addLayer({
             id: "stations",
@@ -1391,7 +1391,7 @@ export function MapAtlas() {
             paint: {
               "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 16, 18],
               "circle-color": "#ffffff",
-              "circle-opacity": 0.01,
+              "circle-opacity": 0,
             },
           });
           map.addLayer({
@@ -1431,7 +1431,7 @@ export function MapAtlas() {
             paint: {
               "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 16, 18],
               "circle-color": "#ffffff",
-              "circle-opacity": 0.01,
+              "circle-opacity": 0,
             },
           });
           map.addLayer({
@@ -1470,7 +1470,7 @@ export function MapAtlas() {
             paint: {
               "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 15, 16, 20],
               "circle-color": "#ffffff",
-              "circle-opacity": 0.01,
+              "circle-opacity": 0,
             },
           });
           map.addLayer({
@@ -1544,7 +1544,7 @@ export function MapAtlas() {
             paint: {
               "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 16, 19],
               "circle-color": "#ffffff",
-              "circle-opacity": 0.01,
+              "circle-opacity": 0,
             },
           });
           map.addLayer({
