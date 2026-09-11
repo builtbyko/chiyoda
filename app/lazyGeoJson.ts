@@ -72,6 +72,8 @@ export function createLazyGeoJsonLoader<
       source.setData(dataset);
       hydrated.add(key);
     }
+
+    return dataset;
   };
 
   const reset = () => {

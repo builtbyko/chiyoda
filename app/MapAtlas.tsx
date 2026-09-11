@@ -93,14 +93,12 @@ type AtlasData = {
   scope: GeoFeature;
   city: GeoFeature;
   wards: GeoCollection;
-  towns: GeoCollection;
-  parks: GeoCollection;
-  stations: GeoCollection;
-  districtPlans: GeoCollection;
-  specialZones: GeoCollection;
-  redevelopment: GeoCollection;
-  chiyodaRegions: GeoCollection;
-  landscapeProperties: GeoCollection;
+  searchTypes: {
+    d: DatasetKey;
+    k: SearchItem["kind"];
+    l: string;
+  }[];
+  search: [name: string, ward: string, typeIndex: number, featureIndex: number][];
 };
 
 type SearchItem = {
@@ -108,7 +106,8 @@ type SearchItem = {
   ward: string;
   kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発" | "7地域" | "景観重要物件";
   layerId: string;
-  feature: GeoFeature;
+  dataset: DatasetKey;
+  featureIndex: number;
 };
 
 type Detail = {
@@ -140,15 +139,23 @@ const LANDSCAPE_PROPERTY_LAYER_IDS = ["landscape-properties-hit", "landscape-pro
 
 const EMPTY_COLLECTION: GeoCollection = { type: "FeatureCollection", features: [] };
 
-const DATASET_FILES: Partial<Record<DatasetKey, string>> = {
+const DATASET_FILES: Record<DatasetKey, string> = {
+  towns: "towns.json",
   zoning: "zoning.json",
   fire: "fire.json",
   flood: "flood.json",
+  parks: "parks.json",
   landPrices: "land-prices.json",
   shelters: "shelters.json",
   roads: "roads.json",
   rail: "rail.json",
+  stations: "stations.json",
+  districtPlans: "district-plans.json",
   heightDistricts: "height-districts.json",
+  specialZones: "special-zones.json",
+  redevelopment: "redevelopment.json",
+  chiyodaRegions: "chiyoda-regions.json",
+  landscapeProperties: "landscape-properties.json",
 };
 
 const DATASET_SOURCES: Record<DatasetKey, string> = {
@@ -381,10 +388,11 @@ const FLOOD_DEPTH: Record<string, string> = {
 const NUMBER = new Intl.NumberFormat("ja-JP");
 
 function setLayerVisibility(map: MapLibreMap, ids: string[], visible: boolean) {
+  const visibility = visible ? "visible" : "none";
   ids.forEach((id) => {
-    if (map.getLayer(id)) {
-      map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
-    }
+    if (!map.getLayer(id)) return;
+    const current = map.getLayoutProperty(id, "visibility") ?? "visible";
+    if (current !== visibility) map.setLayoutProperty(id, "visibility", visibility);
   });
 }
 
@@ -808,16 +816,6 @@ export function MapAtlas() {
         if (disposed || !mapElement.current) return;
         scopeRef.current = data.scope;
         setMeta(data.meta);
-        datasetLoader.prime({
-          towns: data.towns,
-          parks: data.parks,
-          stations: data.stations,
-          districtPlans: data.districtPlans,
-          specialZones: data.specialZones,
-          redevelopment: data.redevelopment,
-          chiyodaRegions: data.chiyodaRegions,
-          landscapeProperties: data.landscapeProperties,
-        });
 
         const map = new maplibregl.Map({
           container: mapElement.current,
@@ -827,6 +825,11 @@ export function MapAtlas() {
           maxZoom: 18.5,
           pitchWithRotate: false,
           dragRotate: false,
+          renderWorldCopies: false,
+          pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+          maxTileCacheZoomLevels: 2,
+          refreshExpiredTiles: false,
+          fadeDuration: 0,
           attributionControl: false,
           style: {
             version: 8,
@@ -850,6 +853,7 @@ export function MapAtlas() {
                   "raster-saturation": option.value === "latest" ? -0.36 : -0.16,
                   "raster-contrast": -0.08,
                   "raster-brightness-max": 0.92,
+                  "raster-fade-duration": 0,
                 },
               })) as never,
           },
@@ -1592,64 +1596,17 @@ export function MapAtlas() {
               .addTo(map);
           });
 
-          const allSearch: SearchItem[] = [
-            ...data.towns.features.map((feature) => ({
-              name: String(feature.properties.n),
-              ward: String(feature.properties.w ?? ""),
-              kind: "町丁目" as const,
-              layerId: "town-place",
-              feature,
-            })),
-            ...data.stations.features.map((feature) => ({
-              name: String(feature.properties.n),
-              ward: String(feature.properties.w ?? ""),
-              kind: "駅" as const,
-              layerId: "station-core",
-              feature,
-            })),
-            ...data.parks.features.map((feature) => ({
-              name: String(feature.properties.n),
-              ward: String(feature.properties.w ?? ""),
-              kind: "公園" as const,
-              layerId: "parks-fill",
-              feature,
-            })),
-            ...data.districtPlans.features.map((feature) => ({
-              name: String(feature.properties.n),
-              ward: String(feature.properties.w ?? ""),
-              kind: "地区計画" as const,
-              layerId: "district-plans-line",
-              feature,
-            })),
-            ...data.specialZones.features.map((feature) => ({
-              name: String(feature.properties.n),
-              ward: String(feature.properties.w ?? ""),
-              kind: "特例地区" as const,
-              layerId: "special-zones-fill",
-              feature,
-            })),
-            ...data.redevelopment.features.map((feature) => ({
-              name: String(feature.properties.n),
-              ward: String(feature.properties.w ?? ""),
-              kind: "再開発" as const,
-              layerId: "redevelopment-points",
-              feature,
-            })),
-            ...data.chiyodaRegions.features.map((feature) => ({
-              name: String(feature.properties.n),
-              ward: "千代田区",
-              kind: "7地域" as const,
-              layerId: "chiyoda-regions-fill",
-              feature,
-            })),
-            ...data.landscapeProperties.features.map((feature) => ({
-              name: String(feature.properties.n),
-              ward: "千代田区",
-              kind: "景観重要物件" as const,
-              layerId: "landscape-properties-points",
-              feature,
-            })),
-          ].sort((a, b) => a.name.localeCompare(b.name, "ja"));
+          const allSearch: SearchItem[] = data.search.map(([name, ward, typeIndex, featureIndex]) => {
+            const searchType = data.searchTypes[typeIndex];
+            return {
+              name,
+              ward,
+              kind: searchType.k,
+              layerId: searchType.l,
+              dataset: searchType.d,
+              featureIndex,
+            };
+          });
           setSearchItems(allSearch);
 
           const clickable = [
@@ -1662,9 +1619,16 @@ export function MapAtlas() {
             "height-districts-fill", "parks-fill", "flood-fill", "fire-fill", "zoning-fill",
             "land-use-fill", "daytime-fill", "population-fill",
           ];
+          let cursorFrame = 0;
           map.on("mousemove", (event) => {
-            const hit = map.queryRenderedFeatures(event.point, { layers: clickable }).length > 0;
-            map.getCanvas().style.cursor = hit ? "pointer" : "";
+            if (cursorFrame) return;
+            const point = event.point;
+            cursorFrame = window.requestAnimationFrame(() => {
+              cursorFrame = 0;
+              if (disposed) return;
+              const hit = map.queryRenderedFeatures(point, { layers: clickable }).length > 0;
+              map.getCanvas().style.cursor = hit ? "pointer" : "";
+            });
           });
           map.on("click", (event) => {
             const rendered = map.queryRenderedFeatures(event.point, { layers: clickable });
@@ -1905,22 +1869,37 @@ export function MapAtlas() {
     mapRef.current.fitBounds(boundsFor(scopeRef.current), { padding: 42, duration: 600 });
   };
 
-  const selectSearchItem = (item: SearchItem) => {
+  const selectSearchItem = async (item: SearchItem) => {
     cancelPendingLocation();
     const map = mapRef.current;
     if (!map) return;
     setQuery("");
     setPanelOpen(false);
-    if (item.feature.geometry.type === "Point") {
-      const coordinate = item.feature.geometry.coordinates as [number, number];
-      map.flyTo({ center: coordinate, zoom: 15.5, duration: 650 });
-      setDetail(detailFor(item.layerId, item.feature.properties, meta));
-    } else {
-      map.fitBounds(boundsFor(item.feature), { padding: 90, maxZoom: 15.2, duration: 650 });
-      setDetail(detailFor(item.layerId, item.feature.properties, meta));
+    const action = ++noticeActionRef.current;
+    setLayerNotice({ kind: "loading", message: `${DATASET_LABELS[item.dataset]}を読み込み中…` });
+    try {
+      const collection = await ensureDataset(item.dataset);
+      if (noticeActionRef.current !== action) return;
+      const feature = collection.features[item.featureIndex];
+      if (!feature) throw new Error("検索した地物を読み込めませんでした");
+      setLayerNotice(null);
+      if (feature.geometry.type === "Point") {
+        const coordinate = feature.geometry.coordinates as [number, number];
+        map.flyTo({ center: coordinate, zoom: 15.5, duration: 650 });
+      } else {
+        map.fitBounds(boundsFor(feature), { padding: 90, maxZoom: 15.2, duration: 650 });
+      }
+      setDetail(detailFor(item.layerId, feature.properties, meta));
+      const source = map.getSource("selection") as GeoJSONSource;
+      source?.setData({ type: "FeatureCollection", features: [feature] } as never);
+    } catch (reason) {
+      if (noticeActionRef.current !== action) return;
+      setLayerNotice({
+        kind: "error",
+        message: reason instanceof Error ? reason.message : "地図データを読み込めませんでした",
+      });
+      setPanelOpen(true);
     }
-    const source = map.getSource("selection") as GeoJSONSource;
-    source?.setData({ type: "FeatureCollection", features: [item.feature] } as never);
   };
 
   const legendGroups = useMemo(() => {
@@ -2046,7 +2025,7 @@ export function MapAtlas() {
               {filteredSearch.length > 0 && (
                 <div className="search-results">
                   {filteredSearch.map((item, index) => (
-                    <button className="search-result" key={`${item.kind}-${item.ward}-${item.name}-${index}`} onClick={() => selectSearchItem(item)}>
+                    <button className="search-result" key={`${item.kind}-${item.ward}-${item.name}-${index}`} onClick={() => void selectSearchItem(item)}>
                       <span>{item.name}</span><small>{item.kind} · {item.ward}</small>
                     </button>
                   ))}

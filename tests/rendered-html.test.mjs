@@ -67,14 +67,22 @@ test("map data includes the recommended reference layers", async () => {
   );
   const mapData = JSON.parse(coreText);
   const layerFiles = {
+    towns: "towns.json",
     zoning: "zoning.json",
     fire: "fire.json",
     flood: "flood.json",
+    parks: "parks.json",
     landPrices: "land-prices.json",
     shelters: "shelters.json",
     roads: "roads.json",
     rail: "rail.json",
+    stations: "stations.json",
+    districtPlans: "district-plans.json",
     heightDistricts: "height-districts.json",
+    specialZones: "special-zones.json",
+    redevelopment: "redevelopment.json",
+    chiyodaRegions: "chiyoda-regions.json",
+    landscapeProperties: "landscape-properties.json",
   };
   const layers = Object.fromEntries(
     await Promise.all(
@@ -87,52 +95,50 @@ test("map data includes the recommended reference layers", async () => {
     ),
   );
 
-  for (const key of [
-    "towns",
-    "parks",
-    "stations",
-    "districtPlans",
-    "specialZones",
-    "redevelopment",
-    "chiyodaRegions",
-    "landscapeProperties",
-  ]) {
-    assert.equal(mapData[key].type, "FeatureCollection");
-    assert.ok(mapData[key].features.length > 0, `${key} should not be empty`);
-  }
-
   for (const [key, layer] of Object.entries(layers)) {
     assert.equal(layer.type, "FeatureCollection");
     assert.ok(layer.features.length > 0, `${key} should not be empty`);
     assert.equal(mapData[key], undefined, `${key} should be lazy-loaded`);
   }
 
-  assert.ok(Buffer.byteLength(coreText) < 2_000_000, "initial map data should stay compact");
+  assert.ok(Buffer.byteLength(coreText) < 250_000, "initial map data should stay compact");
+  assert.ok(Array.isArray(mapData.searchTypes));
+  assert.ok(Array.isArray(mapData.search));
+  assert.ok(mapData.search.length > 0);
+  for (const [name, ward, typeIndex, featureIndex] of mapData.search) {
+    const searchType = mapData.searchTypes[typeIndex];
+    const target = layers[searchType.d]?.features[featureIndex];
+    assert.ok(target, `${name} search target should resolve`);
+    assert.equal(target.properties.n, name);
+    assert.equal(String(target.properties.w ?? (searchType.d.startsWith("chiyoda") || searchType.d === "landscapeProperties" ? "千代田区" : "")), ward);
+    assert.equal(typeof searchType.k, "string");
+    assert.equal(typeof searchType.l, "string");
+  }
 
-  assert.equal(mapData.meta.parkCount, mapData.parks.features.length);
-  assert.equal(mapData.meta.stationCount, mapData.stations.features.length);
+  assert.equal(mapData.meta.parkCount, layers.parks.features.length);
+  assert.equal(mapData.meta.stationCount, layers.stations.features.length);
   assert.equal(mapData.meta.landPriceCount, layers.landPrices.features.length);
   assert.equal(mapData.meta.shelterCount, layers.shelters.features.length);
-  assert.equal(mapData.meta.districtPlanCount, mapData.districtPlans.features.length);
+  assert.equal(mapData.meta.districtPlanCount, layers.districtPlans.features.length);
   assert.equal(mapData.meta.heightDistrictCount, layers.heightDistricts.features.length);
-  assert.equal(mapData.meta.specialZoneCount, mapData.specialZones.features.length);
-  assert.equal(mapData.meta.redevelopmentCount, mapData.redevelopment.features.length);
-  assert.equal(mapData.meta.chiyodaRegionCount, mapData.chiyodaRegions.features.length);
+  assert.equal(mapData.meta.specialZoneCount, layers.specialZones.features.length);
+  assert.equal(mapData.meta.redevelopmentCount, layers.redevelopment.features.length);
+  assert.equal(mapData.meta.chiyodaRegionCount, layers.chiyodaRegions.features.length);
   assert.equal(
     mapData.meta.landscapePropertyCount,
-    mapData.landscapeProperties.features.length,
+    layers.landscapeProperties.features.length,
   );
   assert.equal(mapData.meta.chiyodaRegionDate, "2021-05");
   assert.equal(mapData.meta.landscapePropertyDate, "2024-12");
   assert.equal(mapData.meta.chiyodaDaytimePopulation, 903780);
   assert.ok(mapData.meta.chiyodaArea > 11.5);
   assert.ok(
-    mapData.towns.features.every(({ properties }) =>
+    layers.towns.features.every(({ properties }) =>
       Number.isFinite(properties.dd) && typeof properties.lu === "string",
     ),
   );
   assert.ok(
-    mapData.redevelopment.features.every(({ geometry, properties }) =>
+    layers.redevelopment.features.every(({ geometry, properties }) =>
       geometry.type === "Point" && properties.l === "町丁目代表点",
     ),
   );
@@ -156,13 +162,13 @@ test("map data includes the recommended reference layers", async () => {
     "和泉橋地域",
     "大手町・丸の内・有楽町・永田町地域",
   ];
-  assert.equal(mapData.chiyodaRegions.features.length, 7);
+  assert.equal(layers.chiyodaRegions.features.length, 7);
   assert.deepEqual(
-    mapData.chiyodaRegions.features.map(({ properties }) => properties.n).sort(),
+    layers.chiyodaRegions.features.map(({ properties }) => properties.n).sort(),
     expectedRegions.sort(),
   );
   assert.ok(
-    mapData.chiyodaRegions.features.every(({ geometry, properties }) =>
+    layers.chiyodaRegions.features.every(({ geometry, properties }) =>
       ["Polygon", "MultiPolygon"].includes(geometry.type) &&
       Number.isInteger(properties.i) &&
       typeof properties.s === "string" &&
@@ -174,7 +180,7 @@ test("map data includes the recommended reference layers", async () => {
     ),
   );
 
-  const landscapeProperties = mapData.landscapeProperties.features;
+  const landscapeProperties = layers.landscapeProperties.features;
   assert.equal(landscapeProperties.length, 64);
   const landscapeTypeCounts = Object.groupBy(
     landscapeProperties,

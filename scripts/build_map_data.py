@@ -28,6 +28,7 @@ from shapely.geometry import (
     MultiPolygon,
     Point,
     Polygon,
+    box,
     mapping,
     shape,
 )
@@ -43,14 +44,22 @@ LANDSCAPE_PROPERTIES_PATH = (
 )
 
 LAYER_FILES = {
+    "towns": "towns.json",
     "zoning": "zoning.json",
     "fire": "fire.json",
     "flood": "flood.json",
+    "parks": "parks.json",
     "landPrices": "land-prices.json",
     "shelters": "shelters.json",
     "roads": "roads.json",
     "rail": "rail.json",
+    "stations": "stations.json",
+    "districtPlans": "district-plans.json",
     "heightDistricts": "height-districts.json",
+    "specialZones": "special-zones.json",
+    "redevelopment": "redevelopment.json",
+    "chiyodaRegions": "chiyoda-regions.json",
+    "landscapeProperties": "landscape-properties.json",
 }
 
 WARDS = {
@@ -1349,6 +1358,44 @@ def main():
         area_transformer.transform, ward_geometries["13101"]
     ).area / 1_000_000
     chiyoda_area = chiyoda_daytime["da"] or chiyoda_geometry_area
+
+    searchable = [
+        ("towns", "町丁目", "town-place", towns, ""),
+        ("stations", "駅", "station-core", stations, ""),
+        ("parks", "公園", "parks-fill", parks, ""),
+        ("districtPlans", "地区計画", "district-plans-line", district_plans, ""),
+        ("specialZones", "特例地区", "special-zones-fill", special_zones, ""),
+        ("redevelopment", "再開発", "redevelopment-points", redevelopment, ""),
+        (
+            "chiyodaRegions",
+            "7地域",
+            "chiyoda-regions-fill",
+            chiyoda_regions,
+            "千代田区",
+        ),
+        (
+            "landscapeProperties",
+            "景観重要物件",
+            "landscape-properties-points",
+            landscape_properties,
+            "千代田区",
+        ),
+    ]
+    search_types = [
+        {"d": dataset, "k": kind, "l": layer_id}
+        for dataset, kind, layer_id, _, _ in searchable
+    ]
+    search_index = [
+        [
+            str(item["properties"].get("n", "")),
+            str(item["properties"].get("w") or default_ward),
+            type_index,
+            feature_index,
+        ]
+        for type_index, (_, _, _, items, default_ward) in enumerate(searchable)
+        for feature_index, item in enumerate(items)
+    ]
+
     bundle = {
         "meta": {
             "populationDate": "2026-01-01",
@@ -1389,28 +1436,32 @@ def main():
             "chiyodaRegionCount": len(chiyoda_regions),
             "landscapePropertyCount": len(landscape_properties),
         },
-        "scope": feature("千代田区と隣接5区", scope),
+        # The client only uses this feature to calculate its initial camera bounds.
+        # Keep the exact six-ward geometry in the ward features, not twice here.
+        "scope": feature("千代田区と隣接5区", box(*scope.bounds)),
         "city": feature("千代田区", ward_geometries["13101"]),
         "wards": collection(ward_features),
-        "towns": collection(towns),
-        "parks": collection(parks),
-        "stations": collection(stations),
-        "districtPlans": collection(district_plans),
-        "specialZones": collection(special_zones),
-        "redevelopment": collection(redevelopment),
-        "chiyodaRegions": collection(chiyoda_regions),
-        "landscapeProperties": collection(landscape_properties),
+        "searchTypes": search_types,
+        "search": search_index,
     }
 
     layer_data = {
+        "towns": collection(towns),
         "zoning": collection(zoning),
         "fire": collection(fire),
         "flood": collection(flood),
+        "parks": collection(parks),
         "landPrices": collection(land_prices),
         "shelters": collection(shelters),
         "roads": collection(roads),
         "rail": collection(rail),
+        "stations": collection(stations),
+        "districtPlans": collection(district_plans),
         "heightDistricts": collection(height_districts),
+        "specialZones": collection(special_zones),
+        "redevelopment": collection(redevelopment),
+        "chiyodaRegions": collection(chiyoda_regions),
+        "landscapeProperties": collection(landscape_properties),
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

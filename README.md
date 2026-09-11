@@ -76,7 +76,7 @@ npm test
 
 ## データの再生成
 
-`scripts/build_map_data.py` は、町丁目境界、人口・昼間人口、実土地利用、都市計画、再開発、洪水、公園、地価、避難所、鉄道、OpenStreetMapの東京抽出データから、初期表示・検索用の `public/data/map-data.json` と、必要時だけ読む `public/data/layers/` 以下のレイヤーファイルを作ります。Python環境には Shapely、GeoPandas、Pyogrio、PyProj、Requests が必要です。追加レイヤーの公式ファイルは、既存の基礎データキャッシュへ次のスクリプトで取得・展開できます。
+`scripts/build_map_data.py` は、町丁目境界、人口・昼間人口、実土地利用、都市計画、再開発、洪水、公園、地価、避難所、鉄道、OpenStreetMapの東京抽出データから、初期表示と軽量な検索索引を収めた `public/data/map-data.json` と、選択・表示時だけ読む `public/data/layers/` 以下のレイヤーファイルを作ります。詳細な地物形状を初期データへ重複収録しないため、レイヤー数が増えても最初の地図表示を妨げにくい構成です。Python環境には Shapely、GeoPandas、Pyogrio、PyProj、Requests が必要です。追加レイヤーの公式ファイルは、既存の基礎データキャッシュへ次のスクリプトで取得・展開できます。
 
 ```bash
 python scripts/fetch_map_sources.py --source-root ../work/chiyoda_map/data

@@ -23,11 +23,13 @@ test("lazy loader fetches once, hydrates once, and uses a Pages-safe relative UR
   const getSource = (key) => ({ setData: (data) => hydrated.push([key, data]) });
 
   await Promise.all([loader.ensure("flood", getSource), loader.ensure("flood", getSource)]);
-  await loader.ensure("flood", getSource);
-  await loader.ensure("towns", getSource);
+  const flood = await loader.ensure("flood", getSource);
+  const towns = await loader.ensure("towns", getSource);
 
   assert.deepEqual(calls, ["data/layers/flood.json"]);
   assert.deepEqual(hydrated.map(([key]) => key), ["flood", "towns"]);
+  assert.equal(flood.features[0].properties.name, "flood");
+  assert.equal(towns.features[0].properties.name, "towns");
 });
 
 test("lazy loader reports a failed request and allows a retry", async () => {

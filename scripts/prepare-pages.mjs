@@ -9,14 +9,22 @@ const chunks = resolve(assets, "static/chunks");
 const maplibreDist = resolve("node_modules/maplibre-gl/dist");
 const maplibreWorkerFiles = ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"];
 const layerFiles = [
+  "towns.json",
   "zoning.json",
   "fire.json",
   "flood.json",
+  "parks.json",
   "land-prices.json",
   "shelters.json",
   "roads.json",
   "rail.json",
+  "stations.json",
+  "district-plans.json",
   "height-districts.json",
+  "special-zones.json",
+  "redevelopment.json",
+  "chiyoda-regions.json",
+  "landscape-properties.json",
 ];
 
 await Promise.all([
