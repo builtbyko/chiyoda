@@ -10,6 +10,8 @@ type OverlayKey =
   | "roads"
   | "urbanPlanningRoads"
   | "rail"
+  | "stationEntrances"
+  | "undergroundWalkways"
   | "parks"
   | "landPrices"
   | "shelters"
@@ -51,6 +53,8 @@ type DatasetKey =
   | "urbanPlanningRoads"
   | "rail"
   | "stations"
+  | "stationEntrances"
+  | "undergroundWalkways"
   | "districtPlans"
   | "heightDistricts"
   | "specialZones"
@@ -142,6 +146,8 @@ type Detail = {
 const ROAD_LAYER_IDS = ["roads-casing", "roads-line", "roads-hit"];
 const URBAN_PLANNING_ROAD_LAYER_IDS = ["urban-planning-roads-casing", "urban-planning-roads-line", "urban-planning-roads-hit"];
 const RAIL_LAYER_IDS = ["rail-casing", "rail-line", "rail-hit", "stations", "station-core"];
+const STATION_ENTRANCE_LAYER_IDS = ["station-entrances-hit", "station-entrances-points"];
+const UNDERGROUND_WALKWAY_LAYER_IDS = ["underground-walkways-line", "underground-walkways-hit"];
 const PARK_LAYER_IDS = ["parks-fill", "parks-outline"];
 const LAND_PRICE_LAYER_IDS = ["land-prices-hit", "land-prices-halo", "land-prices"];
 const SHELTER_LAYER_IDS = ["shelters-hit", "shelters-halo", "shelters"];
@@ -157,6 +163,8 @@ const MEMORY_PLATE_LAYER_IDS = ["memory-plates-hit", "memory-plates-halo", "memo
 const CULTURAL_ASSET_LAYER_IDS = ["cultural-assets-hit", "cultural-assets-halo", "cultural-assets-points", "cultural-assets-fill", "cultural-assets-line"];
 const OFFICIAL_ELEMENT_SOURCE = "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html";
 const PLATEAU_BUILDING_SOURCE = "https://github.com/indigo-lab/plateau-tokyo23ku-building-mvt-2020";
+const OSM_REFERENCE_SOURCE = "https://www.openstreetmap.org/copyright";
+const UNDERGROUND_WALKWAY_NOTE = "OpenStreetMap上の地下・屋内歩行リンク。網羅性は保証されません。";
 
 const AREA_INTERACTIVE_LAYERS: Record<Exclude<AreaLayer, "none">, string[]> = {
   population: ["population-fill"],
@@ -171,6 +179,8 @@ const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   roads: ["roads-hit"],
   urbanPlanningRoads: ["urban-planning-roads-hit"],
   rail: ["stations", "rail-hit"],
+  stationEntrances: ["station-entrances-hit"],
+  undergroundWalkways: ["underground-walkways-hit"],
   parks: ["parks-fill"],
   landPrices: ["land-prices-hit"],
   shelters: ["shelters-hit"],
@@ -201,6 +211,8 @@ const DATASET_FILES: Record<DatasetKey, string> = {
   urbanPlanningRoads: "urban-planning-roads.json",
   rail: "rail.json",
   stations: "stations.json",
+  stationEntrances: "station-entrances.json",
+  undergroundWalkways: "underground-walkways.json",
   districtPlans: "district-plans.json",
   heightDistricts: "height-districts.json",
   specialZones: "special-zones.json",
@@ -225,6 +237,8 @@ const DATASET_SOURCES: Record<DatasetKey, string> = {
   urbanPlanningRoads: "urban-planning-roads",
   rail: "rail",
   stations: "stations",
+  stationEntrances: "station-entrances",
+  undergroundWalkways: "underground-walkways",
   districtPlans: "district-plans",
   heightDistricts: "height-districts",
   specialZones: "special-zones",
@@ -250,6 +264,8 @@ const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
   roads: ["roads"],
   urbanPlanningRoads: ["urbanPlanningRoads"],
   rail: ["rail", "stations"],
+  stationEntrances: ["stationEntrances"],
+  undergroundWalkways: ["undergroundWalkways"],
   parks: ["parks"],
   landPrices: ["landPrices"],
   shelters: ["shelters"],
@@ -281,6 +297,8 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   roads: "主要道路",
   urbanPlanningRoads: "都市計画道路",
   rail: "鉄道・駅",
+  stationEntrances: "駅出入口",
+  undergroundWalkways: "地下歩行ネットワーク",
   parks: "公園・緑地",
   landPrices: "地価公示",
   shelters: "指定避難所",
@@ -309,6 +327,8 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   urbanPlanningRoads: "都市計画道路",
   rail: "鉄道",
   stations: "駅",
+  stationEntrances: "駅出入口",
+  undergroundWalkways: "地下歩行ネットワーク",
   districtPlans: "地区計画",
   heightDistricts: "高度地区",
   specialZones: "容積・再開発等の特例",
@@ -884,6 +904,27 @@ function detailFor(
       ],
     };
   }
+  if (layerId.startsWith("station-entrances") || layerId.startsWith("underground-walkways")) {
+    const entrance = layerId.startsWith("station-entrances");
+    const wheelchair = { yes: "対応（OSM）", no: "非対応（OSM）", limited: "一部対応（OSM）" };
+    const values = [
+      ["出口番号", p.ref],
+      ["駅", p.station],
+      ["事業者", p.operator],
+      ["ネットワーク", p.network],
+      ["車いす", p.wheelchair ? wheelchair[String(p.wheelchair) as keyof typeof wheelchair] ?? p.wheelchair : undefined],
+      ["階", p.level],
+    ];
+    const osmType = String(p._osm_type ?? "");
+    const osmId = Number(p._osm_id);
+    return {
+      eyebrow: entrance ? "Station entrance" : "Underground walkway",
+      title: String(p.n ?? (entrance ? "駅出入口" : "地下歩行リンク")),
+      rows: values.filter(([, value]) => value != null && value !== "").map(([label, value]) => ({ label: String(label), value: String(value) })),
+      note: entrance ? "OpenStreetMapの参考位置・属性です。最新の出口・バリアフリー情報は駅の案内で確認してください。" : UNDERGROUND_WALKWAY_NOTE,
+      sources: [{ label: "OpenStreetMap（参考）", url: ["node", "way"].includes(osmType) && Number.isSafeInteger(osmId) && osmId > 0 ? `https://www.openstreetmap.org/${osmType}/${osmId}` : OSM_REFERENCE_SOURCE }],
+    };
+  }
   if (layerId.includes("station")) {
     return {
       eyebrow: "Station",
@@ -1010,6 +1051,8 @@ export function MapAtlas() {
     specialZones: false,
     redevelopment: false,
     chiyodaRegions: false,
+    stationEntrances: false,
+    undergroundWalkways: false,
     functionalKaiwai: false,
     openSpaces: false,
     areaManagement: false,
@@ -1247,6 +1290,18 @@ export function MapAtlas() {
             ...geoJsonOptions,
           });
           map.addSource("stations", { type: "geojson", data: EMPTY_COLLECTION as never });
+          map.addSource("station-entrances", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `駅出入口：<a href="${OSM_REFERENCE_SOURCE}" target="_blank">© OpenStreetMap contributors（参考・ODbL）</a>`,
+          });
+          map.addSource("underground-walkways", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `地下歩行リンク：<a href="${OSM_REFERENCE_SOURCE}" target="_blank">© OpenStreetMap contributors（参考・ODbL）</a>`,
+          });
           map.addSource("wards", {
             type: "geojson",
             data: data.wards as never,
@@ -1734,6 +1789,27 @@ export function MapAtlas() {
             paint: { "line-color": "#ffffff", "line-width": 12, "line-opacity": 0 },
           });
           map.addLayer({
+            id: "underground-walkways-line",
+            type: "line",
+            source: "underground-walkways",
+            minzoom: 14,
+            layout: { visibility: "none" },
+            paint: {
+              "line-color": "#c1cad1",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 14, 1, 18, 2],
+              "line-opacity": 0.75,
+              "line-dasharray": [3, 2],
+            },
+          });
+          map.addLayer({
+            id: "underground-walkways-hit",
+            type: "line",
+            source: "underground-walkways",
+            minzoom: 14,
+            layout: { visibility: "none" },
+            paint: { "line-color": "#ffffff", "line-width": 10, "line-opacity": 0 },
+          });
+          map.addLayer({
             id: "rail-casing",
             type: "line",
             source: "rail",
@@ -1785,6 +1861,27 @@ export function MapAtlas() {
             paint: {
               "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 1.5, 16, 2.6],
               "circle-color": "#c95535",
+            },
+          });
+          map.addLayer({
+            id: "station-entrances-hit",
+            type: "circle",
+            source: "station-entrances",
+            minzoom: 14,
+            layout: { visibility: "none" },
+            paint: { "circle-radius": 9, "circle-color": "#ffffff", "circle-opacity": 0 },
+          });
+          map.addLayer({
+            id: "station-entrances-points",
+            type: "circle",
+            source: "station-entrances",
+            minzoom: 14,
+            layout: { visibility: "none" },
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2.3, 18, 3.8],
+              "circle-color": "#7d9cb0",
+              "circle-stroke-color": "#fffdf8",
+              "circle-stroke-width": 1,
             },
           });
           map.addLayer({
@@ -2226,6 +2323,8 @@ export function MapAtlas() {
     setLayerVisibility(map, REDEVELOPMENT_LAYER_IDS, overlays.redevelopment);
     setLayerVisibility(map, CHIYODA_REGION_LAYER_IDS, overlays.chiyodaRegions);
     setLayerVisibility(map, FUNCTIONAL_KAIWAI_LAYER_IDS, overlays.functionalKaiwai);
+    setLayerVisibility(map, STATION_ENTRANCE_LAYER_IDS, overlays.stationEntrances);
+    setLayerVisibility(map, UNDERGROUND_WALKWAY_LAYER_IDS, overlays.undergroundWalkways);
     setLayerVisibility(map, OPEN_SPACE_LAYER_IDS, overlays.openSpaces);
     setLayerVisibility(map, AREA_MANAGEMENT_LAYER_IDS, overlays.areaManagement);
     setLayerVisibility(map, MEMORY_PLATE_LAYER_IDS, overlays.memoryPlates);
@@ -2449,6 +2548,8 @@ export function MapAtlas() {
     if (overlays.roads) groups.push({ title: "主要道路", items: ROAD_LEGEND });
     if (overlays.urbanPlanningRoads) groups.push({ title: "都市計画道路（2020年度）", items: URBAN_PLANNING_ROAD_LEGEND });
     if (overlays.rail) groups.push({ title: "鉄道", items: RAIL_LEGEND });
+    if (overlays.stationEntrances) groups.push({ title: "駅出入口 · OSM参考", items: [["ズーム14以上", "#7d9cb0"]] });
+    if (overlays.undergroundWalkways) groups.push({ title: "地下歩行 · OSM参考", items: [["ズーム14以上・非網羅", "#c1cad1"]] });
     if (overlays.parks) groups.push({ title: "公園・緑地", items: PARK_LEGEND });
     if (overlays.landPrices) groups.push({ title: "地価公示（円/m²）", items: LAND_PRICE_LEGEND });
     if (overlays.shelters) groups.push({ title: "指定避難所", items: SHELTER_LEGEND });
@@ -2476,6 +2577,8 @@ export function MapAtlas() {
     if (overlays.roads) add("主要道路", "都市の軸と区を越える連続性を見る。", meta?.roadsDate ?? "取得時点", "OpenStreetMap", "https://www.openstreetmap.org/copyright");
     if (overlays.urbanPlanningRoads) add("都市計画道路", "6区をつなぐ計画線の骨格を見る。整備済・事業中・未着手の区別ではなく、最新の区域・幅員は公式図書で確認。", meta?.urbanPlanningRoadYear ?? "2020年度", "国土交通省PLATEAU", URBAN_PLANNING_ROAD_SOURCE);
     if (overlays.rail) add("鉄道・駅", "駅勢圏と乗換拠点を道路・土地利用に重ねて読む。", meta?.railDate ?? "2025年", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html");
+    if (overlays.stationEntrances) add("駅出入口", "ズーム14以上で表示。出口・バリアフリー属性は駅の最新案内で再確認。", "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE);
+    if (overlays.undergroundWalkways) add("地下歩行ネットワーク", UNDERGROUND_WALKWAY_NOTE, "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE);
     if (overlays.districtPlans) add("地区計画", "区域を入口に、計画書・計画図へたどる。", meta?.districtPlanDate ?? "2025-05-02", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.heightDistricts) add("高度地区", "千代田区・中央区は指定なし。隣接4区の種別と数値指定を用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.specialZones) add("容積・再開発等の特例", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
@@ -2615,7 +2718,10 @@ export function MapAtlas() {
               <h2 className="section-title">都市構造</h2>
               <div className="toggle-list">
                 <Toggle label="主要道路" active={overlays.roads} onClick={() => toggleOverlay("roads")} />
+                <Toggle label="都市計画道路（2020）" active={overlays.urbanPlanningRoads} onClick={() => toggleOverlay("urbanPlanningRoads")} />
                 <Toggle label="鉄道・駅" active={overlays.rail} onClick={() => toggleOverlay("rail")} />
+                <Toggle label="駅出入口" active={overlays.stationEntrances} onClick={() => toggleOverlay("stationEntrances")} />
+                <Toggle label="地下歩行ネットワーク" active={overlays.undergroundWalkways} onClick={() => toggleOverlay("undergroundWalkways")} />
                 <Toggle label="公園・緑地" active={overlays.parks} onClick={() => toggleOverlay("parks")} />
                 <Toggle label="地形・陰影" active={overlays.terrain} onClick={() => toggleOverlay("terrain")} />
                 <Toggle label="建物高さ（2020）" active={overlays.buildingHeight} onClick={() => toggleOverlay("buildingHeight")} />
@@ -2626,8 +2732,6 @@ export function MapAtlas() {
             <section>
               <h2 className="section-title">計画・変化</h2>
               <div className="toggle-list">
-                <Toggle label="都市計画道路（2020）" active={overlays.urbanPlanningRoads} onClick={() => toggleOverlay("urbanPlanningRoads")} />
-                <Toggle label="千代田区の7地域" active={overlays.chiyodaRegions} onClick={() => toggleOverlay("chiyodaRegions")} />
                 <Toggle label="地区計画" active={overlays.districtPlans} onClick={() => toggleOverlay("districtPlans")} />
                 <Toggle label="高度地区" active={overlays.heightDistricts} onClick={() => toggleOverlay("heightDistricts")} />
                 <Toggle label="容積・再開発等の特例" active={overlays.specialZones} onClick={() => toggleOverlay("specialZones")} />
@@ -2640,6 +2744,7 @@ export function MapAtlas() {
             <section>
               <h2 className="section-title">暮らし・景観</h2>
               <div className="toggle-list">
+                <Toggle label="千代田区の7地域" active={overlays.chiyodaRegions} onClick={() => toggleOverlay("chiyodaRegions")} />
                 <Toggle label="街の個性" active={overlays.functionalKaiwai} onClick={() => toggleOverlay("functionalKaiwai")} />
                 <Toggle label="まちの記憶" active={overlays.memoryPlates} onClick={() => toggleOverlay("memoryPlates")} />
                 <Toggle label="文化・歴史資源" active={overlays.culturalAssets} onClick={() => toggleOverlay("culturalAssets")} />

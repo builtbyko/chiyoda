@@ -1,0 +1,174 @@
+{
+  "dataset": "CHiYODA ATLAS 景観の界隈",
+  "description": "千代田区界隈別・重点地区景観まちづくりガイドラインに基づく12界隈のポップアップ用メタデータ。説明文は公式資料を短く要約した編集文。",
+  "areas": [
+    {
+      "id": 1,
+      "name": "皇居界隈",
+      "region": "美観地域",
+      "summary": "江戸城を起点とする歴史と、内濠に囲まれた大規模な緑地・水辺が一体となった、千代田区の象徴的な中心空間。",
+      "features": [
+        "江戸城・皇居",
+        "内濠と大規模な緑",
+        "皇居外苑・北の丸公園"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（美観地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-1_1.pdf",
+      "source_page": 23
+    },
+    {
+      "id": 2,
+      "name": "大手町・丸の内・有楽町界隈",
+      "region": "美観地域",
+      "summary": "東京駅と皇居の間に、日本を代表する商業・業務機能が高度に集積する都心業務地区。大街区と歴史的建築、駅前・街路空間が景観の骨格をつくる。",
+      "features": [
+        "東京駅",
+        "高度な商業・業務集積",
+        "大街区・歴史的建築"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（美観地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-1_1.pdf",
+      "source_page": 27
+    },
+    {
+      "id": 3,
+      "name": "霞が関・永田町界隈",
+      "region": "美観地域",
+      "summary": "霞が関の官庁街と、国会議事堂・首相官邸・最高裁判所などが集まる、国家中枢機能を象徴する界隈。",
+      "features": [
+        "官庁街",
+        "国会議事堂",
+        "三権の中枢"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（美観地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-1_1.pdf",
+      "source_page": 34
+    },
+    {
+      "id": 4,
+      "name": "千鳥ヶ淵界隈",
+      "region": "美観地域",
+      "summary": "山の手台地と内濠・千鳥ヶ淵に接し、靖国神社から半蔵門へ連なる緑と歴史が、皇居周辺と麹町方面をつなぐ界隈。",
+      "features": [
+        "千鳥ヶ淵・内濠",
+        "山の手台地",
+        "靖国神社・半蔵門"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（美観地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-1_1.pdf",
+      "source_page": 40
+    },
+    {
+      "id": 5,
+      "name": "九段・竹橋界隈",
+      "region": "美観地域",
+      "summary": "九段坂の大きな高低差と靖国神社の緑、日本橋川・内濠などの水辺が特徴。山の手と下町、皇居周辺と神田地域をつなぐ結節的な界隈。",
+      "features": [
+        "九段坂の高低差",
+        "靖国神社",
+        "日本橋川・竹橋"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（美観地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-1_1.pdf",
+      "source_page": 45
+    },
+    {
+      "id": 6,
+      "name": "紀尾井町界隈",
+      "region": "麹町地域",
+      "summary": "大名屋敷の敷地構成や弁慶濠・清水谷などの地形と緑を受け継ぎながら、ホテル・大学・オフィスが立地する風格ある複合市街地。",
+      "features": [
+        "大名屋敷の履歴",
+        "弁慶濠・清水谷",
+        "ホテル・大学・オフィス"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（麹町地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-2_1.pdf",
+      "source_page": 59
+    },
+    {
+      "id": 7,
+      "name": "麹町・番町界隈",
+      "region": "麹町地域",
+      "summary": "麹町の商業・業務地と、番町の落ち着いた山の手住宅地が隣り合う界隈。尾根道と谷地形、教育・文化機能が街の性格を形づくる。",
+      "features": [
+        "麹町大通り・尾根道",
+        "番町の住宅地",
+        "教育・文化機能"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（麹町地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-2_1.pdf",
+      "source_page": 64
+    },
+    {
+      "id": 8,
+      "name": "飯田橋・富士見界隈",
+      "region": "麹町地域",
+      "summary": "学校が集積し、外濠や水辺・緑に近接する生活市街地。駅周辺の都市機能と商店街、落ち着いた住宅・文教環境が共存する。",
+      "features": [
+        "学校・文教",
+        "外濠・水辺・緑",
+        "商店街・生活市街地"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（麹町地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-2_1.pdf",
+      "source_page": 69
+    },
+    {
+      "id": 9,
+      "name": "神保町・三崎町界隈",
+      "region": "神田地域",
+      "summary": "学校の集積を背景に、古書店・出版・印刷などの専門業種と、喫茶・飲食、スポーツ店などが重なって形成された奥行きのある複合市街地。",
+      "features": [
+        "古書店・出版・印刷",
+        "学校・学生街",
+        "路地・喫茶・専門店"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（神田地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-3_1.pdf",
+      "source_page": 83
+    },
+    {
+      "id": 10,
+      "name": "御茶ノ水・駿河台界隈",
+      "region": "神田地域",
+      "summary": "神田川の開削による崖地と駿河台の高低差を背景に、大学・学校・医療機関が集積してきた学生街・文教地区。",
+      "features": [
+        "神田川・崖地",
+        "大学・学校・医療",
+        "ニコライ堂などのランドマーク"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（神田地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-3_1.pdf",
+      "source_page": 89
+    },
+    {
+      "id": 11,
+      "name": "神田界隈",
+      "region": "神田地域",
+      "summary": "江戸以来の商人・職人のまちの性格を残し、表通りと裏通り・路地、細かな町割りが重なって下町らしい奥行きを生む界隈。",
+      "features": [
+        "商人・職人のまち",
+        "江戸以来の町割り",
+        "表通り・裏通り・路地"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（神田地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-3_1.pdf",
+      "source_page": 95
+    },
+    {
+      "id": 12,
+      "name": "外神田・秋葉原界隈",
+      "region": "神田地域",
+      "summary": "神田明神の門前と交通・物流の結節点という歴史を基盤に、戦後の電気街から世界的な秋葉原文化へ発展した界隈。",
+      "features": [
+        "神田明神",
+        "鉄道・物流結節点",
+        "電気街・秋葉原文化"
+      ],
+      "source_title": "千代田区界隈別・重点地区景観まちづくりガイドライン（神田地域）",
+      "source_url": "https://www.city.chiyoda.lg.jp/documents/4204/guideline-3_1.pdf",
+      "source_page": 101
+    }
+  ]
+}

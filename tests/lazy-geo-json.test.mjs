@@ -55,24 +55,30 @@ test("lazy loader reports a failed request and allows a retry", async () => {
   assert.equal(hydrated.length, 1);
 });
 
-test("urban planning roads are not fetched until selected and are reused afterward", async () => {
-  const calls = [];
-  const hydrated = [];
-  const loader = createLazyGeoJsonLoader({
-    files: { urbanPlanningRoads: "urban-planning-roads.json" },
-    labels: { urbanPlanningRoads: "都市計画道路" },
-    fetcher: async (url) => {
-      calls.push(url);
-      return { ok: true, json: async () => collection("urbanPlanningRoads") };
-    },
+for (const [key, filename, label] of [
+  ["urbanPlanningRoads", "urban-planning-roads.json", "都市計画道路"],
+  ["stationEntrances", "station-entrances.json", "駅出入口"],
+  ["undergroundWalkways", "underground-walkways.json", "地下歩行ネットワーク"],
+]) {
+  test(`${key} is not fetched until selected and is reused afterward`, async () => {
+    const calls = [];
+    const hydrated = [];
+    const loader = createLazyGeoJsonLoader({
+      files: { [key]: filename },
+      labels: { [key]: label },
+      fetcher: async (url) => {
+        calls.push(url);
+        return { ok: true, json: async () => collection(key) };
+      },
+    });
+    const getSource = (key) => ({ setData: (data) => hydrated.push([key, data]) });
+    assert.equal(calls.length, 0);
+    await Promise.all([
+      loader.ensure(key, getSource),
+      loader.ensure(key, getSource),
+    ]);
+    await loader.ensure(key, getSource);
+    assert.deepEqual(calls, [`data/layers/${filename}`]);
+    assert.equal(hydrated.length, 1);
   });
-  const getSource = (key) => ({ setData: (data) => hydrated.push([key, data]) });
-  assert.equal(calls.length, 0);
-  await Promise.all([
-    loader.ensure("urbanPlanningRoads", getSource),
-    loader.ensure("urbanPlanningRoads", getSource),
-  ]);
-  await loader.ensure("urbanPlanningRoads", getSource);
-  assert.deepEqual(calls, ["data/layers/urban-planning-roads.json"]);
-  assert.equal(hydrated.length, 1);
-});
+}

@@ -20,6 +20,8 @@ const layerFiles = [
   "urban-planning-roads.json",
   "rail.json",
   "stations.json",
+  "station-entrances.json",
+  "underground-walkways.json",
   "district-plans.json",
   "height-districts.json",
   "special-zones.json",

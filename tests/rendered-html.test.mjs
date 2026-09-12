@@ -55,10 +55,11 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /容積・再開発等の特例/);
   assert.match(html, /事業中の再開発/);
   assert.match(html, /千代田区の7地域/);
-  for (const label of ["街の個性", "公開空地", "まちづくり団体", "まちの記憶", "文化・歴史資源", "地形・陰影", "建物高さ（2020）"]) {
+  for (const label of ["街の個性", "公開空地", "まちづくり団体", "まちの記憶", "文化・歴史資源", "地形・陰影", "建物高さ（2020）", "駅出入口", "地下歩行ネットワーク"]) {
     assert.match(html, new RegExp(`<button(?=[^>]*aria-pressed="false")[^>]*><span>${label}</span>`));
   }
   assert.doesNotMatch(html, /<span>景観まちづくり重要物件<\/span>/);
+  assert.doesNotMatch(html, /<span>景観の界隈<\/span>/);
   assert.match(html, /現在地/);
   assert.match(html, /1936–1942年頃/);
   assert.match(
@@ -87,6 +88,8 @@ test("map data includes the recommended reference layers", async () => {
     urbanPlanningRoads: "urban-planning-roads.json",
     rail: "rail.json",
     stations: "stations.json",
+    stationEntrances: "station-entrances.json",
+    undergroundWalkways: "underground-walkways.json",
     districtPlans: "district-plans.json",
     heightDistricts: "height-districts.json",
     specialZones: "special-zones.json",
@@ -290,10 +293,10 @@ test("desktop map keeps its low-cost rendering settings", async () => {
   assert.doesNotMatch(source, /id: `base-photo-\$\{option\.value\}`/);
   assert.match(source, /if \(!map\.getSource\(sourceId\) \|\| !map\.getLayer\("base-photo"\)\)/);
   assert.match(source, /\{ buffer: 64, tolerance: 1\.25 \}/);
-  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 19);
+  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 21);
   assert.equal(
     source.match(/"(?:fill|line|circle)-opacity": 0(?:,|\s*})/g)?.length,
-    11,
+    13,
   );
   assert.doesNotMatch(source, /"(?:fill|line|circle)-opacity": 0\.01/);
   assert.match(source, /urbanPlanningRoads: false/);
@@ -350,6 +353,72 @@ function sourceFunction(source, name, nextName, bindings = {}) {
   const { outputText } = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } });
   return new Function(...Object.keys(bindings), `${outputText}; return ${name};`)(...Object.values(bindings));
 }
+
+test("OSM walking reference layers stay lazy, muted and hidden below zoom 14", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const files = { stationEntrances: "station-entrances", undergroundWalkways: "underground-walkways" };
+  const sources = {};
+  for (const [key, filename] of Object.entries(files)) {
+    assert.match(source, new RegExp(`${key}: false`));
+    assert.match(source, new RegExp(`${key}: \\["${key}"\\]`));
+    assert.match(source, new RegExp(`map\\.addSource\\("${filename}", \\{\\s*type: "geojson",\\s*data: EMPTY_COLLECTION`));
+    const data = JSON.parse(await readFile(new URL(`../public/data/layers/${filename}.json`, import.meta.url), "utf8"));
+    assert.ok(data.features.length > 0);
+    for (const { properties: p, geometry: g } of data.features) {
+      assert.equal(g.type, key === "stationEntrances" ? "Point" : "LineString");
+      assert.equal(p._source_name, "OpenStreetMap");
+      assert.equal(p._data_quality, "community_osm");
+      assert.equal(p._license, "ODbL");
+      assert.equal(p._source_url, "https://www.openstreetmap.org/copyright");
+      assert.ok(Number.isSafeInteger(p._osm_id) && p._osm_id > 0);
+      const coordinates = g.type === "Point" ? [g.coordinates] : g.coordinates;
+      assert.ok(coordinates.length >= (g.type === "Point" ? 1 : 2));
+      assert.ok(coordinates.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y) && x >= 139.725 && x <= 139.790 && y >= 35.665 && y <= 35.710));
+    }
+    sources[filename] = { type: "geojson", data };
+  }
+  const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const layers = [];
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && node.expression.getText(tree) === "map.addLayer") {
+      const object = node.arguments[0];
+      if (object && /^\{\s*id: "(?:station-entrances|underground-walkways)-/.test(object.getText(tree))) {
+        const js = ts.transpileModule(`const layer = ${object.getText(tree)};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+        layers.push(new Function(`${js}; return layer;`)());
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.deepEqual(layers.map(({ id }) => id).sort(), ["station-entrances-hit", "station-entrances-points", "underground-walkways-hit", "underground-walkways-line"].sort());
+  for (const layer of layers) {
+    assert.equal(layer.minzoom, 14);
+    assert.equal(layer.layout.visibility, "none");
+  }
+  assert.deepEqual(validateStyleMin({ version: 8, sources, layers }), []);
+  assert.ok(layers.find(({ id }) => id === "underground-walkways-line").paint["line-opacity"] < 0.8);
+  assert.match(source, /OpenStreetMap上の地下・屋内歩行リンク。網羅性は保証されません。/);
+  assert.match(source, /STATION_ENTRANCE_LAYER_IDS, overlays\.stationEntrances/);
+  assert.match(source, /UNDERGROUND_WALKWAY_LAYER_IDS, overlays\.undergroundWalkways/);
+});
+
+test("walking popups use OSM reference attribution and never infer missing station information", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", {
+    OSM_REFERENCE_SOURCE: "https://www.openstreetmap.org/copyright",
+    UNDERGROUND_WALKWAY_NOTE: "OpenStreetMap上の地下・屋内歩行リンク。網羅性は保証されません。",
+  });
+  const entrance = detailFor("station-entrances-hit", { n: "A1", ref: "A1", operator: "東京メトロ", wheelchair: "limited", _osm_type: "node", _osm_id: 123 });
+  assert.equal(entrance.eyebrow, "Station entrance");
+  assert.equal(entrance.title, "A1");
+  assert.deepEqual(entrance.rows, [{ label: "出口番号", value: "A1" }, { label: "事業者", value: "東京メトロ" }, { label: "車いす", value: "一部対応（OSM）" }]);
+  assert.deepEqual(entrance.sources, [{ label: "OpenStreetMap（参考）", url: "https://www.openstreetmap.org/node/123" }]);
+  assert.deepEqual(detailFor("station-entrances-hit", {}).rows, []);
+  const walkway = detailFor("underground-walkways-hit", { n: "通路", _osm_type: "way", _osm_id: 456 });
+  assert.match(walkway.note, /網羅性は保証されません/);
+  assert.equal(walkway.sources[0].label, "OpenStreetMap（参考）");
+  assert.equal(walkway.sources[0].url, "https://www.openstreetmap.org/way/456");
+});
 
 test("remote tile overlays are created once with valid 2D styles and stable background order", async () => {
   const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
