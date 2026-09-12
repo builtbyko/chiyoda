@@ -54,6 +54,11 @@ SOURCES = (
         "https://www.opendata.metro.tokyo.lg.jp/toshiseibi/gis08_toshisaiseitokubetsuchiku.zip",
     ),
     (
+        "urban-planning-roads-plateau-2020",
+        "tokyo23ku_toshikeikakudoro.zip",
+        "https://gsic-opendata.s3.ap-northeast-1.amazonaws.com/national-gov/mlit/city-bureau/3d-city-model/2020/plateau-tokyo23ku-3dtiles-2020/tokyo23kuETC/tokyo23ku_toshikeikakudoro.zip",
+    ),
+    (
         "green-tokyo-2026",
         "green_chuui.pdf",
         "https://data.storage.data.metro.tokyo.lg.jp/toshiseibi/green_chuui.pdf",
@@ -98,6 +103,7 @@ EXTRACTIONS = {
     "gis06_koudoriyouchiku.zip": "koudoriyouchiku",
     "gis07_tokuteigaiku.zip": "tokuteigaiku",
     "gis08_toshisaiseitokubetsuchiku.zip": "toshisaiseitokubetsuchiku",
+    "tokyo23ku_toshikeikakudoro.zip": "expanded",
     "01_kouenryokuchi.zip": "expanded",
     "L01-26_GML.zip": "expanded",
     "A31a-25_13_10_GEOJSON.zip": "river-10",

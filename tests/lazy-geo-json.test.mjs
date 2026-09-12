@@ -54,3 +54,25 @@ test("lazy loader reports a failed request and allows a retry", async () => {
   assert.equal(attempts, 2);
   assert.equal(hydrated.length, 1);
 });
+
+test("urban planning roads are not fetched until selected and are reused afterward", async () => {
+  const calls = [];
+  const hydrated = [];
+  const loader = createLazyGeoJsonLoader({
+    files: { urbanPlanningRoads: "urban-planning-roads.json" },
+    labels: { urbanPlanningRoads: "都市計画道路" },
+    fetcher: async (url) => {
+      calls.push(url);
+      return { ok: true, json: async () => collection("urbanPlanningRoads") };
+    },
+  });
+  const getSource = (key) => ({ setData: (data) => hydrated.push([key, data]) });
+  assert.equal(calls.length, 0);
+  await Promise.all([
+    loader.ensure("urbanPlanningRoads", getSource),
+    loader.ensure("urbanPlanningRoads", getSource),
+  ]);
+  await loader.ensure("urbanPlanningRoads", getSource);
+  assert.deepEqual(calls, ["data/layers/urban-planning-roads.json"]);
+  assert.equal(hydrated.length, 1);
+});

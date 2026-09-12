@@ -8,6 +8,7 @@ import { createLazyGeoJsonLoader } from "./lazyGeoJson";
 type AreaLayer = "population" | "daytime" | "landUse" | "zoning" | "fire" | "flood" | "none";
 type OverlayKey =
   | "roads"
+  | "urbanPlanningRoads"
   | "rail"
   | "parks"
   | "landPrices"
@@ -41,6 +42,7 @@ type DatasetKey =
   | "landPrices"
   | "shelters"
   | "roads"
+  | "urbanPlanningRoads"
   | "rail"
   | "stations"
   | "districtPlans"
@@ -75,6 +77,7 @@ type AtlasData = {
     zoningYear: string;
     railDate: string;
     roadsDate: string;
+    urbanPlanningRoadYear: string;
     fireYear: string;
     floodYear: string;
     parksDate: string;
@@ -89,6 +92,7 @@ type AtlasData = {
     redevelopmentCount: number;
     chiyodaRegionCount: number;
     landscapePropertyCount: number;
+    urbanPlanningRoadCount: number;
   };
   scope: GeoFeature;
   city: GeoFeature;
@@ -126,6 +130,7 @@ type Detail = {
 };
 
 const ROAD_LAYER_IDS = ["roads-casing", "roads-line", "roads-hit"];
+const URBAN_PLANNING_ROAD_LAYER_IDS = ["urban-planning-roads-casing", "urban-planning-roads-line", "urban-planning-roads-hit"];
 const RAIL_LAYER_IDS = ["rail-casing", "rail-line", "rail-hit", "stations", "station-core"];
 const PARK_LAYER_IDS = ["parks-fill", "parks-outline"];
 const LAND_PRICE_LAYER_IDS = ["land-prices-hit", "land-prices-halo", "land-prices"];
@@ -148,6 +153,7 @@ const AREA_INTERACTIVE_LAYERS: Record<Exclude<AreaLayer, "none">, string[]> = {
 
 const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   roads: ["roads-hit"],
+  urbanPlanningRoads: ["urban-planning-roads-hit"],
   rail: ["stations", "rail-hit"],
   parks: ["parks-fill"],
   landPrices: ["land-prices-hit"],
@@ -171,6 +177,7 @@ const DATASET_FILES: Record<DatasetKey, string> = {
   landPrices: "land-prices.json",
   shelters: "shelters.json",
   roads: "roads.json",
+  urbanPlanningRoads: "urban-planning-roads.json",
   rail: "rail.json",
   stations: "stations.json",
   districtPlans: "district-plans.json",
@@ -190,6 +197,7 @@ const DATASET_SOURCES: Record<DatasetKey, string> = {
   landPrices: "land-prices",
   shelters: "shelters",
   roads: "roads",
+  urbanPlanningRoads: "urban-planning-roads",
   rail: "rail",
   stations: "stations",
   districtPlans: "district-plans",
@@ -211,6 +219,7 @@ const AREA_DATASETS: Partial<Record<AreaLayer, DatasetKey>> = {
 
 const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
   roads: ["roads"],
+  urbanPlanningRoads: ["urbanPlanningRoads"],
   rail: ["rail", "stations"],
   parks: ["parks"],
   landPrices: ["landPrices"],
@@ -233,6 +242,7 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   flood: "洪水浸水",
   none: "面表示",
   roads: "主要道路",
+  urbanPlanningRoads: "都市計画道路",
   rail: "鉄道・駅",
   parks: "公園・緑地",
   landPrices: "地価公示",
@@ -255,6 +265,7 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   landPrices: "地価公示",
   shelters: "指定避難所",
   roads: "主要道路",
+  urbanPlanningRoads: "都市計画道路",
   rail: "鉄道",
   stations: "駅",
   districtPlans: "地区計画",
@@ -327,6 +338,14 @@ const ROAD_LEGEND = [
   ["都道・幹線", "#e69f00"],
   ["地区幹線", "#64748b"],
 ];
+
+const URBAN_PLANNING_ROAD_LEGEND = [
+  ["一般道の計画線", "#ff55b5"],
+  ["高速道路・立体（計画）", "#b99bff"],
+  ["交通・駅付近広場", "#55e0cc"],
+];
+
+const URBAN_PLANNING_ROAD_SOURCE = "https://www.geospatial.jp/ckan/dataset/plateau-tokyo23ku-3dtiles-2020";
 
 const RAIL_LEGEND = [
   ["JR", "#009e73"],
@@ -710,6 +729,22 @@ function detailFor(
       rows: [{ label: "事業者", value: String(p.o ?? "—") }],
     };
   }
+  if (layerId.includes("urban-planning-road")) {
+    return {
+      eyebrow: "Urban planning road",
+      title: "都市計画道路",
+      rows: [
+        { label: "区", value: textValue(p.w) },
+        { label: "分類", value: textValue(p.t) },
+        { label: "データ年度", value: meta?.urbanPlanningRoadYear ?? "2020年度" },
+      ],
+      note: "整備状況を示す線ではありません。路線名・計画幅員・最新の計画区域は各区・東京都の公式図書で確認してください。",
+      sources: [
+        { label: "国土交通省PLATEAU・東京都23区（2020年度）", url: URBAN_PLANNING_ROAD_SOURCE },
+        { label: "東京都・都市計画情報", url: "https://www2.wagmap.jp/tokyo_tokeizu/Portal" },
+      ],
+    };
+  }
   if (layerId.includes("road")) {
     const classes: Record<string, string> = {
       x: "首都高速",
@@ -791,6 +826,7 @@ export function MapAtlas() {
   const [areaLayer, setAreaLayer] = useState<AreaLayer>("none");
   const [overlays, setOverlays] = useState<Record<OverlayKey, boolean>>({
     roads: false,
+    urbanPlanningRoads: false,
     rail: false,
     parks: false,
     landPrices: false,
@@ -1032,6 +1068,12 @@ export function MapAtlas() {
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
             attribution: '道路 © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>',
+          });
+          map.addSource("urban-planning-roads", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `都市計画道路：<a href="${URBAN_PLANNING_ROAD_SOURCE}" target="_blank">国土交通省PLATEAU（2020年度）を加工</a>`,
           });
           map.addSource("rail", {
             type: "geojson",
@@ -1422,6 +1464,35 @@ export function MapAtlas() {
             source: "roads",
             layout: { visibility: "none" },
             paint: { "line-color": "#ffffff", "line-width": 14, "line-opacity": 0 },
+          });
+          map.addLayer({
+            id: "urban-planning-roads-casing",
+            type: "line",
+            source: "urban-planning-roads",
+            layout: { visibility: "none" },
+            paint: {
+              "line-color": "#182032",
+              "line-width": ["interpolate", ["linear"], ["zoom"], 11, 2.6, 17, 4.2],
+              "line-opacity": 0.8,
+            },
+          });
+          map.addLayer({
+            id: "urban-planning-roads-line",
+            type: "line",
+            source: "urban-planning-roads",
+            layout: { visibility: "none" },
+            paint: {
+              "line-color": ["match", ["get", "c"], "highway", "#b99bff", "plaza", "#55e0cc", "#ff55b5"],
+              "line-width": ["interpolate", ["linear"], ["zoom"], 11, 1.2, 17, 2.4],
+              "line-opacity": 0.96,
+            },
+          });
+          map.addLayer({
+            id: "urban-planning-roads-hit",
+            type: "line",
+            source: "urban-planning-roads",
+            layout: { visibility: "none" },
+            paint: { "line-color": "#ffffff", "line-width": 12, "line-opacity": 0 },
           });
           map.addLayer({
             id: "rail-casing",
@@ -1826,7 +1897,7 @@ export function MapAtlas() {
               setDetail(detailFor(feature.layer.id, feature.properties ?? {}, data.meta));
             }
             source.setData(
-              feature.layer.id === "flood-fill"
+              feature.layer.id === "flood-fill" || feature.layer.id.startsWith("urban-planning-roads")
                 ? { type: "FeatureCollection", features: [] }
                 : {
                     type: "FeatureCollection",
@@ -1878,6 +1949,7 @@ export function MapAtlas() {
     const map = mapRef.current;
     if (!map || !ready) return;
     setLayerVisibility(map, ROAD_LAYER_IDS, overlays.roads);
+    setLayerVisibility(map, URBAN_PLANNING_ROAD_LAYER_IDS, overlays.urbanPlanningRoads);
     setLayerVisibility(map, RAIL_LAYER_IDS, overlays.rail);
     setLayerVisibility(map, PARK_LAYER_IDS, overlays.parks);
     setLayerVisibility(map, LAND_PRICE_LAYER_IDS, overlays.landPrices);
@@ -2103,6 +2175,7 @@ export function MapAtlas() {
     if (areaLayer === "fire") groups.push({ title: "防火指定", items: FIRE_LEGEND });
     if (areaLayer === "flood") groups.push({ title: "洪水浸水想定", items: FLOOD_LEGEND });
     if (overlays.roads) groups.push({ title: "主要道路", items: ROAD_LEGEND });
+    if (overlays.urbanPlanningRoads) groups.push({ title: "都市計画道路（2020年度）", items: URBAN_PLANNING_ROAD_LEGEND });
     if (overlays.rail) groups.push({ title: "鉄道", items: RAIL_LEGEND });
     if (overlays.parks) groups.push({ title: "公園・緑地", items: PARK_LEGEND });
     if (overlays.landPrices) groups.push({ title: "地価公示（円/m²）", items: LAND_PRICE_LEGEND });
@@ -2128,6 +2201,7 @@ export function MapAtlas() {
     if (areaLayer === "fire") add("防火指定", "市街地の防火上の指定。敷地判断は公式図で再確認。", meta?.fireYear ?? "2025年度", "国土交通省", "https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html");
     if (areaLayer === "flood") add("洪水浸水", "想定最大規模の最大深を概観。避難判断には使わない。", meta?.floodYear ?? "2025年度", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-A31a-2025.html");
     if (overlays.roads) add("主要道路", "都市の軸と区を越える連続性を見る。", meta?.roadsDate ?? "取得時点", "OpenStreetMap", "https://www.openstreetmap.org/copyright");
+    if (overlays.urbanPlanningRoads) add("都市計画道路", "6区をつなぐ計画線の骨格を見る。整備済・事業中・未着手の区別ではなく、最新の区域・幅員は公式図書で確認。", meta?.urbanPlanningRoadYear ?? "2020年度", "国土交通省PLATEAU", URBAN_PLANNING_ROAD_SOURCE);
     if (overlays.rail) add("鉄道・駅", "駅勢圏と乗換拠点を道路・土地利用に重ねて読む。", meta?.railDate ?? "2025年", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html");
     if (overlays.districtPlans) add("地区計画", "区域を入口に、計画書・計画図へたどる。", meta?.districtPlanDate ?? "2025-05-02", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.heightDistricts) add("高度地区", "千代田区・中央区は指定なし。隣接4区の種別と数値指定を用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
@@ -2270,6 +2344,7 @@ export function MapAtlas() {
             <section>
               <h2 className="section-title">計画・変化</h2>
               <div className="toggle-list">
+                <Toggle label="都市計画道路（2020）" active={overlays.urbanPlanningRoads} onClick={() => toggleOverlay("urbanPlanningRoads")} />
                 <Toggle label="千代田区の7地域" active={overlays.chiyodaRegions} onClick={() => toggleOverlay("chiyodaRegions")} />
                 <Toggle label="地区計画" active={overlays.districtPlans} onClick={() => toggleOverlay("districtPlans")} />
                 <Toggle label="高度地区" active={overlays.heightDistricts} onClick={() => toggleOverlay("heightDistricts")} />

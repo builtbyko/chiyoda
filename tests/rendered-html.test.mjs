@@ -44,6 +44,10 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /地価公示/);
   assert.match(html, /指定避難所/);
   assert.match(html, /町丁目境界/);
+  assert.match(
+    html,
+    /<button(?=[^>]*aria-pressed="false")[^>]*><span>都市計画道路（2020）<\/span>/,
+  );
   assert.match(html, /地区計画/);
   assert.match(html, /高度地区/);
   assert.match(html, /容積・再開発等の特例/);
@@ -75,6 +79,7 @@ test("map data includes the recommended reference layers", async () => {
     landPrices: "land-prices.json",
     shelters: "shelters.json",
     roads: "roads.json",
+    urbanPlanningRoads: "urban-planning-roads.json",
     rail: "rail.json",
     stations: "stations.json",
     districtPlans: "district-plans.json",
@@ -129,6 +134,8 @@ test("map data includes the recommended reference layers", async () => {
     layers.landscapeProperties.features.length,
   );
   assert.equal(mapData.meta.chiyodaRegionDate, "2021-05");
+  assert.equal(mapData.meta.urbanPlanningRoadYear, "2020年度");
+  assert.equal(mapData.meta.urbanPlanningRoadCount, layers.urbanPlanningRoads.features.length);
   assert.equal(mapData.meta.landscapePropertyDate, "2024-12");
   assert.equal(mapData.meta.chiyodaDaytimePopulation, 903780);
   assert.ok(mapData.meta.chiyodaArea > 11.5);
@@ -216,6 +223,40 @@ test("map data includes the recommended reference layers", async () => {
   assert.equal(coordinateSourceCounts["gsi-address-search"]?.length, 8);
 });
 
+test("urban planning road linework stays lightweight and covers all six wards", async () => {
+  const text = await readFile(
+    new URL("../public/data/layers/urban-planning-roads.json", import.meta.url),
+    "utf8",
+  );
+  const { features } = JSON.parse(text);
+  assert.ok(Buffer.byteLength(text) < 450_000, "road linework should remain compact");
+  assert.deepEqual(
+    [...new Set(features.map(({ properties }) => properties.w))].sort(),
+    ["千代田区", "中央区", "港区", "新宿区", "文京区", "台東区"].sort(),
+  );
+  const classes = {
+    "都計線（一般道）": "general",
+    "高速道路": "highway",
+    "立体（計画）": "highway",
+    "交通広場": "plaza",
+    "駅付近広場": "plaza",
+  };
+  for (const { geometry, properties } of features) {
+    assert.equal(properties.n, "都市計画道路");
+    assert.ok(Object.hasOwn(classes, properties.t));
+    assert.equal(classes[properties.t], properties.c);
+    assert.ok(["LineString", "MultiLineString"].includes(geometry.type));
+    const lines = geometry.type === "LineString" ? [geometry.coordinates] : geometry.coordinates;
+    assert.ok(lines.length > 0);
+    for (const line of lines) {
+      assert.ok(line.length >= 2);
+      assert.ok(line.every((point) => point.length === 2 && point.every(Number.isFinite)));
+      assert.ok(line.some(([x, y]) => x !== line[0][0] || y !== line[0][1]));
+      assert.ok(line.every(([x, y]) => x >= 139.6732 && x <= 139.8098 && y >= 35.6229 && y <= 35.736));
+    }
+  }
+});
+
 test("desktop map keeps its low-cost rendering settings", async () => {
   const source = await readFile(
     new URL("../app/MapAtlas.tsx", import.meta.url),
@@ -241,10 +282,17 @@ test("desktop map keeps its low-cost rendering settings", async () => {
   assert.doesNotMatch(source, /id: `base-photo-\$\{option\.value\}`/);
   assert.match(source, /if \(!map\.getSource\(sourceId\) \|\| !map\.getLayer\("base-photo"\)\)/);
   assert.match(source, /\{ buffer: 64, tolerance: 1\.25 \}/);
-  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 13);
+  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 14);
   assert.equal(
     source.match(/"(?:fill|line|circle)-opacity": 0(?:,|\s*})/g)?.length,
-    8,
+    9,
   );
   assert.doesNotMatch(source, /"(?:fill|line|circle)-opacity": 0\.01/);
+  assert.match(source, /urbanPlanningRoads: false/);
+  assert.match(source, /urbanPlanningRoads: \["urbanPlanningRoads"\]/);
+  assert.match(source, /urbanPlanningRoads: \["urban-planning-roads-hit"\]/);
+  assert.match(source, /map\.addSource\("urban-planning-roads", \{\s*type: "geojson",\s*data: EMPTY_COLLECTION/);
+  for (const id of ["casing", "line", "hit"]) {
+    assert.match(source, new RegExp(`id: "urban-planning-roads-${id}",[^}]*visibility: "none"`));
+  }
 });

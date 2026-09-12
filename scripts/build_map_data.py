@@ -52,6 +52,7 @@ LAYER_FILES = {
     "landPrices": "land-prices.json",
     "shelters": "shelters.json",
     "roads": "roads.json",
+    "urbanPlanningRoads": "urban-planning-roads.json",
     "rail": "rail.json",
     "stations": "stations.json",
     "districtPlans": "district-plans.json",
@@ -69,6 +70,17 @@ WARDS = {
     "13104": "新宿区",
     "13105": "文京区",
     "13106": "台東区",
+}
+
+# Keep the published road linework, not an inferred current road centerline.
+# The source has no route names, widths or construction-status attributes.
+# "立体（構想）" is deliberately excluded from the decided-road layer.
+URBAN_PLANNING_ROAD_CLASSES = {
+    "都計線（一般道）": "general",
+    "高速道路": "highway",
+    "立体（計画）": "highway",
+    "交通広場": "plaza",
+    "駅付近広場": "plaza",
 }
 
 CHIYODA_ALIASES = {
@@ -1296,6 +1308,55 @@ def build_landscape_properties(chiyoda_geometry):
     return features, snapshot
 
 
+def build_urban_planning_roads(source_root: Path, scope):
+    source = (
+        source_root
+        / "urban-planning-roads-plateau-2020"
+        / "expanded"
+        / "13101_toshikeikakudoro.gpkg"
+    )
+    # Despite the 13101 filename, this official GeoPackage covers all 23 wards.
+    frame = gpd.read_file(source, layer="toshikeikakudoro", engine="pyogrio").to_crs(4326)
+    required = {"都市計画道路分類", "市区町村", "geometry"}
+    if not required.issubset(frame.columns):
+        raise ValueError(f"Unexpected urban-planning-road schema: {list(frame.columns)}")
+    frame = frame[frame["市区町村"].isin(WARDS.values())]
+    unknown = set(frame["都市計画道路分類"]) - set(URBAN_PLANNING_ROAD_CLASSES) - {"立体（構想）"}
+    if unknown:
+        raise ValueError(f"Unknown official urban-planning-road classifications: {unknown}")
+
+    groups = defaultdict(list)
+    for row in frame.to_dict("records"):
+        kind = row["都市計画道路分類"]
+        if kind not in URBAN_PLANNING_ROAD_CLASSES:
+            continue
+        geometry = linear(row["geometry"].intersection(scope))
+        if not geometry.is_empty:
+            groups[(row["市区町村"], kind)].append(geometry)
+
+    features = []
+    for (ward, kind), geometries in sorted(groups.items()):
+        geometry = linear(unary_union(geometries))
+        if isinstance(geometry, MultiLineString):
+            geometry = linemerge(geometry)
+        if geometry.is_empty:
+            continue
+        features.append({
+            "type": "Feature",
+            "properties": {
+                "n": "都市計画道路",
+                "w": ward,
+                "t": kind,
+                "c": URBAN_PLANNING_ROAD_CLASSES[kind],
+            },
+            "geometry": compact_geometry(geometry, 0.00001),
+        })
+    covered_wards = {item["properties"]["w"] for item in features}
+    if covered_wards != set(WARDS.values()):
+        raise ValueError(f"Urban-planning roads are missing wards: {set(WARDS.values()) - covered_wards}")
+    return features
+
+
 def collection(features):
     return {"type": "FeatureCollection", "features": features}
 
@@ -1323,6 +1384,7 @@ def main():
     land_prices = build_land_prices(source_root, scope)
     shelters = build_shelters(source_root, scope, ward_geometries)
     roads = build_roads(source_root, scope)
+    urban_planning_roads = build_urban_planning_roads(source_root, scope)
     rail, stations = build_rail(source_root, scope, ward_geometries)
     district_plans, height_districts, special_zones = build_planning(
         source_root, scope, ward_geometries
@@ -1426,6 +1488,7 @@ def main():
             "sheltersDate": "2026-09-07取得",
             "railDate": "2025-12-31",
             "roadsDate": "2026-08-30",
+            "urbanPlanningRoadYear": "2020年度",
             "parkCount": len(parks),
             "landPriceCount": len(land_prices),
             "shelterCount": len(shelters),
@@ -1435,6 +1498,7 @@ def main():
             "redevelopmentCount": len(redevelopment),
             "chiyodaRegionCount": len(chiyoda_regions),
             "landscapePropertyCount": len(landscape_properties),
+            "urbanPlanningRoadCount": len(urban_planning_roads),
         },
         # The client only uses this feature to calculate its initial camera bounds.
         # Keep the exact six-ward geometry in the ward features, not twice here.
@@ -1454,6 +1518,7 @@ def main():
         "landPrices": collection(land_prices),
         "shelters": collection(shelters),
         "roads": collection(roads),
+        "urbanPlanningRoads": collection(urban_planning_roads),
         "rail": collection(rail),
         "stations": collection(stations),
         "districtPlans": collection(district_plans),
@@ -1494,6 +1559,7 @@ def main():
             "landPrices": len(land_prices),
             "shelters": len(shelters),
             "roads": len(roads),
+            "urbanPlanningRoads": len(urban_planning_roads),
             "railRoutes": len(rail),
             "stations": len(stations),
             "districtPlans": len(district_plans),

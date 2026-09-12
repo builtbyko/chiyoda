@@ -17,6 +17,7 @@ const layerFiles = [
   "land-prices.json",
   "shelters.json",
   "roads.json",
+  "urban-planning-roads.json",
   "rail.json",
   "stations.json",
   "district-plans.json",

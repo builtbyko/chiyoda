@@ -21,6 +21,7 @@ LAYER_PATHS = {
     "landPrices": ROOT / "public" / "data" / "layers" / "land-prices.json",
     "shelters": ROOT / "public" / "data" / "layers" / "shelters.json",
     "roads": ROOT / "public" / "data" / "layers" / "roads.json",
+    "urbanPlanningRoads": ROOT / "public" / "data" / "layers" / "urban-planning-roads.json",
     "rail": ROOT / "public" / "data" / "layers" / "rail.json",
     "stations": ROOT / "public" / "data" / "layers" / "stations.json",
     "districtPlans": ROOT / "public" / "data" / "layers" / "district-plans.json",
