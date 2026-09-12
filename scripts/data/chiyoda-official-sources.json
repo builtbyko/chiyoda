@@ -1,0 +1,51 @@
+{
+  "officialPage": "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html",
+  "officialPageUpdated": "2025-06-06",
+  "dataQuality": "official_gis",
+  "sources": [
+    {
+      "output": "functional-kaiwai.json",
+      "url": "https://www.city.chiyoda.lg.jp/documents/28083/6_kaiwai_2.zip",
+      "label": "界隈（16）"
+    },
+    {
+      "output": "open-spaces.json",
+      "url": "https://www.city.chiyoda.lg.jp/documents/28083/5_koukaikuchi.zip",
+      "label": "公開空地"
+    },
+    {
+      "output": "area-management.json",
+      "url": "https://www.city.chiyoda.lg.jp/documents/28083/8_dantai.zip",
+      "label": "エリアマネジメント団体・まちづくり団体"
+    },
+    {
+      "output": "memory-plates.json",
+      "url": "https://www.city.chiyoda.lg.jp/documents/28083/4_4_kiokuhozon.zip",
+      "label": "まちの記憶保存プレート"
+    },
+    {
+      "output": "cultural-assets.json",
+      "url": "https://www.city.chiyoda.lg.jp/documents/28083/4_1_ku_bunkazai.zip",
+      "label": "千代田区文化財",
+      "mergeCategory": "千代田区文化財"
+    },
+    {
+      "output": "cultural-assets.json",
+      "url": "https://www.city.chiyoda.lg.jp/documents/28083/4_2_to_bunkazai.zip",
+      "label": "東京都文化財",
+      "mergeCategory": "東京都文化財"
+    },
+    {
+      "output": "cultural-assets.json",
+      "url": "https://www.city.chiyoda.lg.jp/documents/28083/4_3_kuni_bunkazai.zip",
+      "label": "国文化財",
+      "mergeCategory": "国文化財"
+    },
+    {
+      "output": "cultural-assets.json",
+      "url": "https://www.city.chiyoda.lg.jp/documents/28083/4_5_keikan.zip",
+      "label": "景観まちづくり重要物件・景観重要建造物",
+      "mergeCategory": "景観資源"
+    }
+  ]
+}

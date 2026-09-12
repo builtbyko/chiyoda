@@ -1,0 +1,700 @@
+{
+  "generatedFrom": "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html",
+  "officialPageUpdated": "2025-06-06",
+  "generatedFiles": {
+    "functional-kaiwai.json": {
+      "featureCount": 16,
+      "geometryTypes": {
+        "MultiPolygon": 1,
+        "Polygon": 15
+      },
+      "properties": {
+        "ID": {
+          "count": 16,
+          "samples": [
+            16,
+            14,
+            7,
+            13
+          ]
+        },
+        "界隈名": {
+          "count": 16,
+          "samples": [
+            "一団地の官公庁施設",
+            "国際的なビジネス交流ゾーン",
+            "飲食店街",
+            "かつての問屋街(住機能が進展)"
+          ]
+        },
+        "_source_shp": {
+          "count": 16,
+          "samples": [
+            "èEîG.shp"
+          ]
+        },
+        "n": {
+          "count": 16,
+          "samples": [
+            "一団地の官公庁施設",
+            "国際的なビジネス交流ゾーン",
+            "飲食店街",
+            "かつての問屋街(住機能が進展)"
+          ]
+        },
+        "t": {
+          "count": 16,
+          "samples": [
+            "街の個性"
+          ]
+        },
+        "_category": {
+          "count": 16,
+          "samples": [
+            "街の個性"
+          ]
+        },
+        "_dataset": {
+          "count": 16,
+          "samples": [
+            "functional_kaiwai"
+          ]
+        },
+        "_source_name": {
+          "count": 16,
+          "samples": [
+            "千代田区「まちなかのウォーカブルな要素の分布状況」"
+          ]
+        },
+        "_source_url": {
+          "count": 16,
+          "samples": [
+            "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html"
+          ]
+        },
+        "_source_date": {
+          "count": 16,
+          "samples": [
+            "2025-06-06"
+          ]
+        },
+        "_data_quality": {
+          "count": 16,
+          "samples": [
+            "official_gis"
+          ]
+        },
+        "_source_id": {
+          "count": 16,
+          "samples": [
+            16,
+            14,
+            7,
+            13
+          ]
+        },
+        "i": {
+          "count": 16,
+          "samples": [
+            "functional_kaiwai:0",
+            "functional_kaiwai:1",
+            "functional_kaiwai:2",
+            "functional_kaiwai:3"
+          ]
+        }
+      }
+    },
+    "open-spaces.json": {
+      "featureCount": 173,
+      "geometryTypes": {
+        "Polygon": 172,
+        "MultiPolygon": 1
+      },
+      "properties": {
+        "ID": {
+          "count": 173,
+          "samples": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "分類": {
+          "count": 173,
+          "samples": [
+            "公開空地"
+          ]
+        },
+        "詳細分類": {
+          "count": 173,
+          "samples": [
+            "市街地再開発事業",
+            "総合設計",
+            "都市再生特別地区"
+          ]
+        },
+        "計画名": {
+          "count": 25,
+          "samples": [
+            "神田練塀町地区第一種市街地再開発事業",
+            "富士見二丁目北部地区第一種市街地再開発事業",
+            "飯田橋駅西口地区第一種市街地再開発事業",
+            "平河町二丁目東部地区第一種市街地再開発事業"
+          ]
+        },
+        "地域区分": {
+          "count": 173,
+          "samples": [
+            "和泉橋地域",
+            "飯田橋・富士見地域",
+            "番町・麹町地域",
+            "万世橋地域"
+          ]
+        },
+        "_source_shp": {
+          "count": 173,
+          "samples": [
+            "î÷èJï≤Æn.shp"
+          ]
+        },
+        "n": {
+          "count": 173,
+          "samples": [
+            "神田練塀町地区第一種市街地再開発事業",
+            "富士見二丁目北部地区第一種市街地再開発事業",
+            "飯田橋駅西口地区第一種市街地再開発事業",
+            "平河町二丁目東部地区第一種市街地再開発事業"
+          ]
+        },
+        "t": {
+          "count": 173,
+          "samples": [
+            "市街地再開発事業",
+            "総合設計",
+            "都市再生特別地区"
+          ]
+        },
+        "_category": {
+          "count": 173,
+          "samples": [
+            "公開空地"
+          ]
+        },
+        "_dataset": {
+          "count": 173,
+          "samples": [
+            "open_spaces"
+          ]
+        },
+        "_source_name": {
+          "count": 173,
+          "samples": [
+            "千代田区「まちなかのウォーカブルな要素の分布状況」"
+          ]
+        },
+        "_source_url": {
+          "count": 173,
+          "samples": [
+            "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html"
+          ]
+        },
+        "_source_date": {
+          "count": 173,
+          "samples": [
+            "2025-06-06"
+          ]
+        },
+        "_data_quality": {
+          "count": 173,
+          "samples": [
+            "official_gis"
+          ]
+        },
+        "_source_id": {
+          "count": 173,
+          "samples": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "i": {
+          "count": 173,
+          "samples": [
+            "open_spaces:0",
+            "open_spaces:1",
+            "open_spaces:2",
+            "open_spaces:3"
+          ]
+        }
+      }
+    },
+    "area-management.json": {
+      "featureCount": 12,
+      "geometryTypes": {
+        "Polygon": 12
+      },
+      "properties": {
+        "ID": {
+          "count": 12,
+          "samples": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "団体名1": {
+          "count": 12,
+          "samples": [
+            "大手町・丸の内・有楽町地まちづくり懇談会",
+            "秋葉原タウンマネジメント株式会社",
+            "外神田一丁目まちづくり協議会",
+            "神田駅西口地区まちづくり協議会"
+          ]
+        },
+        "団体名2": {
+          "count": 2,
+          "samples": [
+            "(一社)大手町・丸の内・有楽町地区まちづくり協議会",
+            "(一社)神田駅周辺エリアマネジメント協会"
+          ]
+        },
+        "団体名3": {
+          "count": 1,
+          "samples": [
+            "(NPO)大丸有エリアマネジメント協会"
+          ]
+        },
+        "団体名4": {
+          "count": 1,
+          "samples": [
+            "(一社)大丸有環境共生型まちづくり推進協会"
+          ]
+        },
+        "分類1": {
+          "count": 12,
+          "samples": [
+            "まちづくり団体",
+            "エリマネ団体"
+          ]
+        },
+        "分類2": {
+          "count": 2,
+          "samples": [
+            "エリマネ団体"
+          ]
+        },
+        "分類3": {
+          "count": 1,
+          "samples": [
+            "エリマネ団体"
+          ]
+        },
+        "分類4": {
+          "count": 1,
+          "samples": [
+            "エリマネ団体"
+          ]
+        },
+        "_source_shp": {
+          "count": 12,
+          "samples": [
+            "âGâèâ}âlÆcæ╠üEé▄é┐é├é¡éΦÆcæ╠.shp"
+          ]
+        },
+        "n": {
+          "count": 12,
+          "samples": [
+            "大手町・丸の内・有楽町地まちづくり懇談会",
+            "秋葉原タウンマネジメント株式会社",
+            "外神田一丁目まちづくり協議会",
+            "神田駅西口地区まちづくり協議会"
+          ]
+        },
+        "t": {
+          "count": 12,
+          "samples": [
+            "まちづくり団体",
+            "エリマネ団体"
+          ]
+        },
+        "_category": {
+          "count": 12,
+          "samples": [
+            "まちづくり団体"
+          ]
+        },
+        "_dataset": {
+          "count": 12,
+          "samples": [
+            "area_management"
+          ]
+        },
+        "_source_name": {
+          "count": 12,
+          "samples": [
+            "千代田区「まちなかのウォーカブルな要素の分布状況」"
+          ]
+        },
+        "_source_url": {
+          "count": 12,
+          "samples": [
+            "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html"
+          ]
+        },
+        "_source_date": {
+          "count": 12,
+          "samples": [
+            "2025-06-06"
+          ]
+        },
+        "_data_quality": {
+          "count": 12,
+          "samples": [
+            "official_gis"
+          ]
+        },
+        "_source_id": {
+          "count": 12,
+          "samples": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "i": {
+          "count": 12,
+          "samples": [
+            "area_management:0",
+            "area_management:1",
+            "area_management:2",
+            "area_management:3"
+          ]
+        }
+      }
+    },
+    "memory-plates.json": {
+      "featureCount": 23,
+      "geometryTypes": {
+        "Point": 23
+      },
+      "properties": {
+        "ID": {
+          "count": 23,
+          "samples": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "分類": {
+          "count": 23,
+          "samples": [
+            "まちの記憶保存プレート"
+          ]
+        },
+        "詳細分類": {
+          "count": 23,
+          "samples": [
+            "まちの記憶保存プレート"
+          ]
+        },
+        "件名": {
+          "count": 23,
+          "samples": [
+            "島崎藤村旧居跡",
+            "泉鏡花旧居跡",
+            "菊池寛旧居跡",
+            "有島武郎・有島生馬・里見?旧居跡"
+          ]
+        },
+        "地域区分": {
+          "count": 23,
+          "samples": [
+            "番町・麹町地域",
+            "神保町地域",
+            "飯田橋・富士見地域",
+            "万世橋地域"
+          ]
+        },
+        "所在地": {
+          "count": 23,
+          "samples": [
+            "東京都千代田区六番町13‐10",
+            "東京都千代田区六番町5",
+            "東京都千代田区六番町3 ベルテ六番町",
+            "東京都千代田区六番町3‐1 グランフォルム六番町植え込み"
+          ]
+        },
+        "_source_shp": {
+          "count": 23,
+          "samples": [
+            "é▄é┐é╠ïLë»ò█æ╢âvâîü[âg.shp"
+          ]
+        },
+        "n": {
+          "count": 23,
+          "samples": [
+            "島崎藤村旧居跡",
+            "泉鏡花旧居跡",
+            "菊池寛旧居跡",
+            "有島武郎・有島生馬・里見?旧居跡"
+          ]
+        },
+        "t": {
+          "count": 23,
+          "samples": [
+            "まちの記憶保存プレート"
+          ]
+        },
+        "a": {
+          "count": 23,
+          "samples": [
+            "東京都千代田区六番町13‐10",
+            "東京都千代田区六番町5",
+            "東京都千代田区六番町3 ベルテ六番町",
+            "東京都千代田区六番町3‐1 グランフォルム六番町植え込み"
+          ]
+        },
+        "_category": {
+          "count": 23,
+          "samples": [
+            "まちの記憶"
+          ]
+        },
+        "_dataset": {
+          "count": 23,
+          "samples": [
+            "memory_plates"
+          ]
+        },
+        "_source_name": {
+          "count": 23,
+          "samples": [
+            "千代田区「まちなかのウォーカブルな要素の分布状況」"
+          ]
+        },
+        "_source_url": {
+          "count": 23,
+          "samples": [
+            "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html"
+          ]
+        },
+        "_source_date": {
+          "count": 23,
+          "samples": [
+            "2025-06-06"
+          ]
+        },
+        "_data_quality": {
+          "count": 23,
+          "samples": [
+            "official_gis"
+          ]
+        },
+        "_source_id": {
+          "count": 23,
+          "samples": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "i": {
+          "count": 23,
+          "samples": [
+            "memory_plates:0",
+            "memory_plates:1",
+            "memory_plates:2",
+            "memory_plates:3"
+          ]
+        }
+      }
+    },
+    "cultural-assets.json": {
+      "featureCount": 111,
+      "geometryTypes": {
+        "Point": 111
+      },
+      "properties": {
+        "ID": {
+          "count": 103,
+          "samples": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "分類": {
+          "count": 103,
+          "samples": [
+            "千代田区指定文化財",
+            "千代田区特別登録文化財",
+            "東京都指定文化財",
+            "国指定文化財"
+          ]
+        },
+        "詳細分類": {
+          "count": 103,
+          "samples": [
+            "史跡",
+            "天然記念物",
+            "有形文化財(建造物)",
+            "記念物(旧跡)"
+          ]
+        },
+        "件名": {
+          "count": 103,
+          "samples": [
+            "下野皆川藩松平家墓所 1ヶ所",
+            "旧井伊家中屋敷のイヌマキとカヤ 2本",
+            "日枝神社境内末社山王稲荷神社本殿  1棟",
+            "平河天満宮銅鳥居 1基"
+          ]
+        },
+        "地域区分": {
+          "count": 103,
+          "samples": [
+            "番町・麹町地域",
+            "大手町・丸の内・有楽町・永田町地域",
+            "万世橋地域",
+            "飯田橋・富士見地域"
+          ]
+        },
+        "所在地": {
+          "count": 103,
+          "samples": [
+            "東京都千代田区麹町6‐4‐2",
+            "東京都千代田区紀尾井町4‐1",
+            "東京都千代田区永田町2‐10‐5",
+            "東京都千代田区平河町1‐7‐5"
+          ]
+        },
+        "_source_shp": {
+          "count": 103,
+          "samples": [
+            "ÉτæπôcïμÄwÆΦò╢ë╗ìα.shp",
+            "Éτæπôcïμô┴ò╩ôoÿ^ò╢ë╗ìα.shp",
+            "ôîï₧ôsÄwÆΦò╢ë╗ìα.shp",
+            "ìæÄwÆΦò╢ë╗ìα.shp"
+          ]
+        },
+        "n": {
+          "count": 111,
+          "samples": [
+            "下野皆川藩松平家墓所 1ヶ所",
+            "旧井伊家中屋敷のイヌマキとカヤ 2本",
+            "日枝神社境内末社山王稲荷神社本殿  1棟",
+            "平河天満宮銅鳥居 1基"
+          ]
+        },
+        "t": {
+          "count": 111,
+          "samples": [
+            "史跡",
+            "天然記念物",
+            "有形文化財(建造物)",
+            "記念物(旧跡)"
+          ]
+        },
+        "a": {
+          "count": 111,
+          "samples": [
+            "東京都千代田区麹町6‐4‐2",
+            "東京都千代田区紀尾井町4‐1",
+            "東京都千代田区永田町2‐10‐5",
+            "東京都千代田区平河町1‐7‐5"
+          ]
+        },
+        "_category": {
+          "count": 111,
+          "samples": [
+            "千代田区文化財",
+            "東京都文化財",
+            "国文化財",
+            "景観資源"
+          ]
+        },
+        "_dataset": {
+          "count": 111,
+          "samples": [
+            "culture_chiyoda",
+            "culture_tokyo",
+            "culture_national",
+            "landscape_assets"
+          ]
+        },
+        "_source_name": {
+          "count": 103,
+          "samples": [
+            "千代田区「まちなかのウォーカブルな要素の分布状況」"
+          ]
+        },
+        "_source_url": {
+          "count": 111,
+          "samples": [
+            "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html",
+            "https://www.city.chiyoda.lg.jp/documents/4200/30-ebiharashoten-r801.pdf",
+            "https://www.city.chiyoda.lg.jp/documents/4200/57-yotsuyamitsukebashi-r405.pdf",
+            "https://www.city.chiyoda.lg.jp/documents/4200/7-jochidaigaku1gokan-r405.pdf"
+          ]
+        },
+        "_source_date": {
+          "count": 111,
+          "samples": [
+            "2025-06-06",
+            "2024-12"
+          ]
+        },
+        "_data_quality": {
+          "count": 111,
+          "samples": [
+            "official_gis",
+            "official_address_representative_point"
+          ]
+        },
+        "_source_id": {
+          "count": 103,
+          "samples": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "i": {
+          "count": 111,
+          "samples": [
+            "culture_chiyoda:0",
+            "culture_chiyoda:1",
+            "culture_chiyoda:2",
+            "culture_chiyoda:3"
+          ]
+        },
+        "d": {
+          "count": 64,
+          "samples": [
+            "平成15年6月9日",
+            "平成19年3月28日",
+            "平成15年8月8日",
+            "令和5年3月30日"
+          ]
+        },
+        "_coordinate_quality": {
+          "count": 64,
+          "samples": [
+            "official-point",
+            "block"
+          ]
+        }
+      }
+    }
+  }
+}

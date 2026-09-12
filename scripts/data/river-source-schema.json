@@ -1,0 +1,18 @@
+{
+  "featureCount": 1,
+  "geometryTypes": {
+    "MultiPolygon": 1
+  },
+  "columns": {
+    "分類": {
+      "samples": [
+        "河川"
+      ]
+    },
+    "_source_file": {
+      "samples": [
+        "ë═É∞.shp"
+      ]
+    }
+  }
+}

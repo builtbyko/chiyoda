@@ -1,0 +1,62 @@
+{
+  "cacheRoot": "../work/chiyoda_map/data/next-stage",
+  "updated": "2026-09-12",
+  "terrain": {
+    "strategy": "remote_tiles_no_local_cache",
+    "recommended": {
+      "name": "地形・陰影",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png",
+      "zoom": "2-16",
+      "source": "国土地理院 地理院タイル"
+    },
+    "alternatives": [
+      {
+        "name": "色別標高",
+        "url": "https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png",
+        "zoom": "5-15"
+      },
+      {
+        "name": "傾斜量",
+        "url": "https://cyberjapandata.gsi.go.jp/xyz/slopemap/{z}/{x}/{y}.png",
+        "zoom": "3-15"
+      },
+      {
+        "name": "赤色立体地図",
+        "url": "https://cyberjapandata.gsi.go.jp/xyz/sekishoku/{z}/{x}/{y}.png",
+        "zoom": "2-14"
+      }
+    ],
+    "officialInfo": "https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "plateau": {
+    "strategy": "remote_mvt_first",
+    "recommended": {
+      "name": "建物高さ",
+      "tiles": "https://indigo-lab.github.io/plateau-tokyo23ku-building-mvt-2020/{z}/{x}/{y}.pbf",
+      "sourceLayer": "bldg",
+      "heightProperty": "measuredHeight",
+      "zoom": "10-16",
+      "dataVintage": "2020年度",
+      "license": "CC BY 4.0",
+      "source": "PLATEAU 2020 CityGMLをindigo-labがMVT化",
+      "sourceRepo": "https://github.com/indigo-lab/plateau-tokyo23ku-building-mvt-2020"
+    },
+    "latestDatasetMetadata": "https://www.geospatial.jp/ckan/api/3/action/package_show?id=plateau-tokyo23ku",
+    "note": "2020年度版なので、市街地更新の確認には使わず、市街地の高さ構造を学ぶレイヤーとして使う。"
+  },
+  "roads": {
+    "strategy": "reference_and_arcgis_discovery_only",
+    "walkableRoadPdf": "https://www.city.chiyoda.lg.jp/documents/28083/9_douro.pdf",
+    "roadLedgerPage": "https://www.city.chiyoda.lg.jp/koho/machizukuri/tochi/dorodaicho/heimenzu.html",
+    "routeNetwork": "https://www.city.chiyoda.lg.jp/documents/28493/rosenmozu_3.pdf",
+    "portalServerRoot": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services",
+    "roadTypeService": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/dourosyubetsu/MapServer",
+    "note": "道路台帳PDFは編集・加工・複製禁止。PDFからGISを起こさない。GIS RESTは候補調査のみ行い、公開再利用条件を確認してから採用。"
+  },
+  "river": {
+    "strategy": "official_shp_plus_metadata",
+    "riverShp": "https://www.city.chiyoda.lg.jp/documents/28083/1_kasen.zip",
+    "guidelinePdf": "https://www.city.chiyoda.lg.jp/documents/28390/gideline.pdf",
+    "guidelinePage": "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/guideline-kentokai/index.html"
+  }
+}

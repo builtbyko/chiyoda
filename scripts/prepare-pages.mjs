@@ -26,6 +26,11 @@ const layerFiles = [
   "redevelopment.json",
   "chiyoda-regions.json",
   "landscape-properties.json",
+  "functional-kaiwai.json",
+  "open-spaces.json",
+  "area-management.json",
+  "memory-plates.json",
+  "cultural-assets.json",
 ];
 
 await Promise.all([

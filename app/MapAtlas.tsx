@@ -19,7 +19,13 @@ type OverlayKey =
   | "specialZones"
   | "redevelopment"
   | "chiyodaRegions"
-  | "landscapeProperties";
+  | "functionalKaiwai"
+  | "openSpaces"
+  | "areaManagement"
+  | "memoryPlates"
+  | "culturalAssets"
+  | "terrain"
+  | "buildingHeight";
 type PhotoEpoch = "latest" | "1987" | "1984" | "1979" | "1974" | "1961" | "1945" | "1936";
 
 type GeoFeature = {
@@ -50,7 +56,11 @@ type DatasetKey =
   | "specialZones"
   | "redevelopment"
   | "chiyodaRegions"
-  | "landscapeProperties";
+  | "functionalKaiwai"
+  | "openSpaces"
+  | "areaManagement"
+  | "memoryPlates"
+  | "culturalAssets";
 
 type AtlasData = {
   meta: {
@@ -108,7 +118,7 @@ type AtlasData = {
 type SearchItem = {
   name: string;
   ward: string;
-  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発" | "7地域" | "景観重要物件";
+  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発" | "7地域" | "文化・歴史資源";
   layerId: string;
   dataset: DatasetKey;
   featureIndex: number;
@@ -140,7 +150,13 @@ const HEIGHT_DISTRICT_LAYER_IDS = ["height-districts-fill", "height-districts-li
 const SPECIAL_ZONE_LAYER_IDS = ["special-zones-fill", "special-zones-line", "special-zones-hit"];
 const REDEVELOPMENT_LAYER_IDS = ["redevelopment-hit", "redevelopment-halo", "redevelopment-points"];
 const CHIYODA_REGION_LAYER_IDS = ["chiyoda-regions-fill", "chiyoda-regions-line", "chiyoda-regions-label"];
-const LANDSCAPE_PROPERTY_LAYER_IDS = ["landscape-properties-hit", "landscape-properties-halo", "landscape-properties-points"];
+const FUNCTIONAL_KAIWAI_LAYER_IDS = ["functional-kaiwai-fill", "functional-kaiwai-line", "functional-kaiwai-label"];
+const OPEN_SPACE_LAYER_IDS = ["open-spaces-fill", "open-spaces-line"];
+const AREA_MANAGEMENT_LAYER_IDS = ["area-management-fill", "area-management-line", "area-management-points", "area-management-hit"];
+const MEMORY_PLATE_LAYER_IDS = ["memory-plates-hit", "memory-plates-halo", "memory-plates-points"];
+const CULTURAL_ASSET_LAYER_IDS = ["cultural-assets-hit", "cultural-assets-halo", "cultural-assets-points", "cultural-assets-fill", "cultural-assets-line"];
+const OFFICIAL_ELEMENT_SOURCE = "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html";
+const PLATEAU_BUILDING_SOURCE = "https://github.com/indigo-lab/plateau-tokyo23ku-building-mvt-2020";
 
 const AREA_INTERACTIVE_LAYERS: Record<Exclude<AreaLayer, "none">, string[]> = {
   population: ["population-fill"],
@@ -163,7 +179,12 @@ const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   specialZones: ["special-zones-hit"],
   redevelopment: ["redevelopment-hit"],
   chiyodaRegions: ["chiyoda-regions-label", "chiyoda-regions-fill"],
-  landscapeProperties: ["landscape-properties-hit"],
+  functionalKaiwai: ["functional-kaiwai-fill"],
+  openSpaces: ["open-spaces-fill"],
+  areaManagement: ["area-management-hit", "area-management-fill"],
+  memoryPlates: ["memory-plates-hit"],
+  culturalAssets: ["cultural-assets-hit", "cultural-assets-fill"],
+  buildingHeight: ["plateau-building-height-fill"],
 };
 
 const EMPTY_COLLECTION: GeoCollection = { type: "FeatureCollection", features: [] };
@@ -185,7 +206,11 @@ const DATASET_FILES: Record<DatasetKey, string> = {
   specialZones: "special-zones.json",
   redevelopment: "redevelopment.json",
   chiyodaRegions: "chiyoda-regions.json",
-  landscapeProperties: "landscape-properties.json",
+  functionalKaiwai: "functional-kaiwai.json",
+  openSpaces: "open-spaces.json",
+  areaManagement: "area-management.json",
+  memoryPlates: "memory-plates.json",
+  culturalAssets: "cultural-assets.json",
 };
 
 const DATASET_SOURCES: Record<DatasetKey, string> = {
@@ -205,7 +230,11 @@ const DATASET_SOURCES: Record<DatasetKey, string> = {
   specialZones: "special-zones",
   redevelopment: "redevelopment",
   chiyodaRegions: "chiyoda-regions",
-  landscapeProperties: "landscape-properties",
+  functionalKaiwai: "functional-kaiwai",
+  openSpaces: "open-spaces",
+  areaManagement: "area-management",
+  memoryPlates: "memory-plates",
+  culturalAssets: "cultural-assets",
 };
 
 const AREA_DATASETS: Partial<Record<AreaLayer, DatasetKey>> = {
@@ -230,7 +259,13 @@ const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
   specialZones: ["specialZones"],
   redevelopment: ["redevelopment"],
   chiyodaRegions: ["chiyodaRegions"],
-  landscapeProperties: ["landscapeProperties"],
+  functionalKaiwai: ["functionalKaiwai"],
+  openSpaces: ["openSpaces"],
+  areaManagement: ["areaManagement"],
+  memoryPlates: ["memoryPlates"],
+  culturalAssets: ["culturalAssets"],
+  terrain: [],
+  buildingHeight: [],
 };
 
 const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
@@ -241,6 +276,8 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   fire: "防火指定",
   flood: "洪水浸水",
   none: "面表示",
+  terrain: "地形・陰影",
+  buildingHeight: "建物高さ",
   roads: "主要道路",
   urbanPlanningRoads: "都市計画道路",
   rail: "鉄道・駅",
@@ -253,7 +290,11 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   specialZones: "容積・再開発等の特例",
   redevelopment: "事業中の再開発",
   chiyodaRegions: "千代田区の7地域",
-  landscapeProperties: "景観まちづくり重要物件",
+  functionalKaiwai: "街の個性",
+  openSpaces: "公開空地",
+  areaManagement: "まちづくり団体",
+  memoryPlates: "まちの記憶",
+  culturalAssets: "文化・歴史資源",
 };
 
 const DATASET_LABELS: Record<DatasetKey, string> = {
@@ -273,7 +314,11 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   specialZones: "容積・再開発等の特例",
   redevelopment: "事業中の再開発",
   chiyodaRegions: "千代田区の7地域",
-  landscapeProperties: "景観まちづくり重要物件",
+  functionalKaiwai: "街の個性",
+  openSpaces: "公開空地",
+  areaManagement: "まちづくり団体",
+  memoryPlates: "まちの記憶",
+  culturalAssets: "文化・歴史資源",
 };
 
 const PHOTO_OPTIONS: { value: PhotoEpoch; label: string; tile: string; maxzoom: number }[] = [
@@ -413,9 +458,15 @@ const CHIYODA_REGION_LEGEND = [
   ["大手町・丸の内・有楽町・永田町", "#b73e52"],
 ];
 
-const LANDSCAPE_PROPERTY_LEGEND = [
-  ["建築物等", "#ff6b35"],
-  ["橋梁", "#16a89a"],
+const CULTURAL_ASSET_LEGEND = [
+  ["国文化財", "#856a50"],
+  ["東京都文化財", "#687e97"],
+  ["千代田区文化財", "#658375"],
+  ["景観資源", "#9d6e77"],
+];
+const BUILDING_HEIGHT_LEGEND = [
+  ["15m未満", "#e9ecef"], ["15–30m", "#d8c3a5"], ["30–60m", "#c08a5b"],
+  ["60–100m", "#a85f42"], ["100–180m", "#7a3e48"], ["180m以上", "#4f2c55"],
 ];
 
 const FLOOD_DEPTH: Record<string, string> = {
@@ -436,6 +487,43 @@ function setLayerVisibility(map: MapLibreMap, ids: string[], visible: boolean) {
     const current = map.getLayoutProperty(id, "visibility") ?? "visible";
     if (current !== visibility) map.setLayoutProperty(id, "visibility", visibility);
   });
+}
+
+function addTileOverlay(map: MapLibreMap, key: "terrain" | "buildingHeight") {
+  if (key === "terrain" && !map.getSource("terrain-hillshade")) {
+    map.addSource("terrain-hillshade", {
+      type: "raster",
+      tiles: ["https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png"],
+      tileSize: 256, minzoom: 2, maxzoom: 16,
+      attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院・陰影起伏</a>',
+    });
+    map.addLayer({
+      id: "terrain-hillshade", type: "raster", source: "terrain-hillshade",
+      layout: { visibility: "none" },
+      paint: { "raster-opacity": 0.34, "raster-contrast": 0.08, "raster-saturation": -1, "raster-fade-duration": 0 },
+    }, map.getLayer("plateau-building-height-fill") ? "plateau-building-height-fill" : "population-fill");
+  }
+  if (key === "buildingHeight" && !map.getSource("plateau-buildings")) {
+    map.addSource("plateau-buildings", {
+      type: "vector",
+      tiles: ["https://indigo-lab.github.io/plateau-tokyo23ku-building-mvt-2020/{z}/{x}/{y}.pbf"],
+      minzoom: 10, maxzoom: 16,
+      attribution: `<a href="https://www.mlit.go.jp/plateau/" target="_blank">Project PLATEAU（2020年度）</a> / <a href="${PLATEAU_BUILDING_SOURCE}" target="_blank">indigo-lab MVT・CC BY 4.0</a>`,
+    });
+    map.addLayer({
+      id: "plateau-building-height-fill", type: "fill", source: "plateau-buildings",
+      "source-layer": "bldg",
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": [
+          "interpolate", ["linear"], ["coalesce", ["to-number", ["get", "measuredHeight"], 0], 0],
+          0, "#e9ecef", 15, "#d8c3a5", 30, "#c08a5b", 60, "#a85f42",
+          100, "#7a3e48", 180, "#4f2c55",
+        ],
+        "fill-opacity": 0.52, "fill-outline-color": "rgba(255,255,255,0.22)",
+      },
+    }, "population-fill");
+  }
 }
 
 function mapPixelRatioForViewport(container: HTMLElement) {
@@ -521,17 +609,31 @@ function detailFor(
       }],
     };
   }
-  if (layerId.includes("landscape-propert")) {
+  if (["functional-kaiwai", "open-spaces", "area-management", "memory-plates", "cultural-assets"].some((id) => layerId.startsWith(id))) {
+    const culture = layerId.startsWith("cultural-assets");
+    const rows = [
+      ...(culture ? [{ label: "区分", value: textValue(p._category) }] : []),
+      { label: "種別", value: textValue(p.t) },
+      { label: "所在地", value: textValue(p.a) },
+      { label: "指定年月日等", value: textValue(p.d) },
+      ...(layerId.startsWith("area-management") && p["団体名2"] ? [{ label: "関連団体", value: [p["団体名2"], p["団体名3"], p["団体名4"]].filter(Boolean).join("・") }] : []),
+    ].filter((row) => row.value !== "—");
     return {
-      eyebrow: "Important landscape property",
-      title: String(p.n ?? "景観まちづくり重要物件"),
-      rows: [
-        { label: "種別", value: textValue(p.t) },
-        { label: "所在地", value: textValue(p.a) },
-        { label: "指定年月日", value: textValue(p.d) },
-      ],
-      note: p.p === "block" ? "位置は公式住所を国土地理院住所検索で位置化した代表点です。" : undefined,
-      sources: [{ label: "千代田区公式情報", url: String(p.u) }],
+      eyebrow: culture ? "Culture & history" : "Chiyoda official GIS",
+      title: String(p.n ?? "千代田区の地域資源"),
+      rows,
+      note: p._coordinate_quality === "block" ? "位置は公式所在地から位置化した街区等の代表点です。" : undefined,
+      sources: [{ label: "千代田区公式情報", url: String(p._source_url ?? OFFICIAL_ELEMENT_SOURCE) }],
+    };
+  }
+  if (layerId === "plateau-building-height-fill") {
+    const height = p.measuredHeight == null || p.measuredHeight === "" ? NaN : Number(p.measuredHeight);
+    return {
+      eyebrow: "PLATEAU 2020",
+      title: Number.isFinite(height) ? `建物高さ ${height.toFixed(1)} m` : "建物高さ不明",
+      rows: [],
+      note: "2020年度の高さ構造を学ぶレイヤーです。最新の建物情報ではありません。",
+      sources: [{ label: "PLATEAU 2020・MVT配信元", url: PLATEAU_BUILDING_SOURCE }],
     };
   }
   if (layerId === "town-place") {
@@ -785,9 +887,9 @@ function detailFor(
   };
 }
 
-function landscapeGroupDetail(properties: Record<string, unknown>[]): Detail {
+function culturalGroupDetail(properties: Record<string, unknown>[]): Detail {
   return {
-    eyebrow: "Important landscape properties",
+    eyebrow: "Culture & history",
     title: `同じ位置の${properties.length}物件`,
     rows: [],
     note: "公式GISの同一点に登録された物件をまとめて表示しています。",
@@ -796,7 +898,7 @@ function landscapeGroupDetail(properties: Record<string, unknown>[]): Detail {
       type: textValue(item.t),
       address: textValue(item.a),
       date: textValue(item.d),
-      url: textValue(item.u),
+      url: String(item._source_url ?? OFFICIAL_ELEMENT_SOURCE),
     })),
   };
 }
@@ -837,7 +939,13 @@ export function MapAtlas() {
     specialZones: false,
     redevelopment: false,
     chiyodaRegions: false,
-    landscapeProperties: false,
+    functionalKaiwai: false,
+    openSpaces: false,
+    areaManagement: false,
+    memoryPlates: false,
+    culturalAssets: false,
+    terrain: false,
+    buildingHeight: false,
   });
   const [photoEpoch, setPhotoEpoch] = useState<PhotoEpoch>("latest");
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -1118,10 +1226,35 @@ export function MapAtlas() {
             ...geoJsonOptions,
             attribution: '7地域：<a href="https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf" target="_blank">千代田区都市計画マスタープラン</a>',
           });
-          map.addSource("landscape-properties", {
+          map.addSource("functional-kaiwai", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
-            attribution: '景観重要物件：<a href="https://www.city.chiyoda.lg.jp/koho/machizukuri/kekan/ichiranhyo.html" target="_blank">千代田区</a>',
+            ...geoJsonOptions,
+            attribution: `街の個性：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+          });
+          map.addSource("open-spaces", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `公開空地：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+          });
+          map.addSource("area-management", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `まちづくり団体：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+          });
+          map.addSource("memory-plates", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `まちの記憶：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+          });
+          map.addSource("cultural-assets", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `文化・歴史資源：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
           });
           map.addSource("selection", {
             type: "geojson",
@@ -1248,6 +1381,54 @@ export function MapAtlas() {
               "fill-opacity": 0.38,
               "fill-outline-color": "rgba(255,255,255,0.35)",
             },
+          });
+          map.addLayer({
+            id: "functional-kaiwai-fill", type: "fill", source: "functional-kaiwai",
+            filter: ["==", ["geometry-type"], "Polygon"],
+            layout: { visibility: "none" },
+            paint: { "fill-color": "#b3976b", "fill-opacity": 0.12 },
+          });
+          map.addLayer({
+            id: "functional-kaiwai-line", type: "line", source: "functional-kaiwai",
+            filter: ["==", ["geometry-type"], "Polygon"],
+            layout: { visibility: "none" },
+            paint: { "line-color": "#b3976b", "line-width": 1.8, "line-opacity": 0.9 },
+          });
+          map.addLayer({
+            id: "open-spaces-fill", type: "fill", source: "open-spaces",
+            filter: ["==", ["geometry-type"], "Polygon"],
+            layout: { visibility: "none" },
+            paint: { "fill-color": "#7296a3", "fill-opacity": 0.18 },
+          });
+          map.addLayer({
+            id: "open-spaces-line", type: "line", source: "open-spaces",
+            filter: ["==", ["geometry-type"], "Polygon"],
+            layout: { visibility: "none" },
+            paint: { "line-color": "#7296a3", "line-width": 1.2, "line-opacity": 0.9 },
+          });
+          map.addLayer({
+            id: "area-management-fill", type: "fill", source: "area-management",
+            filter: ["==", ["geometry-type"], "Polygon"],
+            layout: { visibility: "none" },
+            paint: { "fill-color": "#8b809a", "fill-opacity": 0.12 },
+          });
+          map.addLayer({
+            id: "area-management-line", type: "line", source: "area-management",
+            filter: ["==", ["geometry-type"], "Polygon"],
+            layout: { visibility: "none" },
+            paint: { "line-color": "#8b809a", "line-width": 1.2, "line-opacity": 0.9 },
+          });
+          map.addLayer({
+            id: "cultural-assets-fill", type: "fill", source: "cultural-assets",
+            filter: ["==", ["geometry-type"], "Polygon"],
+            layout: { visibility: "none" },
+            paint: { "fill-color": ["match",["get","_category"],"国文化財","#856a50","東京都文化財","#687e97","千代田区文化財","#658375","景観資源","#9d6e77","#7b8082"], "fill-opacity": 0.15 },
+          });
+          map.addLayer({
+            id: "cultural-assets-line", type: "line", source: "cultural-assets",
+            filter: ["==", ["geometry-type"], "Polygon"],
+            layout: { visibility: "none" },
+            paint: { "line-color": ["match",["get","_category"],"国文化財","#856a50","東京都文化財","#687e97","千代田区文化財","#658375","景観資源","#9d6e77","#7b8082"], "line-width": 1.2, "line-opacity": 0.9 },
           });
           map.addLayer({
             id: "chiyoda-regions-fill",
@@ -1702,43 +1883,70 @@ export function MapAtlas() {
             },
           });
           map.addLayer({
-            id: "landscape-properties-hit",
-            type: "circle",
-            source: "landscape-properties",
+            id: "area-management-hit", type: "circle", source: "area-management",
+            filter: ["==", ["geometry-type"], "Point"],
+            layout: { visibility: "none" },
+            paint: { "circle-radius": 14, "circle-color": "#ffffff", "circle-opacity": 0 },
+          });
+          map.addLayer({
+            id: "area-management-points", type: "circle", source: "area-management",
+            filter: ["==", ["geometry-type"], "Point"],
             layout: { visibility: "none" },
             paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 16, 19],
-              "circle-color": "#ffffff",
-              "circle-opacity": 0,
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3.2, 16, 5.2],
+              "circle-color": "#8b809a",
+              "circle-stroke-color": "#fffdf8", "circle-stroke-width": 1,
             },
           });
           map.addLayer({
-            id: "landscape-properties-halo",
-            type: "circle",
-            source: "landscape-properties",
+            id: "memory-plates-hit", type: "circle", source: "memory-plates",
+            filter: ["==", ["geometry-type"], "Point"],
+            layout: { visibility: "none" },
+            paint: { "circle-radius": 14, "circle-color": "#ffffff", "circle-opacity": 0 },
+          });
+          map.addLayer({
+            id: "memory-plates-halo", type: "circle", source: "memory-plates",
+            filter: ["==", ["geometry-type"], "Point"],
+            layout: { visibility: "none" },
+            paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4.6, 16, 6.8], "circle-color": "#17211f", "circle-opacity": 0.8 },
+          });
+          map.addLayer({
+            id: "memory-plates-points", type: "circle", source: "memory-plates",
+            filter: ["==", ["geometry-type"], "Point"],
             layout: { visibility: "none" },
             paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 5.6, 16, 9],
-              "circle-color": "#17211f",
-              "circle-opacity": 0.9,
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3.2, 16, 5.2],
+              "circle-color": "#91846b",
+              "circle-stroke-color": "#fffdf8", "circle-stroke-width": 1,
             },
           });
           map.addLayer({
-            id: "landscape-properties-points",
-            type: "circle",
-            source: "landscape-properties",
+            id: "cultural-assets-hit", type: "circle", source: "cultural-assets",
+            filter: ["==", ["geometry-type"], "Point"],
+            layout: { visibility: "none" },
+            paint: { "circle-radius": 14, "circle-color": "#ffffff", "circle-opacity": 0 },
+          });
+          map.addLayer({
+            id: "cultural-assets-halo", type: "circle", source: "cultural-assets",
+            filter: ["==", ["geometry-type"], "Point"],
+            layout: { visibility: "none" },
+            paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4.6, 16, 6.8], "circle-color": "#17211f", "circle-opacity": 0.8 },
+          });
+          map.addLayer({
+            id: "cultural-assets-points", type: "circle", source: "cultural-assets",
+            filter: ["==", ["geometry-type"], "Point"],
             layout: { visibility: "none" },
             paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3.6, 16, 6.8],
-              "circle-color": [
-                "match", ["get", "t"],
-                "建築物等", "#ff6b35",
-                "橋梁", "#16a89a",
-                "#64748b",
-              ],
-              "circle-stroke-color": "#fffdf8",
-              "circle-stroke-width": 1.35,
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3.2, 16, 5.2],
+              "circle-color": ["match",["get","_category"],"国文化財","#856a50","東京都文化財","#687e97","千代田区文化財","#658375","景観資源","#9d6e77","#7b8082"],
+              "circle-stroke-color": "#fffdf8", "circle-stroke-width": 1,
             },
+          });
+          map.addLayer({
+            id: "functional-kaiwai-label", type: "symbol", source: "functional-kaiwai",
+            minzoom: 13,
+            layout: { visibility: "none", "text-field": ["get", "n"], "text-size": 11, "text-max-width": 12 },
+            paint: { "text-color": "#fffdf8", "text-halo-color": "#17211f", "text-halo-width": 1.4 },
           });
           map.addLayer({
             id: "chiyoda-regions-label",
@@ -1873,13 +2081,13 @@ export function MapAtlas() {
               source.setData({ type: "FeatureCollection", features: [] });
               return;
             }
-            if (feature.layer.id.startsWith("landscape-properties")) {
-              const coordinates = JSON.stringify(feature.geometry.coordinates);
+            if (feature.layer.id.startsWith("cultural-assets")) {
+              const coordinates = "coordinates" in feature.geometry ? JSON.stringify(feature.geometry.coordinates) : "";
               const seen = new Set<string>();
               const properties = rendered
                 .filter((item) => (
-                  item.layer.id.startsWith("landscape-properties") &&
-                  JSON.stringify(item.geometry.coordinates) === coordinates
+                  item.layer.id.startsWith("cultural-assets") &&
+                  "coordinates" in item.geometry && JSON.stringify(item.geometry.coordinates) === coordinates
                 ))
                 .map((item) => item.properties ?? {})
                 .filter((item) => {
@@ -1890,7 +2098,7 @@ export function MapAtlas() {
                 });
               setDetail(
                 properties.length > 1
-                  ? landscapeGroupDetail(properties)
+                  ? culturalGroupDetail(properties)
                   : detailFor(feature.layer.id, feature.properties ?? {}, data.meta),
               );
             } else {
@@ -1960,7 +2168,13 @@ export function MapAtlas() {
     setLayerVisibility(map, SPECIAL_ZONE_LAYER_IDS, overlays.specialZones);
     setLayerVisibility(map, REDEVELOPMENT_LAYER_IDS, overlays.redevelopment);
     setLayerVisibility(map, CHIYODA_REGION_LAYER_IDS, overlays.chiyodaRegions);
-    setLayerVisibility(map, LANDSCAPE_PROPERTY_LAYER_IDS, overlays.landscapeProperties);
+    setLayerVisibility(map, FUNCTIONAL_KAIWAI_LAYER_IDS, overlays.functionalKaiwai);
+    setLayerVisibility(map, OPEN_SPACE_LAYER_IDS, overlays.openSpaces);
+    setLayerVisibility(map, AREA_MANAGEMENT_LAYER_IDS, overlays.areaManagement);
+    setLayerVisibility(map, MEMORY_PLATE_LAYER_IDS, overlays.memoryPlates);
+    setLayerVisibility(map, CULTURAL_ASSET_LAYER_IDS, overlays.culturalAssets);
+    setLayerVisibility(map, ["terrain-hillshade"], overlays.terrain);
+    setLayerVisibility(map, ["plateau-building-height-fill"], overlays.buildingHeight);
   }, [overlays, ready]);
 
   useEffect(() => {
@@ -1993,7 +2207,7 @@ export function MapAtlas() {
           "raster-brightness-max": 0.92,
           "raster-fade-duration": 0,
         },
-      }, "population-fill");
+      }, map.getLayer("terrain-hillshade") ? "terrain-hillshade" : map.getLayer("plateau-building-height-fill") ? "plateau-building-height-fill" : "population-fill");
     }
     if (photoEpoch === "1936" && map.getZoom() < 13) {
       map.easeTo({ zoom: 13, duration: 0 });
@@ -2046,6 +2260,7 @@ export function MapAtlas() {
     const noticeAction = ++noticeActionRef.current;
     setLayerNotice({ kind: "loading", message: `${LAYER_LABELS[key]}を読み込み中…` });
     try {
+      if (key === "terrain" || key === "buildingHeight") addTileOverlay(mapRef.current!, key);
       await Promise.all(OVERLAY_DATASETS[key].map(ensureDataset));
       setOverlays((current) => ({ ...current, [key]: true }));
       if (noticeAction === noticeActionRef.current) setLayerNotice(null);
@@ -2185,7 +2400,8 @@ export function MapAtlas() {
     if (overlays.specialZones) groups.push({ title: "容積・再開発等の特例", items: SPECIAL_ZONE_LEGEND });
     if (overlays.redevelopment) groups.push({ title: "事業中の再開発", items: REDEVELOPMENT_LEGEND });
     if (overlays.chiyodaRegions) groups.push({ title: "千代田区の7地域", items: CHIYODA_REGION_LEGEND });
-    if (overlays.landscapeProperties) groups.push({ title: "景観まちづくり重要物件", items: LANDSCAPE_PROPERTY_LEGEND });
+    if (overlays.culturalAssets) groups.push({ title: "文化・歴史資源", items: CULTURAL_ASSET_LEGEND });
+    if (overlays.buildingHeight) groups.push({ title: "建物高さ（m・2020年度）", items: BUILDING_HEIGHT_LEGEND });
     return groups;
   }, [areaLayer, overlays]);
 
@@ -2208,7 +2424,13 @@ export function MapAtlas() {
     if (overlays.specialZones) add("容積・再開発等の特例", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.redevelopment) add("事業中の再開発", "現在動いている事業の所在を点で把握。区域は資料参照。", meta?.redevelopmentDate ?? "2025-10-31", "東京都", "https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu");
     if (overlays.chiyodaRegions) add("千代田区の7地域", "都市計画マスタープランが地域別に示す将来像の単位。", meta?.chiyodaRegionDate ?? "2021-05", "千代田区", "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf");
-    if (overlays.landscapeProperties) add("景観まちづくり重要物件", "区指定の建築物等と橋梁。重複地点はクリック時にまとめて表示。", meta?.landscapePropertyDate ?? "2024-12", "千代田区", "https://www.city.chiyoda.lg.jp/koho/machizukuri/kekan/ichiranhyo.html");
+    if (overlays.functionalKaiwai) add("街の個性", "古書店街・学生街など、都市機能から見る16界隈。景観の界隈・7地域とは別の区分。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.openSpaces) add("公開空地", "公式GISに掲載された公開空地。自由な利用の可否・条件は現地等で確認。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.areaManagement) add("まちづくり団体", "公式GISの団体活動区域。複数団体を含む区域もある。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.memoryPlates) add("まちの記憶", "旧居跡などの記憶保存プレートの所在地。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.culturalAssets) add("文化・歴史資源", "国・都・区文化財と景観資源を統合。既存景観物件の指定情報も保持。", "公式GIS・既存指定一覧", "千代田区", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.terrain) add("地形・陰影", "陰影起伏から台地・谷・崖の連続性を見る。標高値は示さない。", "地理院タイル", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
+    if (overlays.buildingHeight) add("建物高さ", "2020年度の市街地の高さ構造を学ぶ。最新建物情報ではなく、広域ズームでは小規模建物が省略される。", "2020年度", "PLATEAU / indigo-lab MVT", PLATEAU_BUILDING_SOURCE);
     if (overlays.parks) add("公園・緑地", "まとまりとネットワークを周辺区まで連続して見る。", meta?.parksDate ?? "公開時点", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d2000000024");
     if (overlays.landPrices) add("地価公示", "標準地の点比較。個別不動産の価格ではない。", meta?.landPriceDate ?? "2026-01-01", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-L01-2026.html");
     if (overlays.shelters) add("指定避難所", "概略位置を確認し、実際の避難時は各区の最新案内を見る。", meta?.sheltersDate ?? "取得時点", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
@@ -2337,6 +2559,9 @@ export function MapAtlas() {
               <div className="toggle-list">
                 <Toggle label="主要道路" active={overlays.roads} onClick={() => toggleOverlay("roads")} />
                 <Toggle label="鉄道・駅" active={overlays.rail} onClick={() => toggleOverlay("rail")} />
+                <Toggle label="公園・緑地" active={overlays.parks} onClick={() => toggleOverlay("parks")} />
+                <Toggle label="地形・陰影" active={overlays.terrain} onClick={() => toggleOverlay("terrain")} />
+                <Toggle label="建物高さ（2020）" active={overlays.buildingHeight} onClick={() => toggleOverlay("buildingHeight")} />
                 <Toggle label="町丁目境界" active={overlays.boundaries} onClick={() => toggleOverlay("boundaries")} />
               </div>
             </section>
@@ -2350,14 +2575,17 @@ export function MapAtlas() {
                 <Toggle label="高度地区" active={overlays.heightDistricts} onClick={() => toggleOverlay("heightDistricts")} />
                 <Toggle label="容積・再開発等の特例" active={overlays.specialZones} onClick={() => toggleOverlay("specialZones")} />
                 <Toggle label="事業中の再開発" active={overlays.redevelopment} onClick={() => toggleOverlay("redevelopment")} />
+                <Toggle label="公開空地" active={overlays.openSpaces} onClick={() => toggleOverlay("openSpaces")} />
+                <Toggle label="まちづくり団体" active={overlays.areaManagement} onClick={() => toggleOverlay("areaManagement")} />
               </div>
             </section>
 
             <section>
               <h2 className="section-title">暮らし・景観</h2>
               <div className="toggle-list">
-                <Toggle label="景観まちづくり重要物件" active={overlays.landscapeProperties} onClick={() => toggleOverlay("landscapeProperties")} />
-                <Toggle label="公園・緑地" active={overlays.parks} onClick={() => toggleOverlay("parks")} />
+                <Toggle label="街の個性" active={overlays.functionalKaiwai} onClick={() => toggleOverlay("functionalKaiwai")} />
+                <Toggle label="まちの記憶" active={overlays.memoryPlates} onClick={() => toggleOverlay("memoryPlates")} />
+                <Toggle label="文化・歴史資源" active={overlays.culturalAssets} onClick={() => toggleOverlay("culturalAssets")} />
                 <Toggle label="地価公示" active={overlays.landPrices} onClick={() => toggleOverlay("landPrices")} />
                 <Toggle label="指定避難所" active={overlays.shelters} onClick={() => toggleOverlay("shelters")} />
               </div>

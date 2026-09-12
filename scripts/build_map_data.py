@@ -1544,6 +1544,10 @@ def main():
             handle.write("\n")
         layer_bytes[key] = layer_path.stat().st_size
 
+    # The separately prepared official layers retain their own source/schema pipeline.
+    from prepare_chiyoda_official_layers import update_search_index
+    update_search_index(args.output)
+
     densities = sorted(item["properties"]["d"] for item in towns)
     report = {
         "output": str(args.output),
