@@ -24,6 +24,7 @@ type OverlayKey =
   | "functionalKaiwai"
   | "openSpaces"
   | "areaManagement"
+  | "planningMovements"
   | "memoryPlates"
   | "culturalAssets"
   | "terrain"
@@ -56,6 +57,7 @@ type DatasetKey =
   | "stationEntrances"
   | "undergroundWalkways"
   | "districtPlans"
+  | "districtPlanSubareas"
   | "heightDistricts"
   | "specialZones"
   | "redevelopment"
@@ -64,7 +66,8 @@ type DatasetKey =
   | "openSpaces"
   | "areaManagement"
   | "memoryPlates"
-  | "culturalAssets";
+  | "culturalAssets"
+  | "planningMovements";
 
 type AtlasData = {
   meta: {
@@ -151,7 +154,8 @@ const UNDERGROUND_WALKWAY_LAYER_IDS = ["underground-walkways-line", "underground
 const PARK_LAYER_IDS = ["parks-fill", "parks-outline"];
 const LAND_PRICE_LAYER_IDS = ["land-prices-hit", "land-prices-halo", "land-prices"];
 const SHELTER_LAYER_IDS = ["shelters-hit", "shelters-halo", "shelters"];
-const DISTRICT_PLAN_LAYER_IDS = ["district-plans-casing", "district-plans-line", "district-plans-hit"];
+const DISTRICT_PLAN_LAYER_IDS = ["district-plans-casing", "district-plans-line", "district-plans-hit", "district-plan-subareas-fill", "district-plan-subareas-line", "district-plan-subareas-label"];
+const PLANNING_MOVEMENT_LAYER_IDS = ["planning-movements-hit", "planning-movements-points"];
 const HEIGHT_DISTRICT_LAYER_IDS = ["height-districts-fill", "height-districts-line"];
 const SPECIAL_ZONE_LAYER_IDS = ["special-zones-fill", "special-zones-line", "special-zones-hit"];
 const REDEVELOPMENT_LAYER_IDS = ["redevelopment-hit", "redevelopment-halo", "redevelopment-points"];
@@ -165,6 +169,8 @@ const OFFICIAL_ELEMENT_SOURCE = "https://www.city.chiyoda.lg.jp/koho/machizukuri
 const PLATEAU_BUILDING_SOURCE = "https://github.com/indigo-lab/plateau-tokyo23ku-building-mvt-2020";
 const OSM_REFERENCE_SOURCE = "https://www.openstreetmap.org/copyright";
 const UNDERGROUND_WALKWAY_NOTE = "OpenStreetMap上の地下・屋内歩行リンク。網羅性は保証されません。";
+const DISTRICT_PLAN_SUBAREA_SOURCE = "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/chikukeikaku/MapServer/6";
+const PLANNING_MOVEMENT_SOURCE = "https://www.city.chiyoda.lg.jp/";
 
 const AREA_INTERACTIVE_LAYERS: Record<Exclude<AreaLayer, "none">, string[]> = {
   population: ["population-fill"],
@@ -184,7 +190,7 @@ const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   parks: ["parks-fill"],
   landPrices: ["land-prices-hit"],
   shelters: ["shelters-hit"],
-  districtPlans: ["district-plans-hit"],
+  districtPlans: ["district-plans-hit", "district-plan-subareas-fill", "district-plan-subareas-label"],
   heightDistricts: ["height-districts-fill"],
   specialZones: ["special-zones-hit"],
   redevelopment: ["redevelopment-hit"],
@@ -192,6 +198,7 @@ const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   functionalKaiwai: ["functional-kaiwai-fill"],
   openSpaces: ["open-spaces-fill"],
   areaManagement: ["area-management-hit", "area-management-fill"],
+  planningMovements: ["planning-movements-hit"],
   memoryPlates: ["memory-plates-hit"],
   culturalAssets: ["cultural-assets-hit", "cultural-assets-fill"],
   buildingHeight: ["plateau-building-height-fill"],
@@ -214,6 +221,7 @@ const DATASET_FILES: Record<DatasetKey, string> = {
   stationEntrances: "station-entrances.json",
   undergroundWalkways: "underground-walkways.json",
   districtPlans: "district-plans.json",
+  districtPlanSubareas: "district-plan-subareas.json",
   heightDistricts: "height-districts.json",
   specialZones: "special-zones.json",
   redevelopment: "redevelopment.json",
@@ -221,6 +229,7 @@ const DATASET_FILES: Record<DatasetKey, string> = {
   functionalKaiwai: "functional-kaiwai.json",
   openSpaces: "open-spaces.json",
   areaManagement: "area-management.json",
+  planningMovements: "planning-movements.json",
   memoryPlates: "memory-plates.json",
   culturalAssets: "cultural-assets.json",
 };
@@ -240,6 +249,7 @@ const DATASET_SOURCES: Record<DatasetKey, string> = {
   stationEntrances: "station-entrances",
   undergroundWalkways: "underground-walkways",
   districtPlans: "district-plans",
+  districtPlanSubareas: "district-plan-subareas",
   heightDistricts: "height-districts",
   specialZones: "special-zones",
   redevelopment: "redevelopment",
@@ -247,6 +257,7 @@ const DATASET_SOURCES: Record<DatasetKey, string> = {
   functionalKaiwai: "functional-kaiwai",
   openSpaces: "open-spaces",
   areaManagement: "area-management",
+  planningMovements: "planning-movements",
   memoryPlates: "memory-plates",
   culturalAssets: "cultural-assets",
 };
@@ -270,7 +281,7 @@ const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
   landPrices: ["landPrices"],
   shelters: ["shelters"],
   boundaries: ["towns"],
-  districtPlans: ["districtPlans"],
+  districtPlans: ["districtPlans", "districtPlanSubareas"],
   heightDistricts: ["heightDistricts"],
   specialZones: ["specialZones"],
   redevelopment: ["redevelopment"],
@@ -278,6 +289,7 @@ const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
   functionalKaiwai: ["functionalKaiwai"],
   openSpaces: ["openSpaces"],
   areaManagement: ["areaManagement"],
+  planningMovements: ["planningMovements"],
   memoryPlates: ["memoryPlates"],
   culturalAssets: ["culturalAssets"],
   terrain: [],
@@ -311,6 +323,7 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   functionalKaiwai: "街の個性",
   openSpaces: "公開空地",
   areaManagement: "まちづくり団体",
+  planningMovements: "まちづくりの動き",
   memoryPlates: "まちの記憶",
   culturalAssets: "文化・歴史資源",
 };
@@ -330,6 +343,7 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   stationEntrances: "駅出入口",
   undergroundWalkways: "地下歩行ネットワーク",
   districtPlans: "地区計画",
+  districtPlanSubareas: "地区計画内部区分",
   heightDistricts: "高度地区",
   specialZones: "容積・再開発等の特例",
   redevelopment: "事業中の再開発",
@@ -337,6 +351,7 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   functionalKaiwai: "街の個性",
   openSpaces: "公開空地",
   areaManagement: "まちづくり団体",
+  planningMovements: "まちづくりの動き",
   memoryPlates: "まちの記憶",
   culturalAssets: "文化・歴史資源",
 };
@@ -775,6 +790,29 @@ function detailFor(
       sources: [{ label: "東京都・2021年度土地利用現況調査", url: "https://www.toshiseibi.metro.tokyo.lg.jp/about/chousa/tochi_c/tochi_kekka_r3" }],
     };
   }
+  if (layerId.startsWith("planning-movements")) {
+    const values = [["現在の状態", p.status], ["検討内容", p.summary], ["次のステップ", p.next], ["基準日", p.sourceDate]];
+    return {
+      eyebrow: "Planning movement",
+      title: String(p.n ?? p.name ?? "まちづくりの動き"),
+      rows: values.filter(([, value]) => value != null && value !== "").map(([label, value]) => ({ label: String(label), value: String(value) })),
+      note: `基準日時点の情報です。位置は町丁目の代表点（参考位置）です。事業敷地や対象区域を示していません。${p.anchorResolution === "town_name_only" ? "町名のみ指定され、丁目は未特定です。" : ""}`,
+      sources: [{ label: "千代田区公式情報", url: String(p.sourceUrl ?? p._source_url ?? PLANNING_MOVEMENT_SOURCE) }],
+    };
+  }
+  if (layerId.startsWith("district-plan-subareas")) {
+    const values = [["地区計画", p.planName ?? p["名称"]], ["内部区分", p.n ?? p["区分"]], ["最終決定日", p["最終決定日"]], ["告示番号", p["最終決定告示番号"]]];
+    return {
+      eyebrow: "District plan subarea",
+      title: String(p.n ?? p["区分"] ?? "地区計画内部区分"),
+      rows: values.filter(([, value]) => value != null && value !== "").map(([label, value]) => ({ label: String(label), value: String(value) })),
+      note: "公式GISの内部区分です。個別敷地の制限は計画書・計画図で確認してください。",
+      sources: [
+        { label: "千代田区公式ArcGIS", url: String(p._source_url ?? DISTRICT_PLAN_SUBAREA_SOURCE) },
+        ...(p["詳細資料"] ? [{ label: "千代田区・地区計画資料", url: String(p["詳細資料"]) }] : []),
+      ],
+    };
+  }
   if (layerId.includes("district-plan")) {
     return {
       eyebrow: "District plan",
@@ -1056,6 +1094,7 @@ export function MapAtlas() {
     functionalKaiwai: false,
     openSpaces: false,
     areaManagement: false,
+    planningMovements: false,
     memoryPlates: false,
     culturalAssets: false,
     terrain: false,
@@ -1317,6 +1356,18 @@ export function MapAtlas() {
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
             attribution: '地区計画：<a href="https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028" target="_blank">東京都</a>',
+          });
+          map.addSource("district-plan-subareas", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `地区計画内部区分：<a href="${DISTRICT_PLAN_SUBAREA_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+          });
+          map.addSource("planning-movements", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `まちづくりの動き：<a href="${PLANNING_MOVEMENT_SOURCE}" target="_blank">千代田区（公式資料は各点のリンク参照）</a>`,
           });
           map.addSource("height-districts", {
             type: "geojson",
@@ -1679,6 +1730,18 @@ export function MapAtlas() {
             paint: { "fill-color": "#ffffff", "fill-opacity": 0 },
           });
           map.addLayer({
+            id: "district-plan-subareas-fill", type: "fill", source: "district-plan-subareas",
+            minzoom: 14,
+            layout: { visibility: "none" },
+            paint: { "fill-color": "#00c2d7", "fill-opacity": 0.06 },
+          });
+          map.addLayer({
+            id: "district-plan-subareas-line", type: "line", source: "district-plan-subareas",
+            minzoom: 14,
+            layout: { visibility: "none" },
+            paint: { "line-color": "#8fb7bd", "line-width": 0.8, "line-opacity": 0.6 },
+          });
+          map.addLayer({
             id: "district-plans-casing",
             type: "line",
             source: "district-plans",
@@ -1882,6 +1945,20 @@ export function MapAtlas() {
               "circle-color": "#7d9cb0",
               "circle-stroke-color": "#fffdf8",
               "circle-stroke-width": 1,
+            },
+          });
+          map.addLayer({
+            id: "planning-movements-hit", type: "circle", source: "planning-movements",
+            layout: { visibility: "none" },
+            paint: { "circle-radius": 12, "circle-color": "#ffffff", "circle-opacity": 0 },
+          });
+          map.addLayer({
+            id: "planning-movements-points", type: "circle", source: "planning-movements",
+            layout: { visibility: "none" },
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4, 17, 6],
+              "circle-color": "#ffffff", "circle-opacity": 0,
+              "circle-stroke-color": "#d7cde0", "circle-stroke-width": 1.8,
             },
           });
           map.addLayer({
@@ -2104,6 +2181,12 @@ export function MapAtlas() {
             paint: { "text-color": "#fffdf8", "text-halo-color": "#17211f", "text-halo-width": 1.5 },
           });
           map.addLayer({
+            id: "district-plan-subareas-label", type: "symbol", source: "district-plan-subareas",
+            minzoom: 16,
+            layout: { visibility: "none", "text-field": ["get", "n"], "text-size": 13, "text-max-width": 9 },
+            paint: { "text-color": "#fffdf8", "text-halo-color": "#17211f", "text-halo-width": 1.5 },
+          });
+          map.addLayer({
             id: "chiyoda-regions-label",
             type: "symbol",
             source: "chiyoda-regions",
@@ -2226,10 +2309,13 @@ export function MapAtlas() {
             const rendered = activeLayers.length > 0
               ? map.queryRenderedFeatures(event.point, { layers: activeLayers })
               : [];
-            const feature =
+            let feature =
               rendered.find((item) => item.layer.id === "chiyoda-regions-label") ??
               rendered.find((item) => !item.layer.id.startsWith("chiyoda-regions")) ??
               rendered[0];
+            if (feature?.layer.id === "district-plans-hit") {
+              feature = rendered.find((item) => item.layer.id === "district-plan-subareas-fill") ?? feature;
+            }
             const source = map.getSource("selection") as GeoJSONSource;
             if (!feature) {
               setDetail(null);
@@ -2327,6 +2413,7 @@ export function MapAtlas() {
     setLayerVisibility(map, UNDERGROUND_WALKWAY_LAYER_IDS, overlays.undergroundWalkways);
     setLayerVisibility(map, OPEN_SPACE_LAYER_IDS, overlays.openSpaces);
     setLayerVisibility(map, AREA_MANAGEMENT_LAYER_IDS, overlays.areaManagement);
+    setLayerVisibility(map, PLANNING_MOVEMENT_LAYER_IDS, overlays.planningMovements);
     setLayerVisibility(map, MEMORY_PLATE_LAYER_IDS, overlays.memoryPlates);
     setLayerVisibility(map, CULTURAL_ASSET_LAYER_IDS, overlays.culturalAssets);
     setLayerVisibility(map, ["terrain-hillshade"], overlays.terrain);
@@ -2559,6 +2646,7 @@ export function MapAtlas() {
     if (overlays.redevelopment) groups.push({ title: "事業中の再開発", items: REDEVELOPMENT_LEGEND });
     if (overlays.chiyodaRegions) groups.push({ title: "千代田区の7地域", items: CHIYODA_REGION_LEGEND });
     if (overlays.culturalAssets) groups.push({ title: "文化・歴史資源", items: CULTURAL_ASSET_LEGEND });
+    if (overlays.planningMovements) groups.push({ title: "まちづくりの動き", items: [["町丁目代表点", "#d7cde0"]] });
     if (overlays.buildingHeight) groups.push({ title: "建物高さ（m・2020年度）", items: BUILDING_HEIGHT_LEGEND });
     return groups;
   }, [areaLayer, overlays]);
@@ -2579,7 +2667,7 @@ export function MapAtlas() {
     if (overlays.rail) add("鉄道・駅", "駅勢圏と乗換拠点を道路・土地利用に重ねて読む。", meta?.railDate ?? "2025年", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html");
     if (overlays.stationEntrances) add("駅出入口", "ズーム14以上で表示。出口・バリアフリー属性は駅の最新案内で再確認。", "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE);
     if (overlays.undergroundWalkways) add("地下歩行ネットワーク", UNDERGROUND_WALKWAY_NOTE, "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE);
-    if (overlays.districtPlans) add("地区計画", "区域を入口に、計画書・計画図へたどる。", meta?.districtPlanDate ?? "2025-05-02", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
+    if (overlays.districtPlans) add("地区計画", "区域を入口に計画図へ。千代田区の内部区分はズーム14以上、区分名は16以上で表示。", `外枠：${meta?.districtPlanDate ?? "2025-05-02"}／内部：2026-09-13取得`, "外枠：東京都／内部：千代田区", DISTRICT_PLAN_SUBAREA_SOURCE);
     if (overlays.heightDistricts) add("高度地区", "千代田区・中央区は指定なし。隣接4区の種別と数値指定を用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.specialZones) add("容積・再開発等の特例", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.redevelopment) add("事業中の再開発", "現在動いている事業の所在を点で把握。区域は資料参照。", meta?.redevelopmentDate ?? "2025-10-31", "東京都", "https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu");
@@ -2587,6 +2675,7 @@ export function MapAtlas() {
     if (overlays.functionalKaiwai) add("街の個性", "古書店街・学生街など、都市機能から見る16界隈。景観の界隈・7地域とは別の区分。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.openSpaces) add("公開空地", "公式GISに掲載された公開空地。自由な利用の可否・条件は現地等で確認。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.areaManagement) add("まちづくり団体", "公式GISの団体活動区域。複数団体を含む区域もある。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.planningMovements) add("まちづくりの動き", "検討・対話・ルール形成の段階を見る。位置は町丁目の代表点。各点から公式資料へ。", "基準日は各点に表示", "千代田区", PLANNING_MOVEMENT_SOURCE);
     if (overlays.memoryPlates) add("まちの記憶", "旧居跡などの記憶保存プレートの所在地。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.culturalAssets) add("文化・歴史資源", "国・都・区文化財と景観資源を統合。既存景観物件の指定情報も保持。", "公式GIS・既存指定一覧", "千代田区", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.terrain) add("地形・陰影", "陰影起伏から台地・谷・崖の連続性を見る。標高値は示さない。", "地理院タイル", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
@@ -2738,6 +2827,7 @@ export function MapAtlas() {
                 <Toggle label="事業中の再開発" active={overlays.redevelopment} onClick={() => toggleOverlay("redevelopment")} />
                 <Toggle label="公開空地" active={overlays.openSpaces} onClick={() => toggleOverlay("openSpaces")} />
                 <Toggle label="まちづくり団体" active={overlays.areaManagement} onClick={() => toggleOverlay("areaManagement")} />
+                <Toggle label="まちづくりの動き" active={overlays.planningMovements} onClick={() => toggleOverlay("planningMovements")} />
               </div>
             </section>
 

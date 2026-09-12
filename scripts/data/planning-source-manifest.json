@@ -1,0 +1,22 @@
+{
+  "updated": "2026-09-13",
+  "districtPlanSubareas": {
+    "officialArcgis": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/chikukeikaku/MapServer",
+    "officialEvidence": "https://www.city.chiyoda.lg.jp/documents/33494/r6seika-zentai.pdf",
+    "strategy": "safe_discovery_only"
+  },
+  "planningMovements": {
+    "output": "public/data/layers/planning-movements.json",
+    "positionQuality": "town_centroid",
+    "registry": "scripts/data/planning-movements-registry.json"
+  },
+  "futureEvaluation": {
+    "status": "制度構築・2026年度運用開始目標",
+    "doNotInventScores": true,
+    "optionalFields": [
+      "evaluationStatus", "publicContribution", "pedestrianContribution",
+      "openSpaceContribution", "disasterPreventionContribution",
+      "environmentalContribution", "localIssues", "evaluationSourceUrl", "evaluationDate"
+    ]
+  }
+}

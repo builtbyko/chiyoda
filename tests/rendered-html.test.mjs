@@ -55,11 +55,12 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /容積・再開発等の特例/);
   assert.match(html, /事業中の再開発/);
   assert.match(html, /千代田区の7地域/);
-  for (const label of ["街の個性", "公開空地", "まちづくり団体", "まちの記憶", "文化・歴史資源", "地形・陰影", "建物高さ（2020）", "駅出入口", "地下歩行ネットワーク"]) {
+  for (const label of ["街の個性", "公開空地", "まちづくり団体", "まちの記憶", "文化・歴史資源", "地形・陰影", "建物高さ（2020）", "駅出入口", "地下歩行ネットワーク", "まちづくりの動き"]) {
     assert.match(html, new RegExp(`<button(?=[^>]*aria-pressed="false")[^>]*><span>${label}</span>`));
   }
   assert.doesNotMatch(html, /<span>景観まちづくり重要物件<\/span>/);
   assert.doesNotMatch(html, /<span>景観の界隈<\/span>/);
+  assert.doesNotMatch(html, /<span>地区計画内部区分<\/span>/);
   assert.match(html, /現在地/);
   assert.match(html, /1936–1942年頃/);
   assert.match(
@@ -91,6 +92,8 @@ test("map data includes the recommended reference layers", async () => {
     stationEntrances: "station-entrances.json",
     undergroundWalkways: "underground-walkways.json",
     districtPlans: "district-plans.json",
+    districtPlanSubareas: "district-plan-subareas.json",
+    planningMovements: "planning-movements.json",
     heightDistricts: "height-districts.json",
     specialZones: "special-zones.json",
     redevelopment: "redevelopment.json",
@@ -293,10 +296,10 @@ test("desktop map keeps its low-cost rendering settings", async () => {
   assert.doesNotMatch(source, /id: `base-photo-\$\{option\.value\}`/);
   assert.match(source, /if \(!map\.getSource\(sourceId\) \|\| !map\.getLayer\("base-photo"\)\)/);
   assert.match(source, /\{ buffer: 64, tolerance: 1\.25 \}/);
-  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 21);
+  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 23);
   assert.equal(
     source.match(/"(?:fill|line|circle)-opacity": 0(?:,|\s*})/g)?.length,
-    13,
+    15,
   );
   assert.doesNotMatch(source, /"(?:fill|line|circle)-opacity": 0\.01/);
   assert.match(source, /urbanPlanningRoads: false/);
@@ -418,6 +421,119 @@ test("walking popups use OSM reference attribution and never infer missing stati
   assert.match(walkway.note, /網羅性は保証されません/);
   assert.equal(walkway.sources[0].label, "OpenStreetMap（参考）");
   assert.equal(walkway.sources[0].url, "https://www.openstreetmap.org/way/456");
+});
+
+test("planning movement metadata preserves the registry and representative-point caveats", async () => {
+  const registry = JSON.parse(await readFile(new URL("../scripts/data/planning-movements-registry.json", import.meta.url), "utf8"));
+  const layer = JSON.parse(await readFile(new URL("../public/data/layers/planning-movements.json", import.meta.url), "utf8"));
+  assert.equal(layer.features.length, registry.items.length);
+  assert.equal(new Set(layer.features.map(({ properties }) => properties.id)).size, registry.items.length);
+  for (const item of registry.items) {
+    const feature = layer.features.find(({ properties }) => properties.id === item.id);
+    assert.ok(feature);
+    for (const [key, value] of Object.entries(item)) assert.deepEqual(feature.properties[key], value);
+    assert.equal(feature.properties.n, item.name);
+    assert.equal(feature.properties.locationQuality, "town_centroid");
+    assert.equal(feature.properties._coordinate_quality, "town_representative_point");
+    assert.ok(["exact_town", "town_name_only"].includes(feature.properties.anchorResolution));
+    assert.equal(feature.geometry.type, "Point");
+    assert.ok(feature.geometry.coordinates.every(Number.isFinite));
+    assert.match(feature.properties.sourceUrl, /^https:\/\/www\.city\.chiyoda\.lg\.jp\//);
+  }
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", {
+    PLANNING_MOVEMENT_SOURCE: "https://www.city.chiyoda.lg.jp/",
+  });
+  const detail = detailFor("planning-movements-hit", layer.features[0].properties);
+  assert.equal(detail.title, registry.items[0].name);
+  assert.deepEqual(detail.rows, [
+    { label: "現在の状態", value: registry.items[0].status },
+    { label: "検討内容", value: registry.items[0].summary },
+    { label: "次のステップ", value: registry.items[0].next },
+    { label: "基準日", value: registry.items[0].sourceDate },
+  ]);
+  assert.match(detail.note, /位置は町丁目の代表点/);
+  assert.match(detail.note, /丁目は未特定/);
+  assert.equal(detail.sources[0].url, registry.items[0].sourceUrl);
+  const noNext = detailFor("planning-movements-hit", { n: "地域対話", status: "検討中" });
+  assert.deepEqual(noNext.rows, [{ label: "現在の状態", value: "検討中" }]);
+});
+
+test("official district divisions exclude outer-only features and retain source attributes", async () => {
+  const data = JSON.parse(await readFile(new URL("../public/data/layers/district-plan-subareas.json", import.meta.url), "utf8"));
+  assert.equal(data.type, "FeatureCollection");
+  assert.ok(data.features.length > 0);
+  assert.equal(new Set(data.features.map(({ properties }) => properties.i)).size, data.features.length);
+  for (const { properties: p, geometry: g } of data.features) {
+    assert.ok(["Polygon", "MultiPolygon"].includes(g.type));
+    assert.ok(p["区分"] && p["名称"]);
+    assert.equal(p.n, p["区分"]);
+    assert.equal(p.planName, p["名称"]);
+    assert.equal(p._data_quality, "official_gis");
+    assert.equal(p._source_layer_id, 6);
+    assert.equal(p._source_url, "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/chikukeikaku/MapServer/6");
+  }
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", {
+    DISTRICT_PLAN_SUBAREA_SOURCE: data.features[0].properties._source_url,
+  });
+  const p = data.features[0].properties;
+  const detail = detailFor("district-plan-subareas-fill", p);
+  assert.equal(detail.eyebrow, "District plan subarea");
+  assert.equal(detail.title, p.n);
+  assert.equal(detail.rows[0].value, p.planName);
+  assert.equal(detail.rows[1].value, p.n);
+  assert.equal(detail.sources[0].url, p._source_url);
+  assert.equal(detail.sources[1].url, p["詳細資料"]);
+});
+
+test("new planning styles are lazy, quiet and integrated into the existing district plan toggle", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const sources = {};
+  for (const name of ["planning-movements", "district-plan-subareas"]) {
+    assert.match(source, new RegExp(`map\\.addSource\\("${name}", \\{\\s*type: "geojson",\\s*data: EMPTY_COLLECTION`));
+    sources[name] = { type: "geojson", data: { type: "FeatureCollection", features: [] } };
+  }
+  assert.match(source, /planningMovements: false/);
+  assert.match(source, /planningMovements: \["planningMovements"\]/);
+  assert.match(source, /districtPlans: \["districtPlans", "districtPlanSubareas"\]/);
+  assert.match(source, /PLANNING_MOVEMENT_LAYER_IDS, overlays\.planningMovements/);
+  const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const layers = [];
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && node.expression.getText(tree) === "map.addLayer") {
+      const object = node.arguments[0];
+      if (object && /^\{\s*id: "(?:planning-movements|district-plan-subareas)-/.test(object.getText(tree))) {
+        const js = ts.transpileModule(`const layer = ${object.getText(tree)};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+        layers.push(new Function(`${js}; return layer;`)());
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.equal(layers.length, 5);
+  for (const layer of layers) assert.equal(layer.layout.visibility, "none");
+  for (const layer of layers.filter(({ id }) => id.startsWith("district-plan-subareas"))) assert.ok(layer.minzoom >= 14);
+  assert.equal(layers.find(({ id }) => id === "district-plan-subareas-label").minzoom, 16);
+  assert.ok(layers.find(({ id }) => id === "district-plan-subareas-fill").paint["fill-opacity"] <= 0.08);
+  assert.ok(layers.find(({ id }) => id === "district-plan-subareas-line").paint["line-width"] <= 1);
+  const ring = layers.find(({ id }) => id === "planning-movements-points");
+  assert.equal(ring.type, "circle");
+  assert.equal(ring.paint["circle-opacity"], 0);
+  assert.ok(ring.paint["circle-stroke-width"] > 0);
+  assert.deepEqual(validateStyleMin({ version: 8, sources, layers }), []);
+  assert.ok(source.indexOf('id: "district-plan-subareas-fill"') < source.indexOf('id: "district-plans-casing"'));
+  const start = source.indexOf("let feature =");
+  const end = source.indexOf('const source = map.getSource("selection")', start);
+  assert.ok(start >= 0 && end > start);
+  const js = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const pick = new Function("rendered", `${js}; return feature;`);
+  const outer = { layer: { id: "district-plans-hit" } };
+  const inner = { layer: { id: "district-plan-subareas-fill" } };
+  const point = { layer: { id: "planning-movements-hit" } };
+  assert.equal(pick([outer, inner]), inner);
+  assert.equal(pick([point, outer, inner]), point);
+  assert.equal(pick([outer]), outer);
 });
 
 test("remote tile overlays are created once with valid 2D styles and stable background order", async () => {

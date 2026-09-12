@@ -23,6 +23,8 @@ const layerFiles = [
   "station-entrances.json",
   "underground-walkways.json",
   "district-plans.json",
+  "district-plan-subareas.json",
+  "planning-movements.json",
   "height-districts.json",
   "special-zones.json",
   "redevelopment.json",
