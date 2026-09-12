@@ -153,7 +153,7 @@ button {
 .metric-label {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: .08em;
 }
@@ -171,7 +171,7 @@ button {
   margin-left: 3px;
   color: var(--muted);
   font-family: var(--font-geist-sans), sans-serif;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -207,7 +207,7 @@ button {
   margin: 0 0 7px;
   color: var(--muted);
   font-family: var(--font-geist-mono), monospace;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -283,7 +283,7 @@ button {
   border-radius: 8px;
   outline: none;
   background: #fff;
-  font-size: 13px;
+  font-size: 0.875rem;
 }
 
 .search-field input:focus {
@@ -312,7 +312,7 @@ button {
   padding: 10px 12px;
   border-width: 0 0 1px;
   text-align: left;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 
 .search-result:last-child {
@@ -321,7 +321,7 @@ button {
 
 .search-result small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 
 .segment-control,
@@ -345,7 +345,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: #56605c;
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -365,7 +365,7 @@ button {
   background: #fff;
   color: var(--ink);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 650;
 }
 
@@ -390,7 +390,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: #48524e;
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 650;
 }
 
@@ -407,6 +407,7 @@ button {
 
 .switch {
   position: relative;
+  flex: none;
   width: 32px;
   height: 19px;
   border-radius: 99px;
@@ -437,7 +438,7 @@ button {
 
 .layer-notice {
   color: var(--sage);
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.5;
 }
@@ -459,19 +460,19 @@ button {
 
 .guide-item strong {
   display: block;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 
 .guide-item p {
   margin: 3px 0;
   color: #4f5955;
-  font-size: 10px;
+  font-size: 0.875rem;
   line-height: 1.55;
 }
 
 .guide-item a {
   color: var(--sage);
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-underline-offset: 2px;
 }
@@ -481,7 +482,7 @@ button {
   padding-top: 10px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 9px;
+  font-size: 0.75rem;
   line-height: 1.55;
 }
 
@@ -504,7 +505,7 @@ button {
   background: rgb(15 23 42 / 78%);
   color: #fff;
   box-shadow: 0 2px 8px rgb(0 0 0 / 28%);
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .03em;
   line-height: 1.2;
@@ -569,7 +570,7 @@ button {
   border-radius: 7px;
   background: var(--panel);
   box-shadow: 0 4px 15px rgb(24 34 31 / 12%);
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -591,7 +592,7 @@ button {
   background: rgb(255 253 248 / 96%);
   color: var(--accent-dark);
   box-shadow: 0 4px 15px rgb(24 34 31 / 12%);
-  font-size: 11px;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.45;
 }
@@ -634,7 +635,7 @@ button {
   border: 0;
   background: transparent;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 0.8125rem;
   font-weight: 800;
 }
 
@@ -652,7 +653,7 @@ button {
 
 .legend-title {
   margin: 0 0 9px;
-  font-size: 10px;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: .06em;
 }
@@ -667,7 +668,7 @@ button {
   align-items: center;
   gap: 7px;
   color: #4e5854;
-  font-size: 10px;
+  font-size: 0.8125rem;
 }
 
 .legend-swatch {
@@ -705,7 +706,7 @@ button {
   margin-bottom: 4px;
   color: var(--accent-dark);
   font-family: var(--font-geist-mono), monospace;
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -731,13 +732,13 @@ button {
 
 .detail-item dt {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 
 .detail-item dd {
   margin: 2px 0 0;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 650;
 }
 
@@ -746,7 +747,7 @@ button {
   padding-top: 9px;
   border-top: 1px solid var(--line);
   color: #56605c;
-  font-size: 9px;
+  font-size: 0.8125rem;
   line-height: 1.55;
 }
 
@@ -765,7 +766,7 @@ button {
 
 .detail-related-item a {
   color: var(--sage);
-  font-size: 11px;
+  font-size: 0.875rem;
   font-weight: 760;
   text-underline-offset: 2px;
 }
@@ -773,7 +774,7 @@ button {
 .detail-related-item span,
 .detail-related-item small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 0.75rem;
   line-height: 1.45;
 }
 
@@ -786,7 +787,7 @@ button {
 
 .detail-sources a {
   color: var(--sage);
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-underline-offset: 2px;
 }
@@ -855,7 +856,7 @@ button {
   }
 
   .metric-label {
-    font-size: 9px;
+    font-size: .75rem;
   }
 
   .metric-value {
@@ -949,7 +950,7 @@ button {
   }
 
   .legend-card.is-open {
-    width: 158px;
+    width: 184px;
   }
 
   .legend-body {
@@ -963,7 +964,7 @@ button {
   }
 
   .legend-item {
-    font-size: 9px;
+    font-size: .8125rem;
   }
 
   .detail-card {
@@ -991,7 +992,7 @@ button {
 
   .ward-map-label {
     padding: 2px 5px;
-    font-size: 8px;
+    font-size: .75rem;
   }
 }
 

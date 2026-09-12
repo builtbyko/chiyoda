@@ -273,11 +273,9 @@ test("desktop map keeps its low-cost rendering settings", async () => {
     "utf8",
   );
 
-  assert.match(source, /Math\.sqrt\(1_200_000 \/ viewportPixels\)/);
-  assert.match(
-    source,
-    /Math\.max\(0\.5, Math\.min\(deviceRatio, 0\.65, desktopRatio\)\)/,
-  );
+  assert.match(source, /pixelBudget = moving \? 1_200_000 : 4_000_000/);
+  assert.match(source, /minimumRatio = moving \? 0\.5 : 1/);
+  assert.match(source, /maximumRatio = moving \? 0\.65 : 1\.25/);
   assert.match(source, /if \(window\.innerWidth <= 760\) return Math\.min\(deviceRatio, 1\.5\)/);
   assert.match(source, /getWorkerCount\(\) < 2/);
   assert.match(source, /setWorkerCount\(2\)/);
@@ -417,4 +415,98 @@ test("new details omit missing attributes and distinguish historical building he
   assert.match(building.note, /2020年度/);
   assert.match(building.note, /最新.*ではありません/);
   assert.equal(detailFor("plateau-building-height-fill", {}).title, "建物高さ不明");
+});
+
+test("desktop map restores readable resolution without increasing motion pixel cost", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const viewport = { innerWidth: 1920, innerHeight: 1080, devicePixelRatio: 1 };
+  const ratioFor = sourceFunction(source, "mapPixelRatioForViewport", "configureMapResolution", { window: viewport });
+  const container = { clientWidth: 1634, clientHeight: 1022 };
+  assert.equal(ratioFor(container), 1);
+  assert.equal(ratioFor(container, true), 0.65);
+  viewport.devicePixelRatio = 2;
+  assert.equal(ratioFor(container), 1.25);
+  assert.equal(ratioFor(container, true), 0.65);
+  const large = { clientWidth: 3840, clientHeight: 2160 };
+  assert.equal(ratioFor(large), 1);
+  assert.equal(ratioFor(large, true), 0.5);
+  viewport.innerWidth = 390;
+  assert.equal(ratioFor(container), 1.5);
+  assert.equal(ratioFor(container, true), 1.5);
+});
+
+test("resolution switches before input, debounces recovery and never interrupts active movement", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const timers = new Map();
+  const events = new Map();
+  const inputs = new Map();
+  let nextTimer = 0;
+  const viewport = {
+    innerWidth: 1920, innerHeight: 1080, devicePixelRatio: 1,
+    setTimeout(fn) { timers.set(++nextTimer, fn); return nextTimer; },
+    clearTimeout(id) { timers.delete(id); },
+    addEventListener(type, fn) { events.set(type, fn); },
+    removeEventListener(type, fn) { assert.equal(events.get(type), fn); events.delete(type); },
+  };
+  const ratioFor = sourceFunction(source, "mapPixelRatioForViewport", "configureMapResolution", { window: viewport });
+  const configure = sourceFunction(source, "configureMapResolution", "boundsFor", { window: viewport, mapPixelRatioForViewport: ratioFor });
+  const callbacks = new Map();
+  const ratios = [];
+  let ratio = 1;
+  let moving = false;
+  const target = {
+    addEventListener(type, fn, options) { assert.equal(options.capture, true); inputs.set(type, fn); },
+    removeEventListener(type, fn, capture) { assert.equal(capture, true); assert.equal(inputs.get(type), fn); inputs.delete(type); },
+  };
+  const map = {
+    on(type, fn) { callbacks.set(type, fn); },
+    off(type, fn) { assert.equal(callbacks.get(type), fn); callbacks.delete(type); },
+    isMoving: () => moving,
+    getCanvasContainer: () => target,
+    getPixelRatio: () => ratio,
+    setPixelRatio(value) {
+      assert.equal(moving, false, "active dragging must not be interrupted by resize");
+      ratio = value;
+      ratios.push(value);
+      assert.ok(ratios.length < 10, "synthetic resize movement must not loop");
+      callbacks.get("movestart")();
+      callbacks.get("moveend")();
+    },
+  };
+  const flush = () => { const pending = [...timers.values()]; timers.clear(); pending.forEach((fn) => fn()); };
+  const dispose = configure(map, () => ({ clientWidth: 1634, clientHeight: 1022 }));
+  inputs.get("wheel")({ type: "wheel" });
+  assert.equal(ratio, 0.65);
+  moving = true;
+  callbacks.get("movestart")();
+  assert.equal(timers.size, 0);
+  inputs.get("wheel")({ type: "wheel" });
+  events.get("resize")();
+  flush();
+  assert.deepEqual(ratios, [0.65]);
+  moving = false;
+  callbacks.get("moveend")();
+  inputs.get("mousedown")({ type: "mousedown" });
+  assert.equal(timers.size, 0, "held input cancels pending sharp redraw");
+  events.get("resize")();
+  flush();
+  assert.equal(ratio, 0.65, "holding before dragging must retain low-cost resolution");
+  events.get("mouseup")();
+  assert.equal(timers.size, 1);
+  flush();
+  assert.deepEqual(ratios, [0.65, 1]);
+  inputs.get("touchstart")({ type: "touchstart" });
+  dispose();
+  assert.equal(timers.size, 0);
+  assert.equal(inputs.size, 0);
+  assert.equal(callbacks.size, 0);
+  assert.equal(events.size, 0);
+});
+
+test("regular map controls and labels no longer use tiny text", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /\.toggle-row \{[^}]*font-size: 0\.875rem;/);
+  assert.match(css, /\.photo-select \{[^}]*font-size: 0\.875rem;/);
+  assert.match(css, /\.ward-map-label \{[^}]*font-size: 0\.75rem;/);
+  assert.doesNotMatch(css, /\.ward-map-label \{[^}]*font-size: 8px;/);
 });

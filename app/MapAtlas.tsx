@@ -526,7 +526,7 @@ function addTileOverlay(map: MapLibreMap, key: "terrain" | "buildingHeight") {
   }
 }
 
-function mapPixelRatioForViewport(container: HTMLElement) {
+function mapPixelRatioForViewport(container: HTMLElement, moving = false) {
   const deviceRatio = window.devicePixelRatio || 1;
   if (window.innerWidth <= 760) return Math.min(deviceRatio, 1.5);
   const viewportPixels = Math.max(
@@ -534,8 +534,79 @@ function mapPixelRatioForViewport(container: HTMLElement) {
       (container.clientHeight || window.innerHeight),
     1,
   );
-  const desktopRatio = Math.sqrt(1_200_000 / viewportPixels);
-  return Math.round(Math.max(0.5, Math.min(deviceRatio, 0.65, desktopRatio)) * 100) / 100;
+  const pixelBudget = moving ? 1_200_000 : 4_000_000;
+  const desktopRatio = Math.sqrt(pixelBudget / viewportPixels);
+  const minimumRatio = moving ? 0.5 : 1;
+  const maximumRatio = moving ? 0.65 : 1.25;
+  return Math.round(Math.min(deviceRatio, Math.max(minimumRatio, Math.min(maximumRatio, desktopRatio))) * 100) / 100;
+}
+
+function configureMapResolution(map: MapLibreMap, getContainer: () => HTMLElement | null) {
+  let idleTimer = 0;
+  let resizeTimer = 0;
+  let updatingRatio = false;
+  let inputHeld = false;
+  const applyRatio = (moving: boolean) => {
+    const container = getContainer();
+    if (!container || updatingRatio || map.isMoving() || (!moving && inputHeld)) return;
+    const ratio = mapPixelRatioForViewport(container, moving);
+    if (Math.abs(map.getPixelRatio() - ratio) < 0.05) return;
+    // setPixelRatio calls resize, which itself emits movement events.
+    updatingRatio = true;
+    try {
+      map.setPixelRatio(ratio);
+    } finally {
+      updatingRatio = false;
+    }
+  };
+  const beginMovement = () => {
+    if (updatingRatio) return;
+    window.clearTimeout(idleTimer);
+  };
+  const finishMovement = () => {
+    if (updatingRatio) return;
+    window.clearTimeout(idleTimer);
+    idleTimer = window.setTimeout(() => {
+      if (!inputHeld && !map.isMoving()) applyRatio(false);
+    }, 260);
+  };
+  const resizeViewport = () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => applyRatio(false), 160);
+  };
+  const inputTarget = map.getCanvasContainer();
+  const inputEvents = ["mousedown", "touchstart", "wheel", "keydown"];
+  const prepareInput = (event: Event) => {
+    if (updatingRatio) return;
+    window.clearTimeout(idleTimer);
+    // Resize before MapLibre starts a gesture, never during an active drag.
+    applyRatio(true);
+    if (event.type === "mousedown" || event.type === "touchstart") {
+      inputHeld = true;
+    } else {
+      finishMovement();
+    }
+  };
+  const releaseInput = () => {
+    if (!inputHeld) return;
+    inputHeld = false;
+    finishMovement();
+  };
+  const releaseEvents = ["mouseup", "touchend", "touchcancel", "blur"];
+  inputEvents.forEach((type) => inputTarget.addEventListener(type, prepareInput, { capture: true, passive: true }));
+  releaseEvents.forEach((type) => window.addEventListener(type, releaseInput, { capture: true, passive: true }));
+  map.on("movestart", beginMovement);
+  map.on("moveend", finishMovement);
+  window.addEventListener("resize", resizeViewport, { passive: true });
+  return () => {
+    window.clearTimeout(idleTimer);
+    window.clearTimeout(resizeTimer);
+    map.off("movestart", beginMovement);
+    map.off("moveend", finishMovement);
+    inputEvents.forEach((type) => inputTarget.removeEventListener(type, prepareInput, true));
+    releaseEvents.forEach((type) => window.removeEventListener(type, releaseInput, true));
+    window.removeEventListener("resize", resizeViewport);
+  };
 }
 
 function boundsFor(feature: GeoFeature): [[number, number], [number, number]] {
@@ -992,7 +1063,6 @@ export function MapAtlas() {
     if (!mapElement.current || mapRef.current) return;
     let disposed = false;
     let cursorTimer = 0;
-    let viewportTimer = 0;
     let wheelTimer = 0;
     let removeViewportListener = () => {};
     let removeWheelListener = () => {};
@@ -1115,19 +1185,7 @@ export function MapAtlas() {
         }
 
         mapRef.current = map;
-        const handleViewportResize = () => {
-          window.clearTimeout(viewportTimer);
-          viewportTimer = window.setTimeout(() => {
-            const container = mapElement.current;
-            if (disposed || !container) return;
-            const pixelRatio = mapPixelRatioForViewport(container);
-            if (Math.abs(map.getPixelRatio() - pixelRatio) >= 0.05) {
-              map.setPixelRatio(pixelRatio);
-            }
-          }, 160);
-        };
-        window.addEventListener("resize", handleViewportResize, { passive: true });
-        removeViewportListener = () => window.removeEventListener("resize", handleViewportResize);
+        removeViewportListener = configureMapResolution(map, () => disposed ? null : mapElement.current);
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
@@ -1945,8 +2003,8 @@ export function MapAtlas() {
           map.addLayer({
             id: "functional-kaiwai-label", type: "symbol", source: "functional-kaiwai",
             minzoom: 13,
-            layout: { visibility: "none", "text-field": ["get", "n"], "text-size": 11, "text-max-width": 12 },
-            paint: { "text-color": "#fffdf8", "text-halo-color": "#17211f", "text-halo-width": 1.4 },
+            layout: { visibility: "none", "text-field": ["get", "n"], "text-size": ["interpolate", ["linear"], ["zoom"], 13, 13, 16, 15], "text-max-width": 12 },
+            paint: { "text-color": "#fffdf8", "text-halo-color": "#17211f", "text-halo-width": 1.5 },
           });
           map.addLayer({
             id: "chiyoda-regions-label",
@@ -1955,14 +2013,14 @@ export function MapAtlas() {
             layout: {
               visibility: "none",
               "text-field": ["get", "s"],
-              "text-size": ["interpolate", ["linear"], ["zoom"], 11, 10, 14, 13],
+              "text-size": ["interpolate", ["linear"], ["zoom"], 11, 13, 14, 15],
               "text-max-width": 11,
               "text-letter-spacing": 0.04,
             },
             paint: {
               "text-color": "#fffdf8",
               "text-halo-color": "rgba(22, 31, 30, 0.92)",
-              "text-halo-width": 1.4,
+              "text-halo-width": 1.5,
             },
           });
           map.addLayer({
@@ -2129,7 +2187,6 @@ export function MapAtlas() {
     return () => {
       disposed = true;
       window.clearTimeout(cursorTimer);
-      window.clearTimeout(viewportTimer);
       window.clearTimeout(wheelTimer);
       removeViewportListener();
       removeWheelListener();
