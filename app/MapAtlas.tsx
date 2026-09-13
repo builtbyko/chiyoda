@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
+import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from "maplibre-gl";
 import { buildLocationData, geolocationErrorMessage } from "./geolocation";
 import { createLazyGeoJsonLoader } from "./lazyGeoJson";
 
@@ -164,11 +164,12 @@ const URBAN_CHANGE_TIERS = [
   { suffix: "-l", minzoom: 13, filter: ["all", ["==", ["get", "category"], "large_building"], ["==", ["get", "scale"], "L"]] },
   { suffix: "-m", minzoom: 14, filter: ["all", ["==", ["get", "category"], "large_building"], ["==", ["get", "scale"], "M"]] },
 ];
-const REDEVELOPMENT_LAYER_IDS = URBAN_CHANGE_TIERS.flatMap(({ suffix }) => ["hit", "halo", "points"].map((kind) => `redevelopment-${kind}${suffix}`));
+const REDEVELOPMENT_LAYER_IDS = [...URBAN_CHANGE_TIERS.flatMap(({ suffix }) => ["hit", "halo", "points"].map((kind) => `redevelopment-${kind}${suffix}`)), "redevelopment-label"];
 const URBAN_CHANGE_IS_CHIYODA = ["in", "千代田区", ["coalesce", ["get", "w"], ""]];
 const URBAN_CHANGE_RADIUS = ["*", ["case", ["all", ["==", ["get", "category"], "legal_redevelopment"], ["!", ["has", "grossFloorArea"]]], 5,
   ["interpolate", ["linear"], ["coalesce", ["get", "grossFloorArea"], 3000], 3000, 3.5, 10000, 4.5, 50000, 6, 100000, 7, 600000, 9]], ["case", URBAN_CHANGE_IS_CHIYODA, 1, 0.8]];
 const URBAN_CHANGE_COLOR = ["match", ["get", "category"], "legal_redevelopment", "#d1ad7c", "planning_proposal", "#c6bdca", "#a7bcc4"];
+const URBAN_CHANGE_LABEL_FILTER = ["all", URBAN_CHANGE_IS_CHIYODA, ["any", ["==", ["get", "category"], "legal_redevelopment"], ["in", ["get", "scale"], ["literal", ["XL", "XXL"]]]]];
 const CHIYODA_REGION_LAYER_IDS = ["chiyoda-regions-fill", "chiyoda-regions-line", "chiyoda-regions-label"];
 const FUNCTIONAL_KAIWAI_LAYER_IDS = ["functional-kaiwai-fill", "functional-kaiwai-line", "functional-kaiwai-label"];
 const OPEN_SPACE_LAYER_IDS = ["open-spaces-fill", "open-spaces-line"];
@@ -203,7 +204,7 @@ const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   districtPlans: ["district-plans-hit", "district-plan-subareas-fill", "district-plan-subareas-label"],
   heightDistricts: ["height-districts-fill"],
   specialZones: ["special-zones-hit"],
-  redevelopment: URBAN_CHANGE_TIERS.map(({ suffix }) => `redevelopment-hit${suffix}`),
+  redevelopment: [...URBAN_CHANGE_TIERS.flatMap(({ suffix }) => [`redevelopment-points${suffix}`, `redevelopment-hit${suffix}`]), "redevelopment-label"],
   chiyodaRegions: ["chiyoda-regions-label", "chiyoda-regions-fill"],
   functionalKaiwai: ["functional-kaiwai-fill"],
   openSpaces: ["open-spaces-fill"],
@@ -525,6 +526,22 @@ const FLOOD_DEPTH: Record<string, string> = {
 };
 
 const NUMBER = new Intl.NumberFormat("ja-JP");
+
+function nearestUrbanFeature(features: MapGeoJSONFeature[], point: { x: number; y: number }, map: MapLibreMap) {
+  let nearest: MapGeoJSONFeature | undefined;
+  let distance = Infinity;
+  // Rendered order breaks ties in favour of the visually frontmost feature.
+  for (const feature of features) {
+    if (!feature.layer.id.startsWith("redevelopment-") || feature.geometry.type !== "Point") continue;
+    const projected = map.project(feature.geometry.coordinates as [number, number]);
+    const candidateDistance = (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2;
+    if (candidateDistance < distance) {
+      nearest = feature;
+      distance = candidateDistance;
+    }
+  }
+  return nearest;
+}
 
 function setLayerVisibility(map: MapLibreMap, ids: string[], visible: boolean) {
   const visibility = visible ? "visible" : "none";
@@ -1201,6 +1218,7 @@ export function MapAtlas() {
           attributionControl: false,
           style: {
             version: 8,
+            glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
             sources: {
               [`photo-${initialPhoto.value}`]: {
                 type: "raster",
@@ -2101,6 +2119,31 @@ export function MapAtlas() {
           });
           }
           map.addLayer({
+            id: "redevelopment-label",
+            type: "symbol",
+            source: "redevelopment",
+            minzoom: 13.5,
+            filter: URBAN_CHANGE_LABEL_FILTER as never,
+            layout: {
+              visibility: "none",
+              "text-field": ["get", "n"],
+              "text-font": ["Noto Sans Regular"],
+              "text-size": ["interpolate", ["linear"], ["zoom"], 13.5, 11, 16, 12],
+              "text-anchor": "bottom",
+              "text-offset": [0, -1.1],
+              "text-max-width": 12,
+              "text-padding": 4,
+              "text-allow-overlap": false,
+              "text-ignore-placement": false,
+            },
+            paint: {
+              "text-color": "#33403a",
+              "text-halo-color": "#fffefa",
+              "text-halo-width": 1.4,
+              "text-opacity": ["interpolate", ["linear"], ["zoom"], 13.5, 0.75, 15, 1],
+            },
+          });
+          map.addLayer({
             id: "ward-boundaries-halo",
             type: "line",
             source: "wards",
@@ -2341,6 +2384,9 @@ export function MapAtlas() {
               rendered[0];
             if (feature?.layer.id === "district-plans-hit") {
               feature = rendered.find((item) => item.layer.id === "district-plan-subareas-fill") ?? feature;
+            }
+            if (feature?.layer.id.startsWith("redevelopment-")) {
+              feature = nearestUrbanFeature(rendered, event.point, map) ?? feature;
             }
             const source = map.getSource("selection") as GeoJSONSource;
             if (!feature) {
@@ -2938,7 +2984,8 @@ export function MapAtlas() {
                         <p className="legend-note">
                           点の大きさ＝延べ面積の目安<br />
                           M 3千㎡〜 / L 1万㎡〜 / XL 5万㎡〜 / XXL 10万㎡〜<br />
-                          隣接区は薄く表示
+                          隣接区は薄く表示<br />
+                          大型案件のみ高ズームで名称表示
                         </p>
                       )}
                     </div>

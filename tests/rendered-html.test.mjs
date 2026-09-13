@@ -441,7 +441,7 @@ test("urban change styles use three disjoint zoom tiers and quiet height-indepen
   const end = source.indexOf("const CHIYODA_REGION_LAYER_IDS", start);
   assert.ok(start >= 0 && end > start);
   const constants = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const bindings = new Function(`${constants}; return { URBAN_CHANGE_TIERS, URBAN_CHANGE_IS_CHIYODA, URBAN_CHANGE_RADIUS, URBAN_CHANGE_COLOR, REDEVELOPMENT_LAYER_IDS };`)();
+  const bindings = new Function(`${constants}; return { URBAN_CHANGE_TIERS, URBAN_CHANGE_IS_CHIYODA, URBAN_CHANGE_RADIUS, URBAN_CHANGE_COLOR, URBAN_CHANGE_LABEL_FILTER, REDEVELOPMENT_LAYER_IDS };`)();
   const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let loop;
   const visit = (node) => {
@@ -454,7 +454,7 @@ test("urban change styles use three disjoint zoom tiers and quiet height-indepen
   const js = ts.transpileModule(loop, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   new Function("map", ...Object.keys(bindings), js)({ addLayer: (layer) => layers.push(layer) }, ...Object.values(bindings));
   assert.equal(layers.length, 9);
-  assert.deepEqual(layers.map(({ id }) => id), bindings.REDEVELOPMENT_LAYER_IDS);
+  assert.deepEqual([...layers.map(({ id }) => id), "redevelopment-label"], bindings.REDEVELOPMENT_LAYER_IDS);
   assert.deepEqual(bindings.URBAN_CHANGE_TIERS.map(({ minzoom }) => minzoom), [12.5, 13, 14]);
   assert.deepEqual(bindings.URBAN_CHANGE_TIERS[0].filter, ["any", ["!=", ["get", "category"], "large_building"], ["in", ["get", "scale"], ["literal", ["XL", "XXL"]]]]);
   for (const tier of bindings.URBAN_CHANGE_TIERS.slice(1)) {
@@ -489,8 +489,46 @@ test("urban change styles use three disjoint zoom tiers and quiet height-indepen
   assert.equal(evaluate(points.paint["circle-opacity"], adjacent), 0.35);
   assert.equal(evaluate(points.paint["circle-stroke-opacity"], adjacent), 0.35);
   assert.equal(evaluate(points.paint["circle-opacity"], { ...adjacent, category: "planning_proposal" }), 0);
-  assert.match(source, /redevelopment: URBAN_CHANGE_TIERS\.map/);
+  let labelSource;
+  const findLabel = (node) => {
+    if (ts.isCallExpression(node) && node.expression.getText(tree) === "map.addLayer" && node.arguments[0]?.getText(tree).includes('id: "redevelopment-label"')) labelSource = node.getText(tree);
+    ts.forEachChild(node, findLabel);
+  };
+  findLabel(tree);
+  assert.ok(labelSource);
+  const labelJs = ts.transpileModule(labelSource, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  new Function("map", ...Object.keys(bindings), labelJs)({ addLayer: (layer) => layers.push(layer) }, ...Object.values(bindings));
+  const label = layers.at(-1);
+  assert.equal(label.minzoom, 13.5);
+  assert.equal(label.layout.visibility, "none");
+  assert.equal(label.layout["text-allow-overlap"], false);
+  assert.equal(label.layout["text-ignore-placement"], false);
+  for (const properties of [
+    { w: "千代田区", category: "legal_redevelopment" },
+    { w: "千代田区・中央区", category: "large_building", scale: "XXL" },
+    { w: "千代田区", category: "large_building", scale: "XL" },
+  ]) assert.equal(evaluate(label.filter, properties), true);
+  for (const properties of [
+    { w: "中央区", category: "legal_redevelopment", scale: "XXL" },
+    { w: "千代田区", category: "large_building", scale: "L" },
+    { w: "千代田区", category: "large_building", scale: "M" },
+  ]) assert.equal(evaluate(label.filter, properties), false);
+  assert.deepEqual(validateStyleMin({ version: 8, glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf", sources: { redevelopment: { type: "geojson", data: { type: "FeatureCollection", features: [] } } }, layers }), []);
+  assert.match(source, /redevelopment: \[\.\.\.URBAN_CHANGE_TIERS\.flatMap/);
   assert.match(source, /REDEVELOPMENT_LAYER_IDS, overlays\.redevelopment/);
+});
+
+test("urban point selection prefers the nearest screen centre and rendered order breaks ties", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const nearest = sourceFunction(source, "nearestUrbanFeature", "setLayerVisibility", {});
+  const point = (id, x, y, layer = "redevelopment-hit") => ({ properties: { i: id }, layer: { id: layer }, geometry: { type: "Point", coordinates: [x, y] } });
+  const map = { project: ([x, y]) => ({ x, y }) };
+  const far = point("far", 12, 10), near = point("near", 10, 10);
+  assert.equal(nearest([far, near], { x: 10, y: 10 }, map), near);
+  assert.equal(nearest([near, point("behind", 10, 10)], { x: 10, y: 10 }, map), near);
+  assert.equal(nearest([point("other", 10, 10, "stations"), far], { x: 10, y: 10 }, map), far);
+  assert.equal(nearest([], { x: 10, y: 10 }, map), undefined);
+  assert.match(source, /feature\?\.layer\.id\.startsWith\("redevelopment-"\)/);
 });
 
 test("urban search loads its dataset, enables only its overlay and shows the selected detail", async () => {

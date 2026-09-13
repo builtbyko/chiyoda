@@ -519,6 +519,14 @@ button {
   color: #101827;
 }
 
+.ward-map-label:not(.is-focus) {
+  border-color: rgb(100 110 106 / 18%);
+  background: rgb(248 249 248 / 72%);
+  color: #505a55;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+  font-weight: 500;
+}
+
 .map-loading {
   position: absolute;
   z-index: 5;
