@@ -1,0 +1,197 @@
+{
+  "generated": "2026-09-13",
+  "arcgisRoot": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services",
+  "prioritySource": "https://www.kensetsu.metro.tokyo.lg.jp/road/kensetsu/yusenseibirosen5",
+  "candidateAccepted": false,
+  "currentFeatureCount": 0,
+  "prioritySpatialFeatureCount": 0,
+  "warnings": [
+    "Do not infer complete/underway/unstarted status for all Chiyoda routes.",
+    "Keep neighboring-ward PLATEAU 2020 roads as context unless a newer safe source is prepared."
+  ],
+  "candidateCount": 15,
+  "topCandidates": [
+    {
+      "service": "Map_services/toshishisetsu_shigaitikaihatsujigyou",
+      "layerId": 6,
+      "layerName": "都市計画道路",
+      "layerUrl": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/toshishisetsu_shigaitikaihatsujigyou/MapServer/6",
+      "fieldsWithRouteValues": {},
+      "fields": [
+        "OBJECTID",
+        "Shape",
+        "Id",
+        "Shape_Length"
+      ],
+      "sampleFeatureCount": 140,
+      "routeValues": [],
+      "score": 4,
+      "maxRecordCount": 1000
+    },
+    {
+      "service": "Map_services/2451_Basamap",
+      "layerId": 0,
+      "layerName": "Road_l_split",
+      "layerUrl": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/2451_Basamap/MapServer/0",
+      "fieldsWithRouteValues": {},
+      "fields": [
+        "OBJECTID",
+        "Shape",
+        "FID_Road_l",
+        "CODE1",
+        "FID_grid",
+        "Shape_Length"
+      ],
+      "sampleFeatureCount": 23,
+      "routeValues": [],
+      "score": 0,
+      "maxRecordCount": 2000
+    },
+    {
+      "service": "Map_services/2451_Basamap",
+      "layerId": 1,
+      "layerName": "House_l_split",
+      "layerUrl": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/2451_Basamap/MapServer/1",
+      "fieldsWithRouteValues": {},
+      "fields": [
+        "OBJECTID",
+        "Shape",
+        "FID_House_l",
+        "FID_grid",
+        "Shape_Length"
+      ],
+      "sampleFeatureCount": 23,
+      "routeValues": [],
+      "score": 0,
+      "maxRecordCount": 2000
+    },
+    {
+      "service": "Map_services/youtochiiki",
+      "layerId": 13,
+      "layerName": "道路境界線距離_ライン",
+      "layerUrl": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/youtochiiki/MapServer/13",
+      "fieldsWithRouteValues": {},
+      "fields": [
+        "OBJECTID",
+        "Shape",
+        "Entity",
+        "Handle",
+        "Layer",
+        "LyrFrzn",
+        "LyrOn",
+        "Color",
+        "Linetype",
+        "Elevation",
+        "LineWt",
+        "RefName",
+        "DocUpdate",
+        "DocId",
+        "Shape_Length"
+      ],
+      "sampleFeatureCount": 202,
+      "routeValues": [],
+      "score": 0,
+      "maxRecordCount": 1000
+    },
+    {
+      "service": "Map_services/youtochiiki",
+      "layerId": 15,
+      "layerName": "道路中心線：○",
+      "layerUrl": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/youtochiiki/MapServer/15",
+      "fieldsWithRouteValues": {},
+      "fields": [
+        "OBJECTID",
+        "Shape",
+        "Entity",
+        "Handle",
+        "Layer",
+        "LyrFrzn",
+        "LyrOn",
+        "Color",
+        "Linetype",
+        "Elevation",
+        "LineWt",
+        "RefName",
+        "DocUpdate",
+        "DocId",
+        "Shape_Length"
+      ],
+      "sampleFeatureCount": 250,
+      "routeValues": [],
+      "score": 0,
+      "maxRecordCount": 1000
+    },
+    {
+      "service": "Map_services/youtochiiki",
+      "layerId": 12,
+      "layerName": "それ以外の記述",
+      "layerUrl": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/youtochiiki/MapServer/12",
+      "fieldsWithRouteValues": {},
+      "fields": [
+        "OBJECTID",
+        "Shape",
+        "注釈",
+        "Shape_Length"
+      ],
+      "sampleFeatureCount": 28,
+      "routeValues": [],
+      "score": 0,
+      "maxRecordCount": 1000
+    },
+    {
+      "service": "Map_services/dourosyubetsu",
+      "layerId": 0,
+      "layerName": "４２条１項１号",
+      "layerUrl": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/dourosyubetsu/MapServer/0",
+      "fieldsWithRouteValues": {},
+      "fields": [
+        "OBJECTID",
+        "SHAPE",
+        "道路種別_記号",
+        "道路種別",
+        "指定番号",
+        "備考",
+        "幅員",
+        "SHAPE_Length"
+      ],
+      "sampleFeatureCount": 250,
+      "routeValues": [],
+      "score": -6,
+      "maxRecordCount": 2000
+    },
+    {
+      "service": "Map_services/dourosyubetsu",
+      "layerId": 1,
+      "layerName": "４２条１項２号",
+      "layerUrl": "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/dourosyubetsu/MapServer/1",
+      "fieldsWithRouteValues": {},
+      "fields": [
+        "OBJECTID",
+        "SHAPE",
+        "道路種別_記号",
+        "道路種別",
+        "指定番号",
+        "備考",
+        "幅員",
+        "SHAPE_Length"
+      ],
+      "sampleFeatureCount": 5,
+      "routeValues": [],
+      "score": -6,
+      "maxRecordCount": 2000
+    }
+  ],
+  "priorityRows": [
+    {
+      "no": "都-３",
+      "routeName": "放射９号線",
+      "section": "補助124付近～環状２付近",
+      "lengthM": "1,300",
+      "ward": "千代田",
+      "approvalTiming": "未定",
+      "note": "",
+      "sourceUrl": "https://www.kensetsu.metro.tokyo.lg.jp/road/kensetsu/yusenseibirosen5"
+    }
+  ],
+  "reason": "No ArcGIS polyline layer could be safely identified as current urban-planning-road data."
+}

@@ -2738,7 +2738,10 @@ export function MapAtlas() {
     if (areaLayer === "fire") add("防火指定", "市街地の防火上の指定。敷地判断は公式図で再確認。", meta?.fireYear ?? "2025年度", "国土交通省", "https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html");
     if (areaLayer === "flood") add("洪水浸水", "想定最大規模の最大深を概観。避難判断には使わない。", meta?.floodYear ?? "2025年度", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-A31a-2025.html");
     if (overlays.roads) add("主要道路", "都市の軸と区を越える連続性を見る。", meta?.roadsDate ?? "取得時点", "OpenStreetMap", "https://www.openstreetmap.org/copyright", "OpenStreetMap参考");
-    if (overlays.urbanPlanningRoads) add("都市計画道路", "2020年度PLATEAU由来の都市計画道路の計画線。現時点の整備状況は示しません。最新の区域・幅員は公式図書で確認。", meta?.urbanPlanningRoadYear ?? "2020年度", "国土交通省PLATEAU", URBAN_PLANNING_ROAD_SOURCE);
+    if (overlays.urbanPlanningRoads) {
+      add("都市計画道路", "千代田区・隣接5区のPLATEAU 2020計画線。周辺関係把握の参考情報で、現時点の整備状況は示しません。区公式ArcGISは路線名属性を確認できず、現行GISへの置換を見送りました。最新の区域・幅員は公式図書で確認。", meta?.urbanPlanningRoadYear ?? "2020年度", "国土交通省PLATEAU", URBAN_PLANNING_ROAD_SOURCE);
+      add("第五次事業化計画（参考）", "放射9号線：補助124付近～環状2付近、1,300m。計画期間2026年度～2040年度、事業認可取得時期は未定。公式線から区間を安全に特定できず、区間形状は表示していません。", "2026-08-31公表情報／2026-09-13取得", "東京都建設局「優先整備路線進捗情報（第五次事業化計画）」", "https://www.kensetsu.metro.tokyo.lg.jp/road/kensetsu/yusenseibirosen5", "公式統計・公式表");
+    }
     if (overlays.rail) add("鉄道・駅", "駅勢圏と乗換拠点を道路・土地利用に重ねて読む。", meta?.railDate ?? "2025年", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html");
     if (overlays.stationEntrances) add("駅出入口", "ズーム14以上で表示。出口・バリアフリー属性は駅の最新案内で再確認。", "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE, "OpenStreetMap参考");
     if (overlays.undergroundWalkways) add("地下歩行リンク", UNDERGROUND_WALKWAY_NOTE, "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE, "OpenStreetMap参考");

@@ -1,0 +1,17 @@
+{
+  "sourceUrl": "https://www.kensetsu.metro.tokyo.lg.jp/road/kensetsu/yusenseibirosen5",
+  "sourceDate": "2026-08-31",
+  "ward": "千代田区",
+  "rows": [
+    {
+      "no": "都-３",
+      "routeName": "放射９号線",
+      "section": "補助124付近～環状２付近",
+      "lengthM": "1,300",
+      "ward": "千代田",
+      "approvalTiming": "未定",
+      "note": "",
+      "sourceUrl": "https://www.kensetsu.metro.tokyo.lg.jp/road/kensetsu/yusenseibirosen5"
+    }
+  ]
+}

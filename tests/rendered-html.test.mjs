@@ -278,7 +278,7 @@ test("active guides distinguish official GIS, prepared records, derived data and
   const start = source.indexOf("const activeGuides =");
   const end = source.indexOf("\n  return (", start);
   const js = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const bindings = { useMemo: (fn) => fn(), areaLayer: "none", overlays: { culturalAssets: true, functionalKaiwai: true, planningMovements: true, chiyodaRegions: true, stationEntrances: true, undergroundWalkways: true, redevelopment: true }, meta: {}, photoEpoch: "pale", PHOTO_OPTIONS: [{ value: "pale", label: "淡色地図" }] };
+  const bindings = { useMemo: (fn) => fn(), areaLayer: "none", overlays: { culturalAssets: true, functionalKaiwai: true, planningMovements: true, chiyodaRegions: true, stationEntrances: true, undergroundWalkways: true, redevelopment: true, urbanPlanningRoads: true }, meta: {}, photoEpoch: "pale", PHOTO_OPTIONS: [{ value: "pale", label: "淡色地図" }] };
   for (const match of source.matchAll(/const (\w+(?:SOURCE|NOTE)) = "([^"]+)";/g)) bindings[match[1]] = match[2];
   const guides = new Function(...Object.keys(bindings), `${js}; return activeGuides;`)(...Object.values(bindings));
   const nature = (label) => guides.find((guide) => guide.label === label)?.nature;
@@ -289,6 +289,11 @@ test("active guides distinguish official GIS, prepared records, derived data and
   assert.equal(nature("駅出入口"), "OpenStreetMap参考");
   assert.equal(nature("地下歩行リンク"), "OpenStreetMap参考");
   assert.equal(nature("まちの記憶保存プレート"), "公式GIS");
+  assert.equal(nature("第五次事業化計画（参考）"), "公式統計・公式表");
+  const priority = guides.find(({ label }) => label === "第五次事業化計画（参考）");
+  assert.match(priority.text, /区間形状は表示していません/);
+  assert.match(priority.url, /yusenseibirosen5$/);
+  assert.ok(guides.find(({ label }) => label === "都市計画道路").text.includes("現行GISへの置換を見送り"));
   assert.ok(guides.every(({ asOf, source, url, nature }) => asOf && source && url && nature));
 });
 

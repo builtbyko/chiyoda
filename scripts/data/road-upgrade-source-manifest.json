@@ -1,0 +1,28 @@
+{
+  "updated": "2026-09-13",
+  "targetExistingLayer": "都市計画道路",
+  "strategy": "upgrade_existing_layer_not_add_toggle",
+  "currentAtlasSource": {
+    "source": "PLATEAU 2020",
+    "scope": "千代田区＋隣接5区",
+    "roleAfterUpgrade": "隣接5区の参考背景"
+  },
+  "preferredChiyodaSource": {
+    "source": "千代田区都市計画情報提供ポータル ArcGIS REST",
+    "discovery": "safe dynamic discovery",
+    "publishOnlyIfSafelyIdentified": true
+  },
+  "fifthPriorityPlan": {
+    "sourceDate": "2026-08-31",
+    "route": "放射9号線",
+    "section": "補助124付近～環状2付近",
+    "lengthM": 1300,
+    "approvalTiming": "未定",
+    "period": "2026年度～2040年度"
+  },
+  "prohibited": [
+    "現道との一致から完成/未完成を推測",
+    "OSMから事業状況を推測",
+    "公式に確認できない区間を優先整備区間として作図"
+  ]
+}

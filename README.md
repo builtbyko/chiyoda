@@ -93,6 +93,22 @@ npm test
 
 ## データの再生成
 
+### 都市計画道路の現行GIS探索（2026-09-13）
+
+添付の `scripts/upgrade_urban_planning_roads.py` と `requirements-road-upgrade.txt` を配置しました。依存はリポジトリ外の `../work/chiyoda_map/road-upgrade-venv` にインストールし、取得レスポンスは `../work/chiyoda_map/data/next-stage/urban-planning-roads` に保存します。
+
+今回の公式ArcGIS「都市計画道路」はID・線長のみで路線名を確認できず、安全条件を満たさないためcurrent GeoJSONは生成しませんでした。第五次事業化計画の放射9号線の公表表は取得しましたが、区間形状も生成していません。6区の既存PLATEAU 2020を維持し、既存情報パネルで参考情報と出典を示します。全路線の完成・事業中・未着手を推測分類しません。
+
+再実行：
+
+```powershell
+../work/chiyoda_map/road-upgrade-venv/Scripts/python.exe -m pip install -r requirements-road-upgrade.txt
+../work/chiyoda_map/road-upgrade-venv/Scripts/python.exe scripts/upgrade_urban_planning_roads.py
+../work/chiyoda_map/road-upgrade-venv/Scripts/python.exe tests/test_road_upgrade.py
+```
+
+探索・公表表は `scripts/data/urban-planning-road-upgrade-report.json` と `scripts/data/urban-planning-road-priority-metadata.json` に記録しています。道路台帳・名称未確認の候補・曖昧な交点は採用しません。
+
 `scripts/build_map_data.py` は、町丁目境界、人口・昼間人口、実土地利用、都市計画、再開発、洪水、公園、地価、避難所、鉄道、OpenStreetMapの東京抽出データから、初期表示と軽量な検索索引を収めた `public/data/map-data.json` と、選択・表示時だけ読む `public/data/layers/` 以下のレイヤーファイルを作ります。詳細な地物形状を初期データへ重複収録しないため、レイヤー数が増えても最初の地図表示を妨げにくい構成です。Python環境には Shapely、GeoPandas、Pyogrio、PyProj、Requests が必要です。追加レイヤーの公式ファイルは、既存の基礎データキャッシュへ次のスクリプトで取得・展開できます。
 
 ```bash
