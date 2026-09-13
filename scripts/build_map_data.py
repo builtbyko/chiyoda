@@ -1390,6 +1390,12 @@ def main():
         source_root, scope, ward_geometries
     )
     redevelopment, redevelopment_snapshot = build_redevelopment(towns)
+    urban_change_path = args.output.parent / "layers" / "urban-change-projects.json"
+    redevelopment_search = (
+        load_json(urban_change_path)["features"]
+        if urban_change_path.exists()
+        else redevelopment
+    )
     chiyoda_regions, region_snapshot = build_chiyoda_regions(towns)
     landscape_properties, landscape_snapshot = build_landscape_properties(
         ward_geometries["13101"]
@@ -1427,7 +1433,7 @@ def main():
         ("parks", "公園", "parks-fill", parks, ""),
         ("districtPlans", "地区計画", "district-plans-line", district_plans, ""),
         ("specialZones", "特例地区", "special-zones-fill", special_zones, ""),
-        ("redevelopment", "再開発", "redevelopment-points", redevelopment, ""),
+        ("redevelopment", "都市更新" if urban_change_path.exists() else "再開発", "redevelopment-points", redevelopment_search, ""),
         (
             "chiyodaRegions",
             "7地域",
@@ -1495,7 +1501,7 @@ def main():
             "districtPlanCount": len(district_plans),
             "heightDistrictCount": len(height_districts),
             "specialZoneCount": len(special_zones),
-            "redevelopmentCount": len(redevelopment),
+            "redevelopmentCount": len(redevelopment_search),
             "chiyodaRegionCount": len(chiyoda_regions),
             "landscapePropertyCount": len(landscape_properties),
             "urbanPlanningRoadCount": len(urban_planning_roads),
@@ -1547,6 +1553,10 @@ def main():
     # The separately prepared official layers retain their own source/schema pipeline.
     from prepare_chiyoda_official_layers import update_search_index
     update_search_index(args.output)
+    if urban_change_path.exists():
+        core = load_json(args.output)
+        core["meta"]["urbanChangeDate"] = max(f["properties"].get("retrievedDate", "") for f in redevelopment_search)
+        args.output.write_text(json.dumps(core, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
     densities = sorted(item["properties"]["d"] for item in towns)
     report = {

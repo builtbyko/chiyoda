@@ -1,0 +1,55 @@
+{
+  "generated": "2026-09-13",
+  "environmentPages": [
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r8.html",
+      "records": 29
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r7.html",
+      "records": 69
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r604.html",
+      "records": 14
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r607.html",
+      "records": 10
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r610.html",
+      "records": 15
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r701.html",
+      "records": 20
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r504.html",
+      "records": 8
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r507.html",
+      "records": 13
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r510.html",
+      "records": 14
+    },
+    {
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/kenchikubutsu/gaiyoichiran/r601.html",
+      "records": 14
+    }
+  ],
+  "rawLargeBuildingRecords": 206,
+  "currentRedevelopmentCount": 7,
+  "largeBuildingCount": 40,
+  "planningProposalCount": 1,
+  "totalFeatureCount": 77,
+  "thresholdGrossFloorAreaSqm": 3000.0,
+  "adjacentRedevelopmentCount": 29,
+  "issues": [],
+  "output": "public/data/layers/urban-change-projects.json",
+  "cacheRoot": "../work/chiyoda_map/data/next-stage/urban-change"
+}

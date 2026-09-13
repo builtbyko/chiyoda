@@ -60,6 +60,7 @@ for (const [key, filename, label] of [
   ["stationEntrances", "station-entrances.json", "駅出入口"],
   ["undergroundWalkways", "underground-walkways.json", "地下歩行ネットワーク"],
   ["planningMovements", "planning-movements.json", "まちづくりの動き"],
+  ["redevelopment", "urban-change-projects.json", "都市更新"],
 ]) {
   test(`${key} is not fetched until selected and is reused afterward`, async () => {
     const calls = [];

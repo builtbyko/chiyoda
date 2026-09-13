@@ -53,7 +53,8 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /地区計画/);
   assert.match(html, /高度地区/);
   assert.match(html, /容積・再開発等の特例/);
-  assert.match(html, /事業中の再開発/);
+  assert.match(html, /<button(?=[^>]*aria-pressed="false")[^>]*><span>都市更新<\/span>/);
+  assert.doesNotMatch(html, /<span>事業中の再開発<\/span>/);
   assert.match(html, /千代田区の7地域/);
   for (const label of ["街の個性", "公開空地", "まちづくり団体", "まちの記憶", "文化・歴史資源", "地形・陰影", "建物高さ（2020）", "駅出入口", "地下歩行ネットワーク", "まちづくりの動き"]) {
     assert.match(html, new RegExp(`<button(?=[^>]*aria-pressed="false")[^>]*><span>${label}</span>`));
@@ -96,7 +97,7 @@ test("map data includes the recommended reference layers", async () => {
     planningMovements: "planning-movements.json",
     heightDistricts: "height-districts.json",
     specialZones: "special-zones.json",
-    redevelopment: "redevelopment.json",
+    redevelopment: "urban-change-projects.json",
     chiyodaRegions: "chiyoda-regions.json",
     landscapeProperties: "landscape-properties.json",
     functionalKaiwai: "functional-kaiwai.json",
@@ -162,7 +163,7 @@ test("map data includes the recommended reference layers", async () => {
   );
   assert.ok(
     layers.redevelopment.features.every(({ geometry, properties }) =>
-      geometry.type === "Point" && properties.l === "町丁目代表点",
+      geometry.type === "Point" && ["町丁目代表点", "town_centroid", "gsi_geocode"].includes(properties.locationQuality),
     ),
   );
   assert.ok(
@@ -356,6 +357,118 @@ function sourceFunction(source, name, nextName, bindings = {}) {
   const { outputText } = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } });
   return new Function(...Object.keys(bindings), `${outputText}; return ${name};`)(...Object.values(bindings));
 }
+
+test("urban change preserves three categories, official sources and adjacent reference projects", async () => {
+  const text = await readFile(new URL("../public/data/layers/urban-change-projects.json", import.meta.url), "utf8");
+  const { features } = JSON.parse(text);
+  const report = JSON.parse(await readFile(new URL("../scripts/data/urban-change-build-report.json", import.meta.url), "utf8"));
+  const groups = Object.groupBy(features, ({ properties }) => properties.category);
+  assert.deepEqual(Object.keys(groups).sort(), ["large_building", "legal_redevelopment", "planning_proposal"]);
+  assert.equal(groups.legal_redevelopment.length, report.currentRedevelopmentCount + report.adjacentRedevelopmentCount);
+  assert.equal(groups.large_building.length, report.largeBuildingCount);
+  assert.equal(groups.planning_proposal.length, report.planningProposalCount);
+  assert.ok(Buffer.byteLength(text) < 150_000);
+  assert.equal(new Set(features.map(({ properties }) => properties.i)).size, features.length);
+  for (const { properties: p, geometry } of features) {
+    assert.equal(geometry.type, "Point");
+    assert.equal(geometry.coordinates.length, 2);
+    assert.ok(geometry.coordinates.every(Number.isFinite));
+    assert.ok(p.n && p.w && p.sourceDate && p.locationQuality);
+    assert.match(p.sourceUrl, /^https:\/\/(?:www\.city\.chiyoda\.lg\.jp|www\.toshiseibi\.metro\.tokyo\.lg\.jp)\//);
+    assert.ok(!Object.values(p).includes("nan"));
+    if (p.category === "large_building") {
+      assert.ok(p.grossFloorArea >= 3000);
+      assert.notEqual(p.status, "完了");
+      assert.ok(!p.n.includes("市街地再開発事業"));
+      assert.equal(p.scale, p.grossFloorArea >= 100000 ? "XXL" : p.grossFloorArea >= 50000 ? "XL" : p.grossFloorArea >= 10000 ? "L" : "M");
+    }
+  }
+  const old = JSON.parse(await readFile(new URL("../public/data/layers/redevelopment.json", import.meta.url), "utf8"));
+  for (const item of old.features.filter(({ properties }) => !properties.w.includes("千代田区"))) {
+    const matches = features.filter(({ properties }) => properties.n === item.properties.n && properties.w === item.properties.w);
+    assert.equal(matches.length, 1);
+    assert.deepEqual(matches[0].geometry, item.geometry);
+    assert.equal(matches[0].properties.sourceDate, "2025-10-31");
+  }
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  assert.match(source, /redevelopment: "urban-change-projects\.json"/);
+  assert.match(source, /redevelopment: false/);
+  assert.match(source, /redevelopment: \["redevelopment"\]/);
+  assert.match(source, /fetch\("data\/map-data\.json", \{ cache: "no-cache" \}\)/);
+  const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let optionsSource;
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && node.expression.getText(tree) === "createLazyGeoJsonLoader") optionsSource = node.arguments[0].getText(tree);
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.ok(optionsSource);
+  const js = ts.transpileModule(`const options = ${optionsSource};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const calls = [];
+  const options = new Function("DATASET_FILES", "DATASET_LABELS", "fetch", `${js}; return options;`)({}, {}, (...args) => { calls.push(args); });
+  assert.deepEqual(calls, []);
+  options.fetcher("data/layers/urban-change-projects.json");
+  options.fetcher("data/layers/roads.json");
+  assert.deepEqual(calls, [["data/layers/urban-change-projects.json", { cache: "no-cache" }], ["data/layers/roads.json", undefined]]);
+});
+
+test("urban change popups distinguish project categories and omit unknown completion dates", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const numberValue = sourceFunction(source, "numberValue", "percentValue", { NUMBER: new Intl.NumberFormat("ja-JP") });
+  const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", { numberValue });
+  const p = { n: "建替え計画", categoryLabel: "大規模建替え・新築", status: "計画", grossFloorArea: 15000, uses: "事務所", sourceDate: "2026-09-08", locationQuality: "gsi_geocode", sourceName: "千代田区公式一覧", sourceUrl: "https://www.city.chiyoda.lg.jp/example.html" };
+  const detail = detailFor("redevelopment-hit-m", p);
+  assert.equal(detail.eyebrow, "Urban change");
+  assert.ok(detail.rows.some(({ label, value }) => label === "区分" && value === p.categoryLabel));
+  assert.ok(detail.rows.some(({ label, value }) => label === "延べ面積" && value.includes("15,000")));
+  assert.ok(!detail.rows.some(({ label }) => label === "竣工予定"));
+  assert.match(detail.note, /住所検索による参考位置/);
+  assert.match(detail.note, /敷地境界・事業区域を示しません/);
+  assert.equal(detail.sources[0].url, p.sourceUrl);
+  const proposal = detailFor("redevelopment-hit", { ...p, categoryLabel: "構想・都市計画提案", locationQuality: "town_centroid", proposalUrl: "https://www.toshiseibi.metro.tokyo.lg.jp/documents/example" });
+  assert.match(proposal.note, /町丁目の代表点/);
+  assert.equal(proposal.sources[1].url, "https://www.toshiseibi.metro.tokyo.lg.jp/documents/example");
+});
+
+test("urban change styles use three disjoint zoom tiers and quiet height-independent symbols", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const start = source.indexOf("const URBAN_CHANGE_TIERS =");
+  const end = source.indexOf("const CHIYODA_REGION_LAYER_IDS", start);
+  assert.ok(start >= 0 && end > start);
+  const constants = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const bindings = new Function(`${constants}; return { URBAN_CHANGE_TIERS, URBAN_CHANGE_RADIUS, URBAN_CHANGE_COLOR, REDEVELOPMENT_LAYER_IDS };`)();
+  const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let loop;
+  const visit = (node) => {
+    if (ts.isForOfStatement(node) && node.expression.getText(tree) === "URBAN_CHANGE_TIERS") loop = node.getText(tree);
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.ok(loop);
+  const layers = [];
+  const js = ts.transpileModule(loop, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  new Function("map", ...Object.keys(bindings), js)({ addLayer: (layer) => layers.push(layer) }, ...Object.values(bindings));
+  assert.equal(layers.length, 9);
+  assert.deepEqual(layers.map(({ id }) => id), bindings.REDEVELOPMENT_LAYER_IDS);
+  assert.deepEqual(bindings.URBAN_CHANGE_TIERS.map(({ minzoom }) => minzoom), [12.5, 13, 14]);
+  assert.deepEqual(bindings.URBAN_CHANGE_TIERS[0].filter, ["any", ["!=", ["get", "category"], "large_building"], ["in", ["get", "scale"], ["literal", ["XL", "XXL"]]]]);
+  for (const tier of bindings.URBAN_CHANGE_TIERS.slice(1)) {
+    assert.deepEqual(tier.filter, ["all", ["==", ["get", "category"], "large_building"], ["==", ["get", "scale"], tier.suffix === "-l" ? "L" : "M"]]);
+  }
+  for (const layer of layers) {
+    assert.equal(layer.layout.visibility, "none");
+    assert.equal(layer.source, "redevelopment");
+    assert.ok(layer.minzoom >= 12.5);
+    if (layer.id.startsWith("redevelopment-points")) {
+      assert.deepEqual(layer.paint["circle-radius"], bindings.URBAN_CHANGE_RADIUS);
+      assert.deepEqual(layer.paint["circle-color"], bindings.URBAN_CHANGE_COLOR);
+      assert.deepEqual(layer.paint["circle-opacity"], ["case", ["==", ["get", "category"], "planning_proposal"], 0, 0.9]);
+    }
+  }
+  assert.deepEqual(validateStyleMin({ version: 8, sources: { redevelopment: { type: "geojson", data: { type: "FeatureCollection", features: [] } } }, layers }), []);
+  assert.match(source, /redevelopment: URBAN_CHANGE_TIERS\.map/);
+  assert.match(source, /REDEVELOPMENT_LAYER_IDS, overlays\.redevelopment/);
+});
 
 test("OSM walking reference layers stay lazy, muted and hidden below zoom 14", async () => {
   const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");

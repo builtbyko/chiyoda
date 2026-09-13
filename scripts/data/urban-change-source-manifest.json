@@ -1,0 +1,47 @@
+{
+  "project": "CHiYODA ATLAS 都市更新",
+  "updated": "2026-09-13",
+  "cacheRoot": "../work/chiyoda_map/data/next-stage/urban-change",
+  "sources": [
+    {
+      "key": "redevelopment",
+      "name": "千代田区 市街地再開発事業",
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/yotochiiki/saikaihatsu.html",
+      "asOf": "2026-02",
+      "role": "法定再開発の現行一覧"
+    },
+    {
+      "key": "large_buildings",
+      "name": "千代田区 建築物環境計画書・評価書の概要一覧",
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html",
+      "role": "法定再開発以外も含む大規模新築・増改築のパイプライン"
+    },
+    {
+      "key": "planning_proposals",
+      "name": "東京都 都市計画提案図書の閲覧",
+      "url": "https://www.toshiseibi.metro.tokyo.lg.jp/basic/singikai/aramashi/seido_3",
+      "asOf": "2026-08-27",
+      "role": "都市再生特別地区等の手続中案件"
+    },
+    {
+      "key": "building_plan_threshold",
+      "name": "千代田区 開発事業に係る住環境整備推進制度",
+      "url": "https://www.city.chiyoda.lg.jp/koho/machizukuri/kenchiku/jizentetsuzuki/suishin.html",
+      "role": "延床3,000㎡以上を『大規模』の下限とする制度上の参考"
+    }
+  ],
+  "display": {
+    "overlayName": "都市更新",
+    "categories": {
+      "legal_redevelopment": "市街地再開発",
+      "large_building": "大規模建替え・新築",
+      "planning_proposal": "構想・都市計画提案"
+    },
+    "scaleThresholdsGfaSqm": {
+      "M": 3000,
+      "L": 10000,
+      "XL": 50000,
+      "XXL": 100000
+    }
+  }
+}

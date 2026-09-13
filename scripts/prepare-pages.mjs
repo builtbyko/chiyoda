@@ -28,6 +28,7 @@ const layerFiles = [
   "height-districts.json",
   "special-zones.json",
   "redevelopment.json",
+  "urban-change-projects.json",
   "chiyoda-regions.json",
   "landscape-properties.json",
   "functional-kaiwai.json",

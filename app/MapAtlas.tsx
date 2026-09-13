@@ -84,6 +84,7 @@ type AtlasData = {
     heightDistrictDate: string;
     specialZoneDate: string;
     redevelopmentDate: string;
+    urbanChangeDate?: string;
     chiyodaRegionDate: string;
     landscapePropertyDate: string;
     wardCount: number;
@@ -125,7 +126,7 @@ type AtlasData = {
 type SearchItem = {
   name: string;
   ward: string;
-  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発" | "7地域" | "文化・歴史資源";
+  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "都市更新" | "7地域" | "文化・歴史資源";
   layerId: string;
   dataset: DatasetKey;
   featureIndex: number;
@@ -158,7 +159,15 @@ const DISTRICT_PLAN_LAYER_IDS = ["district-plans-casing", "district-plans-line",
 const PLANNING_MOVEMENT_LAYER_IDS = ["planning-movements-hit", "planning-movements-points"];
 const HEIGHT_DISTRICT_LAYER_IDS = ["height-districts-fill", "height-districts-line"];
 const SPECIAL_ZONE_LAYER_IDS = ["special-zones-fill", "special-zones-line", "special-zones-hit"];
-const REDEVELOPMENT_LAYER_IDS = ["redevelopment-hit", "redevelopment-halo", "redevelopment-points"];
+const URBAN_CHANGE_TIERS = [
+  { suffix: "", minzoom: 12.5, filter: ["any", ["!=", ["get", "category"], "large_building"], ["in", ["get", "scale"], ["literal", ["XL", "XXL"]]]] },
+  { suffix: "-l", minzoom: 13, filter: ["all", ["==", ["get", "category"], "large_building"], ["==", ["get", "scale"], "L"]] },
+  { suffix: "-m", minzoom: 14, filter: ["all", ["==", ["get", "category"], "large_building"], ["==", ["get", "scale"], "M"]] },
+];
+const REDEVELOPMENT_LAYER_IDS = URBAN_CHANGE_TIERS.flatMap(({ suffix }) => ["hit", "halo", "points"].map((kind) => `redevelopment-${kind}${suffix}`));
+const URBAN_CHANGE_RADIUS = ["case", ["all", ["==", ["get", "category"], "legal_redevelopment"], ["!", ["has", "grossFloorArea"]]], 5,
+  ["interpolate", ["linear"], ["coalesce", ["get", "grossFloorArea"], 3000], 3000, 3.5, 10000, 4.5, 50000, 6, 100000, 7, 600000, 9]];
+const URBAN_CHANGE_COLOR = ["match", ["get", "category"], "legal_redevelopment", "#d1ad7c", "planning_proposal", "#c6bdca", "#a7bcc4"];
 const CHIYODA_REGION_LAYER_IDS = ["chiyoda-regions-fill", "chiyoda-regions-line", "chiyoda-regions-label"];
 const FUNCTIONAL_KAIWAI_LAYER_IDS = ["functional-kaiwai-fill", "functional-kaiwai-line", "functional-kaiwai-label"];
 const OPEN_SPACE_LAYER_IDS = ["open-spaces-fill", "open-spaces-line"];
@@ -193,7 +202,7 @@ const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   districtPlans: ["district-plans-hit", "district-plan-subareas-fill", "district-plan-subareas-label"],
   heightDistricts: ["height-districts-fill"],
   specialZones: ["special-zones-hit"],
-  redevelopment: ["redevelopment-hit"],
+  redevelopment: URBAN_CHANGE_TIERS.map(({ suffix }) => `redevelopment-hit${suffix}`),
   chiyodaRegions: ["chiyoda-regions-label", "chiyoda-regions-fill"],
   functionalKaiwai: ["functional-kaiwai-fill"],
   openSpaces: ["open-spaces-fill"],
@@ -224,7 +233,7 @@ const DATASET_FILES: Record<DatasetKey, string> = {
   districtPlanSubareas: "district-plan-subareas.json",
   heightDistricts: "height-districts.json",
   specialZones: "special-zones.json",
-  redevelopment: "redevelopment.json",
+  redevelopment: "urban-change-projects.json",
   chiyodaRegions: "chiyoda-regions.json",
   functionalKaiwai: "functional-kaiwai.json",
   openSpaces: "open-spaces.json",
@@ -318,7 +327,7 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   districtPlans: "地区計画",
   heightDistricts: "高度地区",
   specialZones: "容積・再開発等の特例",
-  redevelopment: "事業中の再開発",
+  redevelopment: "都市更新",
   chiyodaRegions: "千代田区の7地域",
   functionalKaiwai: "街の個性",
   openSpaces: "公開空地",
@@ -346,7 +355,7 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   districtPlanSubareas: "地区計画内部区分",
   heightDistricts: "高度地区",
   specialZones: "容積・再開発等の特例",
-  redevelopment: "事業中の再開発",
+  redevelopment: "都市更新",
   chiyodaRegions: "千代田区の7地域",
   functionalKaiwai: "街の個性",
   openSpaces: "公開空地",
@@ -481,7 +490,7 @@ const SPECIAL_ZONE_LEGEND = [
   ["都市再生特別地区", "#e11d48"],
 ];
 
-const REDEVELOPMENT_LEGEND = [["市街地再開発事業（事業中）", "#ff553d"]];
+const REDEVELOPMENT_LEGEND = [["市街地再開発", "#d1ad7c"], ["大規模建替え・新築", "#a7bcc4"], ["構想・都市計画提案（輪郭）", "#c6bdca"]];
 
 const CHIYODA_REGION_LEGEND = [
   ["麹町・番町", "#f2b134"],
@@ -861,19 +870,23 @@ function detailFor(
     };
   }
   if (layerId.includes("redevelopment")) {
+    const values = [
+      ["区分", p.categoryLabel], ["状況", p.status], ["関係区", p.w], ["所在地", p.address],
+      ["延べ面積", p.grossFloorArea == null ? undefined : numberValue(p.grossFloorArea, " ㎡")],
+      ["用途", p.uses], ["工事種別", p.constructionType], ["竣工予定", p.completion],
+      ["施行者", p.operator], ["区域面積", p.areaHa == null ? undefined : numberValue(p.areaHa, " ha")],
+      ["都市計画決定", p.urbanPlanDate], ["事業計画認可", p.approvalDate], ["出典基準日", p.sourceDate],
+    ];
+    const quality = String(p.locationQuality ?? "");
     return {
-      eyebrow: "Active redevelopment",
-      title: String(p.n ?? "市街地再開発事業"),
-      rows: [
-        { label: "関係区", value: textValue(p.w) },
-        { label: "進捗", value: textValue(p.s) },
-        { label: "施行者", value: textValue(p.o) },
-        { label: "面積", value: numberValue(p.a, " ha") },
-        { label: "都市計画決定", value: textValue(p.d) },
-        { label: "事業計画認可", value: textValue(p.p) },
+      eyebrow: "Urban change",
+      title: String(p.n ?? "都市更新"),
+      rows: values.filter(([, value]) => value != null && value !== "").map(([label, value]) => ({ label: String(label), value: String(value) })),
+      note: `${quality === "gsi_geocode" ? "国土地理院の住所検索による参考位置です。" : ["town_centroid", "町丁目代表点"].includes(quality) ? "位置は町丁目の代表点です。" : "位置精度は未確認の参考点です。"}点は敷地境界・事業区域を示しません。情報は出典基準日時点で、竣工予定は実際の完成を意味しません。`,
+      sources: [
+        { label: String(p.sourceName ?? "公式情報"), url: String(p.sourceUrl ?? p._source_url ?? "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/yotochiiki/saikaihatsu.html") },
+        ...(p.proposalUrl ? [{ label: "東京都・提案書", url: String(p.proposalUrl) }] : []),
       ],
-      note: "点は町丁目内の代表位置で、事業区域そのものではありません。",
-      sources: [{ label: `東京都・市街地再開発事業（${meta?.redevelopmentDate ?? "2025-10-31"}）`, url: "https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu" }],
     };
   }
   if (layerId.includes("shelter")) {
@@ -1061,6 +1074,7 @@ export function MapAtlas() {
     createLazyGeoJsonLoader<DatasetKey, GeoCollection>({
       files: DATASET_FILES,
       labels: DATASET_LABELS,
+      fetcher: (url) => fetch(url, url.endsWith("urban-change-projects.json") ? { cache: "no-cache" } : undefined),
     }),
   );
   const loadingOverlaysRef = useRef(new Set<OverlayKey>());
@@ -1153,7 +1167,7 @@ export function MapAtlas() {
 
     Promise.all([
       import("maplibre-gl"),
-      fetch("data/map-data.json").then((response) => {
+      fetch("data/map-data.json", { cache: "no-cache" }).then((response) => {
         if (!response.ok) throw new Error("地図データを読み込めませんでした");
         return response.json() as Promise<AtlasData>;
       }),
@@ -1382,7 +1396,7 @@ export function MapAtlas() {
           map.addSource("redevelopment", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
-            attribution: '再開発：<a href="https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu" target="_blank">東京都</a>',
+            attribution: '都市更新：千代田区・東京都公式資料（各点の出典参照）／参考位置：国土地理院住所検索・町丁目代表点',
           });
           map.addSource("chiyoda-regions", {
             type: "geojson",
@@ -2040,40 +2054,49 @@ export function MapAtlas() {
               "circle-stroke-width": 1.2,
             },
           });
+          for (const tier of URBAN_CHANGE_TIERS) {
           map.addLayer({
-            id: "redevelopment-hit",
+            id: `redevelopment-hit${tier.suffix}`,
             type: "circle",
             source: "redevelopment",
+            minzoom: tier.minzoom,
+            filter: tier.filter as never,
             layout: { visibility: "none" },
             paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 15, 16, 20],
+              "circle-radius": 12,
               "circle-color": "#ffffff",
               "circle-opacity": 0,
             },
           });
           map.addLayer({
-            id: "redevelopment-halo",
+            id: `redevelopment-halo${tier.suffix}`,
             type: "circle",
             source: "redevelopment",
+            minzoom: tier.minzoom,
+            filter: tier.filter as never,
             layout: { visibility: "none" },
             paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 6, 16, 10],
+              "circle-radius": ["+", URBAN_CHANGE_RADIUS, 2] as never,
               "circle-color": "#111916",
-              "circle-opacity": 0.92,
+              "circle-opacity": ["case", ["==", ["get", "category"], "planning_proposal"], 0, 0.72],
             },
           });
           map.addLayer({
-            id: "redevelopment-points",
+            id: `redevelopment-points${tier.suffix}`,
             type: "circle",
             source: "redevelopment",
+            minzoom: tier.minzoom,
+            filter: tier.filter as never,
             layout: { visibility: "none" },
             paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 3.8, 16, 7.2],
-              "circle-color": "#ff553d",
-              "circle-stroke-color": "#fffdf8",
-              "circle-stroke-width": 1.4,
+              "circle-radius": URBAN_CHANGE_RADIUS as never,
+              "circle-color": URBAN_CHANGE_COLOR as never,
+              "circle-opacity": ["case", ["==", ["get", "category"], "planning_proposal"], 0, 0.9],
+              "circle-stroke-color": URBAN_CHANGE_COLOR as never,
+              "circle-stroke-width": ["case", ["==", ["get", "category"], "planning_proposal"], 1.8, 1.2],
             },
           });
+          }
           map.addLayer({
             id: "ward-boundaries-halo",
             type: "line",
@@ -2643,7 +2666,7 @@ export function MapAtlas() {
     if (overlays.districtPlans) groups.push({ title: "地区計画", items: DISTRICT_PLAN_LEGEND });
     if (overlays.heightDistricts) groups.push({ title: "高度地区（千代田・中央は指定なし）", items: HEIGHT_DISTRICT_LEGEND });
     if (overlays.specialZones) groups.push({ title: "容積・再開発等の特例", items: SPECIAL_ZONE_LEGEND });
-    if (overlays.redevelopment) groups.push({ title: "事業中の再開発", items: REDEVELOPMENT_LEGEND });
+    if (overlays.redevelopment) groups.push({ title: "都市更新", items: REDEVELOPMENT_LEGEND });
     if (overlays.chiyodaRegions) groups.push({ title: "千代田区の7地域", items: CHIYODA_REGION_LEGEND });
     if (overlays.culturalAssets) groups.push({ title: "文化・歴史資源", items: CULTURAL_ASSET_LEGEND });
     if (overlays.planningMovements) groups.push({ title: "まちづくりの動き", items: [["町丁目代表点", "#d7cde0"]] });
@@ -2670,7 +2693,7 @@ export function MapAtlas() {
     if (overlays.districtPlans) add("地区計画", "区域を入口に計画図へ。千代田区の内部区分はズーム14以上、区分名は16以上で表示。", `外枠：${meta?.districtPlanDate ?? "2025-05-02"}／内部：2026-09-13取得`, "外枠：東京都／内部：千代田区", DISTRICT_PLAN_SUBAREA_SOURCE);
     if (overlays.heightDistricts) add("高度地区", "千代田区・中央区は指定なし。隣接4区の種別と数値指定を用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.specialZones) add("容積・再開発等の特例", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
-    if (overlays.redevelopment) add("事業中の再開発", "現在動いている事業の所在を点で把握。区域は資料参照。", meta?.redevelopmentDate ?? "2025-10-31", "東京都", "https://www.toshiseibi.metro.tokyo.lg.jp/machizukuri/shigaichi_seibi/sai-kai/saikaihatsu");
+    if (overlays.redevelopment) add("都市更新", "市街地再開発・大規模建替え・都市計画提案を区別。点の大きさは延べ面積の目安。Mはズーム14以上。位置・基準日は各点の詳細へ。", `区内：${meta?.urbanChangeDate ?? "2026-09-13"}取得／隣接区：2025-10-31時点`, "千代田区・東京都", "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html");
     if (overlays.chiyodaRegions) add("千代田区の7地域", "都市計画マスタープランが地域別に示す将来像の単位。", meta?.chiyodaRegionDate ?? "2021-05", "千代田区", "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf");
     if (overlays.functionalKaiwai) add("街の個性", "古書店街・学生街など、都市機能から見る16界隈。景観の界隈・7地域とは別の区分。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.openSpaces) add("公開空地", "公式GISに掲載された公開空地。自由な利用の可否・条件は現地等で確認。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
@@ -2824,7 +2847,7 @@ export function MapAtlas() {
                 <Toggle label="地区計画" active={overlays.districtPlans} onClick={() => toggleOverlay("districtPlans")} />
                 <Toggle label="高度地区" active={overlays.heightDistricts} onClick={() => toggleOverlay("heightDistricts")} />
                 <Toggle label="容積・再開発等の特例" active={overlays.specialZones} onClick={() => toggleOverlay("specialZones")} />
-                <Toggle label="事業中の再開発" active={overlays.redevelopment} onClick={() => toggleOverlay("redevelopment")} />
+                <Toggle label="都市更新" active={overlays.redevelopment} onClick={() => toggleOverlay("redevelopment")} />
                 <Toggle label="公開空地" active={overlays.openSpaces} onClick={() => toggleOverlay("openSpaces")} />
                 <Toggle label="まちづくり団体" active={overlays.areaManagement} onClick={() => toggleOverlay("areaManagement")} />
                 <Toggle label="まちづくりの動き" active={overlays.planningMovements} onClick={() => toggleOverlay("planningMovements")} />
