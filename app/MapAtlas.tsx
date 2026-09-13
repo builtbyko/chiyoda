@@ -25,7 +25,6 @@ type OverlayKey =
   | "openSpaces"
   | "areaManagement"
   | "planningMovements"
-  | "memoryPlates"
   | "culturalAssets"
   | "terrain"
   | "buildingHeight";
@@ -126,7 +125,7 @@ type AtlasData = {
 type SearchItem = {
   name: string;
   ward: string;
-  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "都市更新" | "7地域" | "文化・歴史資源";
+  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発・大規模建替え" | "7地域" | "歴史・文化資源";
   layerId: string;
   dataset: DatasetKey;
   featureIndex: number;
@@ -210,8 +209,7 @@ const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   openSpaces: ["open-spaces-fill"],
   areaManagement: ["area-management-hit", "area-management-fill"],
   planningMovements: ["planning-movements-hit"],
-  memoryPlates: ["memory-plates-hit"],
-  culturalAssets: ["cultural-assets-hit", "cultural-assets-fill"],
+  culturalAssets: ["cultural-assets-hit", "cultural-assets-fill", "memory-plates-hit"],
   buildingHeight: ["plateau-building-height-fill"],
 };
 
@@ -301,8 +299,7 @@ const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
   openSpaces: ["openSpaces"],
   areaManagement: ["areaManagement"],
   planningMovements: ["planningMovements"],
-  memoryPlates: ["memoryPlates"],
-  culturalAssets: ["culturalAssets"],
+  culturalAssets: ["culturalAssets", "memoryPlates"],
   terrain: [],
   buildingHeight: [],
 };
@@ -321,22 +318,21 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   urbanPlanningRoads: "都市計画道路",
   rail: "鉄道・駅",
   stationEntrances: "駅出入口",
-  undergroundWalkways: "地下歩行ネットワーク",
+  undergroundWalkways: "地下歩行リンク",
   parks: "公園・緑地",
   landPrices: "地価公示",
   shelters: "指定避難所",
   boundaries: "町丁目境界",
   districtPlans: "地区計画",
   heightDistricts: "高度地区",
-  specialZones: "容積・再開発等の特例",
-  redevelopment: "都市更新",
+  specialZones: "都市計画の特例（容積・再開発等）",
+  redevelopment: "再開発・大規模建替え",
   chiyodaRegions: "千代田区の7地域",
-  functionalKaiwai: "街の個性",
+  functionalKaiwai: "界隈（都市機能・文化）",
   openSpaces: "公開空地",
-  areaManagement: "まちづくり団体",
-  planningMovements: "まちづくりの動き",
-  memoryPlates: "まちの記憶",
-  culturalAssets: "文化・歴史資源",
+  areaManagement: "エリアマネジメント・まちづくり団体",
+  planningMovements: "地域まちづくり（検討・方針）",
+  culturalAssets: "歴史・文化資源",
 };
 
 const DATASET_LABELS: Record<DatasetKey, string> = {
@@ -352,19 +348,19 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   rail: "鉄道",
   stations: "駅",
   stationEntrances: "駅出入口",
-  undergroundWalkways: "地下歩行ネットワーク",
+  undergroundWalkways: "地下歩行リンク",
   districtPlans: "地区計画",
   districtPlanSubareas: "地区計画内部区分",
   heightDistricts: "高度地区",
-  specialZones: "容積・再開発等の特例",
-  redevelopment: "都市更新",
+  specialZones: "都市計画の特例（容積・再開発等）",
+  redevelopment: "再開発・大規模建替え",
   chiyodaRegions: "千代田区の7地域",
-  functionalKaiwai: "街の個性",
+  functionalKaiwai: "界隈（都市機能・文化）",
   openSpaces: "公開空地",
-  areaManagement: "まちづくり団体",
-  planningMovements: "まちづくりの動き",
-  memoryPlates: "まちの記憶",
-  culturalAssets: "文化・歴史資源",
+  areaManagement: "エリアマネジメント・まちづくり団体",
+  planningMovements: "地域まちづくり（検討・方針）",
+  memoryPlates: "まちの記憶保存プレート",
+  culturalAssets: "歴史・文化資源",
 };
 
 const PHOTO_OPTIONS: { value: PhotoEpoch; label: string; tile: string; maxzoom: number }[] = [
@@ -510,6 +506,7 @@ const CULTURAL_ASSET_LEGEND = [
   ["東京都文化財", "#687e97"],
   ["千代田区文化財", "#658375"],
   ["景観資源", "#9d6e77"],
+  ["まちの記憶保存プレート", "#91846b"],
 ];
 const BUILDING_HEIGHT_LEGEND = [
   ["15m未満", "#e9ecef"], ["15–30m", "#d8c3a5"], ["30–60m", "#c08a5b"],
@@ -745,19 +742,23 @@ function detailFor(
   }
   if (["functional-kaiwai", "open-spaces", "area-management", "memory-plates", "cultural-assets"].some((id) => layerId.startsWith(id))) {
     const culture = layerId.startsWith("cultural-assets");
+    const memory = layerId.startsWith("memory-plates");
     const rows = [
       ...(culture ? [{ label: "区分", value: textValue(p._category) }] : []),
-      { label: "種別", value: textValue(p.t) },
+      { label: "種別", value: memory ? "まちの記憶保存プレート" : textValue(p.t) },
       { label: "所在地", value: textValue(p.a) },
       { label: "指定年月日等", value: textValue(p.d) },
       ...(layerId.startsWith("area-management") && p["団体名2"] ? [{ label: "関連団体", value: [p["団体名2"], p["団体名3"], p["団体名4"]].filter(Boolean).join("・") }] : []),
     ].filter((row) => row.value !== "—");
     return {
-      eyebrow: culture ? "Culture & history" : "Chiyoda official GIS",
+      eyebrow: memory ? "まちの記憶保存プレート" : culture ? "歴史・文化資源" : "千代田区公式GIS",
       title: String(p.n ?? "千代田区の地域資源"),
       rows,
       note: p._coordinate_quality === "block" ? "位置は公式所在地から位置化した街区等の代表点です。" : undefined,
-      sources: [{ label: "千代田区公式情報", url: String(p._source_url ?? OFFICIAL_ELEMENT_SOURCE) }],
+      sources: memory ? [
+        { label: "千代田区「まちの記憶保存プレート」", url: "https://www.city.chiyoda.lg.jp/koho/kurashi/volunteer/kioku/index.html" },
+        { label: "千代田区「まちなかのウォーカブルな要素の分布状況」", url: OFFICIAL_ELEMENT_SOURCE },
+      ] : [{ label: "千代田区公式情報", url: String(p._source_url ?? OFFICIAL_ELEMENT_SOURCE) }],
     };
   }
   if (layerId === "plateau-building-height-fill") {
@@ -821,8 +822,8 @@ function detailFor(
   if (layerId.startsWith("planning-movements")) {
     const values = [["現在の状態", p.status], ["検討内容", p.summary], ["次のステップ", p.next], ["基準日", p.sourceDate]];
     return {
-      eyebrow: "Planning movement",
-      title: String(p.n ?? p.name ?? "まちづくりの動き"),
+      eyebrow: "地域まちづくり（検討・方針）",
+      title: String(p.n ?? p.name ?? "地域まちづくり（検討・方針）"),
       rows: values.filter(([, value]) => value != null && value !== "").map(([label, value]) => ({ label: String(label), value: String(value) })),
       note: `基準日時点の情報です。位置は町丁目の代表点（参考位置）です。事業敷地や対象区域を示していません。${p.anchorResolution === "town_name_only" ? "町名のみ指定され、丁目は未特定です。" : ""}`,
       sources: [{ label: "千代田区公式情報", url: String(p.sourceUrl ?? p._source_url ?? PLANNING_MOVEMENT_SOURCE) }],
@@ -874,7 +875,7 @@ function detailFor(
   if (layerId.includes("special-zone")) {
     return {
       eyebrow: "Planning exception",
-      title: String(p.n ?? "容積・再開発等の特例"),
+      title: String(p.n ?? "都市計画の特例（容積・再開発等）"),
       rows: [
         { label: "制度", value: textValue(p.t) },
         { label: "区", value: textValue(p.w) },
@@ -898,8 +899,8 @@ function detailFor(
     ];
     const quality = String(p.locationQuality ?? "");
     return {
-      eyebrow: "Urban change",
-      title: String(p.n ?? "都市更新"),
+      eyebrow: "再開発・大規模建替え",
+      title: String(p.n ?? "再開発・大規模建替え"),
       rows: values.filter(([, value]) => value != null && value !== "").map(([label, value]) => ({ label: String(label), value: String(value) })),
       note: `${quality === "gsi_geocode" ? "国土地理院の住所検索による参考位置です。" : ["town_centroid", "町丁目代表点"].includes(quality) ? "位置は町丁目の代表点です。" : "位置精度は未確認の参考点です。"}点は敷地境界・事業区域を示しません。情報は出典基準日時点で、竣工予定は実際の完成を意味しません。`,
       sources: [
@@ -1128,7 +1129,6 @@ export function MapAtlas() {
     openSpaces: false,
     areaManagement: false,
     planningMovements: false,
-    memoryPlates: false,
     culturalAssets: false,
     terrain: false,
     buildingHeight: false,
@@ -1401,7 +1401,7 @@ export function MapAtlas() {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
-            attribution: `まちづくりの動き：<a href="${PLANNING_MOVEMENT_SOURCE}" target="_blank">千代田区（公式資料は各点のリンク参照）</a>`,
+            attribution: `地域まちづくり（検討・方針）：<a href="${PLANNING_MOVEMENT_SOURCE}" target="_blank">千代田区（公式資料は各点のリンク参照）</a>`,
           });
           map.addSource("height-districts", {
             type: "geojson",
@@ -1416,7 +1416,7 @@ export function MapAtlas() {
           map.addSource("redevelopment", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
-            attribution: '都市更新：千代田区・東京都公式資料（各点の出典参照）／参考位置：国土地理院住所検索・町丁目代表点',
+            attribution: '再開発・大規模建替え：千代田区・東京都公式資料（各点の出典参照）／参考位置：国土地理院住所検索・町丁目代表点',
           });
           map.addSource("chiyoda-regions", {
             type: "geojson",
@@ -1428,7 +1428,7 @@ export function MapAtlas() {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
-            attribution: `街の個性：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+            attribution: `界隈（都市機能・文化）：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
           });
           map.addSource("open-spaces", {
             type: "geojson",
@@ -1440,19 +1440,19 @@ export function MapAtlas() {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
-            attribution: `まちづくり団体：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+            attribution: `エリアマネジメント・まちづくり団体：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
           });
           map.addSource("memory-plates", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
-            attribution: `まちの記憶：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+            attribution: `まちの記憶保存プレート：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
           });
           map.addSource("cultural-assets", {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
-            attribution: `文化・歴史資源：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+            attribution: `歴史・文化資源：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
           });
           map.addSource("selection", {
             type: "geojson",
@@ -2342,7 +2342,7 @@ export function MapAtlas() {
             return {
               name,
               ward,
-              kind: searchType.k,
+              kind: searchType.d === "redevelopment" ? "再開発・大規模建替え" : searchType.d === "culturalAssets" ? "歴史・文化資源" : searchType.k,
               layerId: searchType.l,
               dataset: searchType.d,
               featureIndex,
@@ -2486,7 +2486,7 @@ export function MapAtlas() {
     setLayerVisibility(map, OPEN_SPACE_LAYER_IDS, overlays.openSpaces);
     setLayerVisibility(map, AREA_MANAGEMENT_LAYER_IDS, overlays.areaManagement);
     setLayerVisibility(map, PLANNING_MOVEMENT_LAYER_IDS, overlays.planningMovements);
-    setLayerVisibility(map, MEMORY_PLATE_LAYER_IDS, overlays.memoryPlates);
+    setLayerVisibility(map, MEMORY_PLATE_LAYER_IDS, overlays.culturalAssets);
     setLayerVisibility(map, CULTURAL_ASSET_LAYER_IDS, overlays.culturalAssets);
     setLayerVisibility(map, ["terrain-hillshade"], overlays.terrain);
     setLayerVisibility(map, ["plateau-building-height-fill"], overlays.buildingHeight);
@@ -2538,8 +2538,8 @@ export function MapAtlas() {
   const changeArea = async (value: AreaLayer) => {
     const areaAction = ++areaActionRef.current;
     clearSelection();
-    if (value === "none") {
-      setAreaLayer(value);
+    if (value === "none" || value === areaLayer) {
+      setAreaLayer("none");
       setLayerNotice(null);
       return;
     }
@@ -2677,7 +2677,7 @@ export function MapAtlas() {
       const feature = collection.features[item.featureIndex];
       if (!feature) throw new Error("検索した地物を読み込めませんでした");
       setLayerNotice(null);
-      if (item.kind === "都市更新") {
+      if (item.kind === "再開発・大規模建替え") {
         setOverlays((current) => ({ ...current, redevelopment: true }));
       }
       if (feature.geometry.type === "Point") {
@@ -2711,56 +2711,56 @@ export function MapAtlas() {
     if (overlays.urbanPlanningRoads) groups.push({ title: "都市計画道路（2020年度）", items: URBAN_PLANNING_ROAD_LEGEND });
     if (overlays.rail) groups.push({ title: "鉄道", items: RAIL_LEGEND });
     if (overlays.stationEntrances) groups.push({ title: "駅出入口 · OSM参考", items: [["ズーム14以上", "#7d9cb0"]] });
-    if (overlays.undergroundWalkways) groups.push({ title: "地下歩行 · OSM参考", items: [["ズーム14以上・非網羅", "#c1cad1"]] });
+    if (overlays.undergroundWalkways) groups.push({ title: "地下歩行リンク · OSM参考", items: [["ズーム14以上・非網羅", "#c1cad1"]] });
     if (overlays.parks) groups.push({ title: "公園・緑地", items: PARK_LEGEND });
     if (overlays.landPrices) groups.push({ title: "地価公示（円/m²）", items: LAND_PRICE_LEGEND });
     if (overlays.shelters) groups.push({ title: "指定避難所", items: SHELTER_LEGEND });
     if (overlays.districtPlans) groups.push({ title: "地区計画", items: DISTRICT_PLAN_LEGEND });
     if (overlays.heightDistricts) groups.push({ title: "高度地区（千代田・中央は指定なし）", items: HEIGHT_DISTRICT_LEGEND });
-    if (overlays.specialZones) groups.push({ title: "容積・再開発等の特例", items: SPECIAL_ZONE_LEGEND });
-    if (overlays.redevelopment) groups.push({ title: "都市更新", items: REDEVELOPMENT_LEGEND });
+    if (overlays.specialZones) groups.push({ title: "都市計画の特例（容積・再開発等）", items: SPECIAL_ZONE_LEGEND });
+    if (overlays.redevelopment) groups.push({ title: "再開発・大規模建替え", items: REDEVELOPMENT_LEGEND });
     if (overlays.chiyodaRegions) groups.push({ title: "千代田区の7地域", items: CHIYODA_REGION_LEGEND });
-    if (overlays.culturalAssets) groups.push({ title: "文化・歴史資源", items: CULTURAL_ASSET_LEGEND });
-    if (overlays.planningMovements) groups.push({ title: "まちづくりの動き", items: [["町丁目代表点", "#d7cde0"]] });
+    if (overlays.culturalAssets) groups.push({ title: "歴史・文化資源", items: CULTURAL_ASSET_LEGEND });
+    if (overlays.planningMovements) groups.push({ title: "地域まちづくり（検討・方針）", items: [["町丁目代表点", "#d7cde0"]] });
     if (overlays.buildingHeight) groups.push({ title: "建物高さ（m・2020年度）", items: BUILDING_HEIGHT_LEGEND });
     return groups;
   }, [areaLayer, overlays]);
 
   const activeGuides = useMemo(() => {
-    const items: { label: string; text: string; asOf: string; source: string; url: string }[] = [];
-    const add = (label: string, text: string, asOf: string, source: string, url: string) => {
-      items.push({ label, text, asOf, source, url });
+    const items: { label: string; text: string; asOf: string; source: string; url: string; nature: string }[] = [];
+    const add = (label: string, text: string, asOf: string, source: string, url: string, nature = "公式GIS") => {
+      items.push({ label, text, asOf, source, url, nature });
     };
-    if (areaLayer === "population") add("住民密度", "住む人の分布。昼間の都市活動とは別に読む。", meta?.populationDate ?? "2026-01-01", "東京都", "https://www.toukei.metro.tokyo.lg.jp/juukiy/ju-index.htm");
-    if (areaLayer === "daytime") add("昼間人口", "働く・学ぶ人が集まる場所。比率は2020年内で比較。", meta?.daytimeYear ?? "2020年", "東京都", "https://www.toukei.metro.tokyo.lg.jp/tyukanj/2020/tj-20index.htm");
-    if (areaLayer === "landUse") add("実土地利用", "町丁目の主な都市機能。道路・鉄道・水面は主用途判定から除外。", meta?.landUseYear ?? "2021年度", "東京都", "https://www.toshiseibi.metro.tokyo.lg.jp/about/chousa/tochi_c/tochi_kekka_r3");
+    if (areaLayer === "population") add("住民密度", "住む人の分布。昼間の都市活動とは別に読む。", meta?.populationDate ?? "2026-01-01", "東京都", "https://www.toukei.metro.tokyo.lg.jp/juukiy/ju-index.htm", "公式統計・公式表");
+    if (areaLayer === "daytime") add("昼間人口", "働く・学ぶ人が集まる場所。比率は2020年内で比較。", meta?.daytimeYear ?? "2020年", "東京都", "https://www.toukei.metro.tokyo.lg.jp/tyukanj/2020/tj-20index.htm", "公式統計・公式表");
+    if (areaLayer === "landUse") add("実土地利用", "町丁目の主な都市機能。道路・鉄道・水面は主用途判定から除外。", meta?.landUseYear ?? "2021年度", "東京都", "https://www.toshiseibi.metro.tokyo.lg.jp/about/chousa/tochi_c/tochi_kekka_r3", "派生データ");
     if (areaLayer === "zoning") add("用途地域", "建て方の基本ルール。クリックして容積率・建ぺい率を見る。", meta?.zoningYear ?? "2025年度", "国土交通省", "https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html");
     if (areaLayer === "fire") add("防火指定", "市街地の防火上の指定。敷地判断は公式図で再確認。", meta?.fireYear ?? "2025年度", "国土交通省", "https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html");
     if (areaLayer === "flood") add("洪水浸水", "想定最大規模の最大深を概観。避難判断には使わない。", meta?.floodYear ?? "2025年度", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-A31a-2025.html");
-    if (overlays.roads) add("主要道路", "都市の軸と区を越える連続性を見る。", meta?.roadsDate ?? "取得時点", "OpenStreetMap", "https://www.openstreetmap.org/copyright");
-    if (overlays.urbanPlanningRoads) add("都市計画道路", "6区をつなぐ計画線の骨格を見る。整備済・事業中・未着手の区別ではなく、最新の区域・幅員は公式図書で確認。", meta?.urbanPlanningRoadYear ?? "2020年度", "国土交通省PLATEAU", URBAN_PLANNING_ROAD_SOURCE);
+    if (overlays.roads) add("主要道路", "都市の軸と区を越える連続性を見る。", meta?.roadsDate ?? "取得時点", "OpenStreetMap", "https://www.openstreetmap.org/copyright", "OpenStreetMap参考");
+    if (overlays.urbanPlanningRoads) add("都市計画道路", "2020年度PLATEAU由来の都市計画道路の計画線。現時点の整備状況は示しません。最新の区域・幅員は公式図書で確認。", meta?.urbanPlanningRoadYear ?? "2020年度", "国土交通省PLATEAU", URBAN_PLANNING_ROAD_SOURCE);
     if (overlays.rail) add("鉄道・駅", "駅勢圏と乗換拠点を道路・土地利用に重ねて読む。", meta?.railDate ?? "2025年", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html");
-    if (overlays.stationEntrances) add("駅出入口", "ズーム14以上で表示。出口・バリアフリー属性は駅の最新案内で再確認。", "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE);
-    if (overlays.undergroundWalkways) add("地下歩行ネットワーク", UNDERGROUND_WALKWAY_NOTE, "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE);
+    if (overlays.stationEntrances) add("駅出入口", "ズーム14以上で表示。出口・バリアフリー属性は駅の最新案内で再確認。", "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE, "OpenStreetMap参考");
+    if (overlays.undergroundWalkways) add("地下歩行リンク", UNDERGROUND_WALKWAY_NOTE, "2026-09-13取得", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE, "OpenStreetMap参考");
     if (overlays.districtPlans) add("地区計画", "区域を入口に計画図へ。千代田区の内部区分はズーム14以上、区分名は16以上で表示。", `外枠：${meta?.districtPlanDate ?? "2025-05-02"}／内部：2026-09-13取得`, "外枠：東京都／内部：千代田区", DISTRICT_PLAN_SUBAREA_SOURCE);
     if (overlays.heightDistricts) add("高度地区", "千代田区・中央区は指定なし。隣接4区の種別と数値指定を用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
-    if (overlays.specialZones) add("容積・再開発等の特例", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
-    if (overlays.redevelopment) add("都市更新", "市街地再開発・大規模建替え・都市計画提案を区別。点の大きさは延べ面積の目安。Mはズーム14以上。位置・基準日は各点の詳細へ。", `区内：${meta?.urbanChangeDate ?? "2026-09-13"}取得／隣接区：2025-10-31時点`, "千代田区・東京都", "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html");
-    if (overlays.chiyodaRegions) add("千代田区の7地域", "都市計画マスタープランが地域別に示す将来像の単位。", meta?.chiyodaRegionDate ?? "2021-05", "千代田区", "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf");
-    if (overlays.functionalKaiwai) add("街の個性", "古書店街・学生街など、都市機能から見る16界隈。景観の界隈・7地域とは別の区分。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.specialZones) add("都市計画の特例（容積・再開発等）", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
+    if (overlays.redevelopment) add("再開発・大規模建替え", "市街地再開発・大規模建替え・都市計画提案を区別。点の大きさは延べ面積の目安。Mはズーム14以上。位置・基準日は各点の詳細へ。", `区内：${meta?.urbanChangeDate ?? "2026-09-13"}取得／隣接区：2025-10-31時点`, "千代田区・東京都公式一覧／建築物環境計画書等をATLASで整理", "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html", "公式資料をATLASで整理");
+    if (overlays.chiyodaRegions) add("千代田区の7地域", "都市計画マスタープランの公式町丁目対応を町丁目境界へ結合。政策・まちづくり上の7地域。", meta?.chiyodaRegionDate ?? "2021-05", "千代田区", "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf", "派生データ");
+    if (overlays.functionalKaiwai) add("界隈（都市機能・文化）", "古書店街、学生街、秋葉原電気街など、都市機能・文化の集積から見た16の界隈。", "公式ページ2025-06-06", "千代田区公式GIS「界隈」", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.openSpaces) add("公開空地", "公式GISに掲載された公開空地。自由な利用の可否・条件は現地等で確認。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
-    if (overlays.areaManagement) add("まちづくり団体", "公式GISの団体活動区域。複数団体を含む区域もある。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
-    if (overlays.planningMovements) add("まちづくりの動き", "検討・対話・ルール形成の段階を見る。位置は町丁目の代表点。各点から公式資料へ。", "基準日は各点に表示", "千代田区", PLANNING_MOVEMENT_SOURCE);
-    if (overlays.memoryPlates) add("まちの記憶", "旧居跡などの記憶保存プレートの所在地。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
-    if (overlays.culturalAssets) add("文化・歴史資源", "国・都・区文化財と景観資源を統合。既存景観物件の指定情報も保持。", "公式GIS・既存指定一覧", "千代田区", OFFICIAL_ELEMENT_SOURCE);
-    if (overlays.terrain) add("地形・陰影", "陰影起伏から台地・谷・崖の連続性を見る。標高値は示さない。", "地理院タイル", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
-    if (overlays.buildingHeight) add("建物高さ", "2020年度の市街地の高さ構造を学ぶ。最新建物情報ではなく、広域ズームでは小規模建物が省略される。", "2020年度", "PLATEAU / indigo-lab MVT", PLATEAU_BUILDING_SOURCE);
+    if (overlays.areaManagement) add("エリアマネジメント・まちづくり団体", "公式GISの団体活動区域。複数団体を含む区域もある。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.planningMovements) add("地域まちづくり（検討・方針）", "検討・対話・地域ルール形成を見る。位置は町丁目代表点。千代田区公式資料をATLASで整理したレイヤーで、単一の公式GISではありません。", "基準日は各点に表示", "千代田区公式資料をATLASで整理", PLANNING_MOVEMENT_SOURCE, "公式資料をATLASで整理");
+    if (overlays.culturalAssets) add("まちの記憶保存プレート", "歴史的な出来事・人物のゆかりを伝える保存プレートの所在地。", "公式GISページ2025-06-06", "千代田区「まちの記憶保存プレート」", "https://www.city.chiyoda.lg.jp/koho/kurashi/volunteer/kioku/index.html");
+    if (overlays.culturalAssets) add("歴史・文化資源", "国・都・区文化財、景観資源、まちの記憶保存プレートをまとめて見る。公式GISと既存指定一覧を統合。", "公式GIS・既存指定一覧", "千代田区", OFFICIAL_ELEMENT_SOURCE, "公式GIS／公式資料をATLASで整理");
+    if (overlays.terrain) add("地形・陰影", "陰影起伏から台地・谷・崖の連続性を見る。標高値は示さない。", "地理院タイル", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html", "派生データ");
+    if (overlays.buildingHeight) add("建物高さ", "2020年度の市街地の高さ構造を学ぶ。最新建物情報ではなく、広域ズームでは小規模建物が省略される。", "2020年度", "PLATEAU / indigo-lab MVT", PLATEAU_BUILDING_SOURCE, "派生データ");
     if (overlays.parks) add("公園・緑地", "まとまりとネットワークを周辺区まで連続して見る。", meta?.parksDate ?? "公開時点", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d2000000024");
-    if (overlays.landPrices) add("地価公示", "標準地の点比較。個別不動産の価格ではない。", meta?.landPriceDate ?? "2026-01-01", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-L01-2026.html");
+    if (overlays.landPrices) add("地価公示", "標準地の点比較。個別不動産の価格ではない。", meta?.landPriceDate ?? "2026-01-01", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-L01-2026.html", "公式統計・公式表");
     if (overlays.shelters) add("指定避難所", "概略位置を確認し、実際の避難時は各区の最新案内を見る。", meta?.sheltersDate ?? "取得時点", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
-    if (overlays.boundaries) add("町丁目境界", "統計の集計単位を確認する補助線。", `${meta?.boundaryYear ?? 2020}年国勢調査`, "CODH", "https://geoshape.ex.nii.ac.jp/ka/resource/");
+    if (overlays.boundaries) add("町丁目境界", "統計の集計単位を確認する補助線。", `${meta?.boundaryYear ?? 2020}年国勢調査`, "CODH", "https://geoshape.ex.nii.ac.jp/ka/resource/", "派生データ");
     const photo = PHOTO_OPTIONS.find((option) => option.value === photoEpoch);
-    add("背景地図", photoEpoch === "pale" ? "淡色地図で都市計画・都市更新の重なりを読む。" : "年代ごとの市街地の変化を見る。古い写真は未整備箇所が空白になる。", photo?.label ?? "淡色地図", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
+    add("背景地図", photoEpoch === "pale" ? "淡色地図で都市計画・再開発・大規模建替えの重なりを読む。" : "年代ごとの市街地の変化を見る。古い写真は未整備箇所が空白になる。", photo?.label ?? "淡色地図", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html", "派生データ");
     return items;
   }, [areaLayer, overlays, photoEpoch, meta]);
 
@@ -2795,6 +2795,7 @@ export function MapAtlas() {
                 <div className="guide-item" key={item.label}>
                   <strong>{item.label}</strong>
                   <p>{item.text}</p>
+                  <small className="guide-nature">{item.nature}</small>
                   <a href={item.url} target="_blank" rel="noreferrer">{item.source} · {item.asOf}</a>
                 </div>
               ))}
@@ -2860,35 +2861,24 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <h2 className="section-title">人口</h2>
+              <h2 className="section-title">土地利用・規制</h2>
               <div className="area-choice-grid">
-                <AreaButton label="住民密度" active={areaLayer === "population"} onClick={() => changeArea("population")} />
-                <AreaButton label="昼間人口" active={areaLayer === "daytime"} onClick={() => changeArea("daytime")} />
-              </div>
-            </section>
-
-            <section>
-              <h2 className="section-title">土地・制度</h2>
-              <div className="area-choice-grid">
-                <AreaButton label="実土地利用" active={areaLayer === "landUse"} onClick={() => changeArea("landUse")} />
                 <AreaButton label="用途地域" active={areaLayer === "zoning"} onClick={() => changeArea("zoning")} />
+                <AreaButton label="実土地利用" active={areaLayer === "landUse"} onClick={() => changeArea("landUse")} />
                 <AreaButton label="防火指定" active={areaLayer === "fire"} onClick={() => changeArea("fire")} />
-                <AreaButton label="洪水浸水" active={areaLayer === "flood"} onClick={() => changeArea("flood")} />
-                <AreaButton label="表示なし" active={areaLayer === "none"} onClick={() => changeArea("none")} wide />
               </div>
             </section>
 
             <section>
-              <h2 className="section-title">都市構造</h2>
+              <h2 className="section-title">都市構造・交通</h2>
               <div className="toggle-list">
-                <Toggle label="主要道路" active={overlays.roads} onClick={() => toggleOverlay("roads")} />
-                <Toggle label="都市計画道路（2020）" active={overlays.urbanPlanningRoads} onClick={() => toggleOverlay("urbanPlanningRoads")} />
                 <Toggle label="鉄道・駅" active={overlays.rail} onClick={() => toggleOverlay("rail")} />
+                <Toggle label="主要道路" active={overlays.roads} onClick={() => toggleOverlay("roads")} />
                 <Toggle label="駅出入口" active={overlays.stationEntrances} onClick={() => toggleOverlay("stationEntrances")} />
-                <Toggle label="地下歩行ネットワーク" active={overlays.undergroundWalkways} onClick={() => toggleOverlay("undergroundWalkways")} />
+                <Toggle label="地下歩行リンク" active={overlays.undergroundWalkways} onClick={() => toggleOverlay("undergroundWalkways")} />
                 <Toggle label="公園・緑地" active={overlays.parks} onClick={() => toggleOverlay("parks")} />
                 <Toggle label="地形・陰影" active={overlays.terrain} onClick={() => toggleOverlay("terrain")} />
-                <Toggle label="建物高さ（2020）" active={overlays.buildingHeight} onClick={() => toggleOverlay("buildingHeight")} />
+                <Toggle label="建物高さ" active={overlays.buildingHeight} onClick={() => toggleOverlay("buildingHeight")} />
                 <Toggle label="町丁目境界" active={overlays.boundaries} onClick={() => toggleOverlay("boundaries")} />
               </div>
             </section>
@@ -2897,28 +2887,39 @@ export function MapAtlas() {
               <h2 className="section-title">都市計画</h2>
               <div className="toggle-list">
                 <Toggle label="地区計画" active={overlays.districtPlans} onClick={() => toggleOverlay("districtPlans")} />
+                <Toggle label="都市計画道路" active={overlays.urbanPlanningRoads} onClick={() => toggleOverlay("urbanPlanningRoads")} />
                 <Toggle label="高度地区" active={overlays.heightDistricts} onClick={() => toggleOverlay("heightDistricts")} />
-                <Toggle label="容積・再開発等の特例" active={overlays.specialZones} onClick={() => toggleOverlay("specialZones")} />
+                <Toggle label="都市計画の特例（容積・再開発等）" active={overlays.specialZones} onClick={() => toggleOverlay("specialZones")} />
               </div>
             </section>
 
             <section>
-              <h2 className="section-title">変化・主体</h2>
+              <h2 className="section-title">再開発・まちづくり</h2>
               <div className="toggle-list">
-                <Toggle label="都市更新" active={overlays.redevelopment} onClick={() => toggleOverlay("redevelopment")} />
-                <Toggle label="まちづくりの動き" active={overlays.planningMovements} onClick={() => toggleOverlay("planningMovements")} />
+                <Toggle label="再開発・大規模建替え" active={overlays.redevelopment} onClick={() => toggleOverlay("redevelopment")} />
+                <Toggle label="地域まちづくり（検討・方針）" active={overlays.planningMovements} onClick={() => toggleOverlay("planningMovements")} />
+                <Toggle label="エリアマネジメント・まちづくり団体" active={overlays.areaManagement} onClick={() => toggleOverlay("areaManagement")} />
                 <Toggle label="公開空地" active={overlays.openSpaces} onClick={() => toggleOverlay("openSpaces")} />
-                <Toggle label="まちづくり団体" active={overlays.areaManagement} onClick={() => toggleOverlay("areaManagement")} />
               </div>
             </section>
 
             <section>
-              <h2 className="section-title">暮らし・景観</h2>
+              <h2 className="section-title">地域・歴史</h2>
               <div className="toggle-list">
                 <Toggle label="千代田区の7地域" active={overlays.chiyodaRegions} onClick={() => toggleOverlay("chiyodaRegions")} />
-                <Toggle label="街の個性" active={overlays.functionalKaiwai} onClick={() => toggleOverlay("functionalKaiwai")} />
-                <Toggle label="まちの記憶" active={overlays.memoryPlates} onClick={() => toggleOverlay("memoryPlates")} />
-                <Toggle label="文化・歴史資源" active={overlays.culturalAssets} onClick={() => toggleOverlay("culturalAssets")} />
+                <Toggle label="界隈（都市機能・文化）" active={overlays.functionalKaiwai} onClick={() => toggleOverlay("functionalKaiwai")} />
+                <Toggle label="歴史・文化資源" active={overlays.culturalAssets} onClick={() => toggleOverlay("culturalAssets")} />
+              </div>
+            </section>
+
+            <section>
+              <h2 className="section-title">統計・防災</h2>
+              <div className="area-choice-grid">
+                <AreaButton label="洪水浸水" active={areaLayer === "flood"} onClick={() => changeArea("flood")} />
+                <AreaButton label="住民密度" active={areaLayer === "population"} onClick={() => changeArea("population")} />
+                <AreaButton label="昼間人口" active={areaLayer === "daytime"} onClick={() => changeArea("daytime")} />
+              </div>
+              <div className="toggle-list">
                 <Toggle label="地価公示" active={overlays.landPrices} onClick={() => toggleOverlay("landPrices")} />
                 <Toggle label="指定避難所" active={overlays.shelters} onClick={() => toggleOverlay("shelters")} />
               </div>
@@ -2980,7 +2981,7 @@ export function MapAtlas() {
                           </div>
                         ))}
                       </div>
-                      {group.title === "都市更新" && (
+                      {group.title === "再開発・大規模建替え" && (
                         <p className="legend-note">
                           点の大きさ＝延べ面積の目安<br />
                           M 3千㎡〜 / L 1万㎡〜 / XL 5万㎡〜 / XXL 10万㎡〜<br />

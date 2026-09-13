@@ -694,6 +694,13 @@ button {
   line-height: 1.6;
 }
 
+.guide-nature {
+  display: block;
+  margin-bottom: 3px;
+  color: #4e5854;
+  font-size: 0.8125rem;
+}
+
 .detail-card {
   right: 14px;
   bottom: 25px;

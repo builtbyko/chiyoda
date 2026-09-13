@@ -99,3 +99,18 @@ test("district plan selection fetches outer boundaries and internal divisions on
   await select();
   assert.deepEqual(calls.sort(), ["data/layers/district-plan-subareas.json", "data/layers/district-plans.json"]);
 });
+
+test("history resource selection fetches culture and memory plates once", async () => {
+  const calls = [];
+  const loader = createLazyGeoJsonLoader({
+    files: { culturalAssets: "cultural-assets.json", memoryPlates: "memory-plates.json" },
+    labels: { culturalAssets: "歴史・文化資源", memoryPlates: "まちの記憶保存プレート" },
+    fetcher: async (url) => { calls.push(url); return { ok: true, json: async () => collection(url) }; },
+  });
+  const getSource = () => ({ setData() {} });
+  assert.deepEqual(calls, []);
+  const select = () => Promise.all([loader.ensure("culturalAssets", getSource), loader.ensure("memoryPlates", getSource)]);
+  await Promise.all([select(), select()]);
+  await select();
+  assert.deepEqual(calls.sort(), ["data/layers/cultural-assets.json", "data/layers/memory-plates.json"]);
+});

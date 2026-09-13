@@ -48,15 +48,15 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /町丁目境界/);
   assert.match(
     html,
-    /<button(?=[^>]*aria-pressed="false")[^>]*><span>都市計画道路（2020）<\/span>/,
+    /<button(?=[^>]*aria-pressed="false")[^>]*><span>都市計画道路<\/span>/,
   );
   assert.match(html, /地区計画/);
   assert.match(html, /高度地区/);
-  assert.match(html, /容積・再開発等の特例/);
-  assert.match(html, /<button(?=[^>]*aria-pressed="false")[^>]*><span>都市更新<\/span>/);
+  assert.match(html, /都市計画の特例（容積・再開発等）/);
+  assert.match(html, /<button(?=[^>]*aria-pressed="false")[^>]*><span>再開発・大規模建替え<\/span>/);
   assert.doesNotMatch(html, /<span>事業中の再開発<\/span>/);
   assert.match(html, /千代田区の7地域/);
-  for (const label of ["街の個性", "公開空地", "まちづくり団体", "まちの記憶", "文化・歴史資源", "地形・陰影", "建物高さ（2020）", "駅出入口", "地下歩行ネットワーク", "まちづくりの動き"]) {
+  for (const label of ["界隈（都市機能・文化）", "公開空地", "エリアマネジメント・まちづくり団体", "歴史・文化資源", "地形・陰影", "建物高さ", "駅出入口", "地下歩行リンク", "地域まちづくり（検討・方針）"]) {
     assert.match(html, new RegExp(`<button(?=[^>]*aria-pressed="false")[^>]*><span>${label}</span>`));
   }
   assert.doesNotMatch(html, /<span>景観まちづくり重要物件<\/span>/);
@@ -73,7 +73,11 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /value="pale"[^>]*selected/);
   assert.match(html, /最新航空写真/);
   assert.match(html, /都市計画<\/h2>/);
-  assert.match(html, /変化・主体<\/h2>/);
+  assert.match(html, /再開発・まちづくり<\/h2>/);
+  const sections = [...html.matchAll(/class="section-title">([^<]+)<\/h2>/g)].map((match) => match[1]);
+  assert.deepEqual(sections, ["土地利用・規制", "都市構造・交通", "都市計画", "再開発・まちづくり", "地域・歴史", "統計・防災"]);
+  assert.doesNotMatch(html, /<span>まちの記憶(?:保存プレート)?<\/span>/);
+  assert.doesNotMatch(html, /表示なし/);
   assert.doesNotMatch(html, /計画・変化<\/h2>/);
 });
 
@@ -243,6 +247,49 @@ test("map data includes the recommended reference layers", async () => {
   );
   assert.equal(coordinateSourceCounts["chiyoda-official-gis"]?.length, 56);
   assert.equal(coordinateSourceCounts["gsi-address-search"]?.length, 8);
+});
+
+test("history resources load both datasets under one toggle and preserve the corrected plate name", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  assert.match(source, /culturalAssets: \["culturalAssets", "memoryPlates"\]/);
+  assert.match(source, /culturalAssets: \["cultural-assets-hit", "cultural-assets-fill", "memory-plates-hit"\]/);
+  assert.match(source, /MEMORY_PLATE_LAYER_IDS, overlays\.culturalAssets/);
+  assert.doesNotMatch(source, /overlays\.memoryPlates/);
+  const plates = JSON.parse(await readFile(new URL("../public/data/layers/memory-plates.json", import.meta.url), "utf8"));
+  assert.equal(plates.features.length, 23);
+  assert.ok(plates.features.some(({ properties }) => properties.n === "有島武郎・有島生馬・里見弴旧居跡"));
+  assert.ok(!plates.features.some(({ properties }) => String(properties.n).includes("里見?")));
+});
+
+test("active guides distinguish official GIS, prepared records, derived data and OSM references", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const start = source.indexOf("const activeGuides =");
+  const end = source.indexOf("\n  return (", start);
+  const js = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const bindings = { useMemo: (fn) => fn(), areaLayer: "none", overlays: { culturalAssets: true, functionalKaiwai: true, planningMovements: true, chiyodaRegions: true, stationEntrances: true, undergroundWalkways: true, redevelopment: true }, meta: {}, photoEpoch: "pale", PHOTO_OPTIONS: [{ value: "pale", label: "淡色地図" }] };
+  for (const match of source.matchAll(/const (\w+(?:SOURCE|NOTE)) = "([^"]+)";/g)) bindings[match[1]] = match[2];
+  const guides = new Function(...Object.keys(bindings), `${js}; return activeGuides;`)(...Object.values(bindings));
+  const nature = (label) => guides.find((guide) => guide.label === label)?.nature;
+  assert.equal(nature("界隈（都市機能・文化）"), "公式GIS");
+  assert.equal(nature("千代田区の7地域"), "派生データ");
+  assert.equal(nature("地域まちづくり（検討・方針）"), "公式資料をATLASで整理");
+  assert.equal(nature("再開発・大規模建替え"), "公式資料をATLASで整理");
+  assert.equal(nature("駅出入口"), "OpenStreetMap参考");
+  assert.equal(nature("地下歩行リンク"), "OpenStreetMap参考");
+  assert.equal(nature("まちの記憶保存プレート"), "公式GIS");
+  assert.ok(guides.every(({ asOf, source, url, nature }) => asOf && source && url && nature));
+});
+
+test("clicking the selected area button clears it without another fetch", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const start = source.indexOf("const changeArea =");
+  const end = source.indexOf("const toggleOverlay =", start);
+  const js = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  let selected = "zoning";
+  const bindings = { areaActionRef: { current: 0 }, clearSelection() {}, areaLayer: selected, setAreaLayer: (value) => { selected = value; }, setLayerNotice() {}, ready: true };
+  const change = new Function(...Object.keys(bindings), `${js}; return changeArea;`)(...Object.values(bindings));
+  await change("zoning");
+  assert.equal(selected, "none");
 });
 
 test("urban planning road linework stays lightweight and covers all six wards", async () => {
@@ -423,7 +470,7 @@ test("urban change popups distinguish project categories and omit unknown comple
   const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", { numberValue });
   const p = { n: "建替え計画", categoryLabel: "大規模建替え・新築", status: "計画", grossFloorArea: 15000, uses: "事務所", sourceDate: "2026-09-08", locationQuality: "gsi_geocode", sourceName: "千代田区公式一覧", sourceUrl: "https://www.city.chiyoda.lg.jp/example.html" };
   const detail = detailFor("redevelopment-hit-m", p);
-  assert.equal(detail.eyebrow, "Urban change");
+  assert.equal(detail.eyebrow, "再開発・大規模建替え");
   assert.ok(detail.rows.some(({ label, value }) => label === "区分" && value === p.categoryLabel));
   assert.ok(detail.rows.some(({ label, value }) => label === "延べ面積" && value.includes("15,000")));
   assert.ok(!detail.rows.some(({ label }) => label === "竣工予定"));
@@ -543,13 +590,13 @@ test("urban search loads its dataset, enables only its overlay and shows the sel
   const bindings = {
     cancelPendingLocation() {}, mapRef: { current: { flyTo: () => events.push("zoom"), getSource: () => ({ setData() {} }) } },
     setQuery() {}, setPanelOpen() {}, noticeActionRef: { current: 0 }, setLayerNotice() {},
-    DATASET_LABELS: { redevelopment: "都市更新", core: "町丁目" },
+    DATASET_LABELS: { redevelopment: "再開発・大規模建替え", core: "町丁目" },
     ensureDataset: async () => { events.push("load"); return { features: [feature] }; },
     setOverlays: (update) => { overlays = update(overlays); events.push("enable"); },
     detailFor: () => ({ title: "案件" }), meta: {}, boundsFor() {}, setDetail: (detail) => { assert.equal(detail.title, "案件"); events.push("detail"); },
   };
   const select = new Function(...Object.keys(bindings), `${js}; return selectSearchItem;`)(...Object.values(bindings));
-  await select({ kind: "都市更新", dataset: "redevelopment", featureIndex: 0, layerId: "redevelopment-hit" });
+  await select({ kind: "再開発・大規模建替え", dataset: "redevelopment", featureIndex: 0, layerId: "redevelopment-hit" });
   assert.deepEqual(events, ["load", "enable", "zoom", "detail"]);
   assert.deepEqual(overlays, { redevelopment: true, roads: true });
   events.length = 0;
@@ -793,7 +840,9 @@ test("new details omit missing attributes and distinguish historical building he
   });
   const memory = detailFor("memory-plates-hit", { n: "旧居跡" });
   assert.equal(memory.title, "旧居跡");
-  assert.deepEqual(memory.rows, []);
+  assert.deepEqual(memory.rows, [{ label: "種別", value: "まちの記憶保存プレート" }]);
+  assert.equal(memory.eyebrow, "まちの記憶保存プレート");
+  assert.ok(memory.sources.some(({ url }) => url.endsWith("/kioku/index.html")));
   const culture = detailFor("cultural-assets-points", { n: "物件", _category: "景観資源", _coordinate_quality: "block" });
   assert.deepEqual(culture.rows, [{ label: "区分", value: "景観資源" }]);
   assert.match(culture.note, /代表点/);
