@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import ts from "typescript";
-import { validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
+import { validateStyleMin, expression } from "@maplibre/maplibre-gl-style-spec";
 
 async function render() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -69,7 +69,12 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
     /<button(?=[^>]*class="[^"]*atlas-info-toggle)(?=[^>]*aria-expanded="false")[^>]*>/,
   );
   assert.doesNotMatch(html, /id="atlas-info-panel"/);
-  assert.doesNotMatch(html, /背景地図/);
+  assert.match(html, /背景地図/);
+  assert.match(html, /value="pale"[^>]*selected/);
+  assert.match(html, /最新航空写真/);
+  assert.match(html, /都市計画<\/h2>/);
+  assert.match(html, /変化・主体<\/h2>/);
+  assert.doesNotMatch(html, /計画・変化<\/h2>/);
 });
 
 test("map data includes the recommended reference layers", async () => {
@@ -436,7 +441,7 @@ test("urban change styles use three disjoint zoom tiers and quiet height-indepen
   const end = source.indexOf("const CHIYODA_REGION_LAYER_IDS", start);
   assert.ok(start >= 0 && end > start);
   const constants = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const bindings = new Function(`${constants}; return { URBAN_CHANGE_TIERS, URBAN_CHANGE_RADIUS, URBAN_CHANGE_COLOR, REDEVELOPMENT_LAYER_IDS };`)();
+  const bindings = new Function(`${constants}; return { URBAN_CHANGE_TIERS, URBAN_CHANGE_IS_CHIYODA, URBAN_CHANGE_RADIUS, URBAN_CHANGE_COLOR, REDEVELOPMENT_LAYER_IDS };`)();
   const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let loop;
   const visit = (node) => {
@@ -462,12 +467,58 @@ test("urban change styles use three disjoint zoom tiers and quiet height-indepen
     if (layer.id.startsWith("redevelopment-points")) {
       assert.deepEqual(layer.paint["circle-radius"], bindings.URBAN_CHANGE_RADIUS);
       assert.deepEqual(layer.paint["circle-color"], bindings.URBAN_CHANGE_COLOR);
-      assert.deepEqual(layer.paint["circle-opacity"], ["case", ["==", ["get", "category"], "planning_proposal"], 0, 0.9]);
+      assert.deepEqual(layer.paint["circle-opacity"], ["case", ["==", ["get", "category"], "planning_proposal"], 0, bindings.URBAN_CHANGE_IS_CHIYODA, 0.9, 0.35]);
+      assert.deepEqual(layer.paint["circle-stroke-opacity"], ["case", bindings.URBAN_CHANGE_IS_CHIYODA, 1, 0.35]);
     }
   }
   assert.deepEqual(validateStyleMin({ version: 8, sources: { redevelopment: { type: "geojson", data: { type: "FeatureCollection", features: [] } } }, layers }), []);
+  const evaluate = (value, properties) => {
+    const compiled = expression.createExpression(value, "layers[0].paint.circle-radius");
+    assert.equal(compiled.result, "success");
+    return compiled.value.evaluate({ zoom: 15 }, { type: "Point", properties });
+  };
+  const points = layers.find(({ id }) => id === "redevelopment-points");
+  for (const w of ["千代田区", "千代田区・中央区"]) {
+    const properties = { w, category: "legal_redevelopment", grossFloorArea: 100000 };
+    assert.equal(evaluate(points.paint["circle-radius"], properties), 7);
+    assert.equal(evaluate(points.paint["circle-opacity"], properties), 0.9);
+    assert.equal(evaluate(points.paint["circle-stroke-opacity"], properties), 1);
+  }
+  const adjacent = { w: "中央区", category: "legal_redevelopment", grossFloorArea: 100000 };
+  assert.ok(Math.abs(evaluate(points.paint["circle-radius"], adjacent) - 5.6) < 1e-10);
+  assert.equal(evaluate(points.paint["circle-opacity"], adjacent), 0.35);
+  assert.equal(evaluate(points.paint["circle-stroke-opacity"], adjacent), 0.35);
+  assert.equal(evaluate(points.paint["circle-opacity"], { ...adjacent, category: "planning_proposal" }), 0);
   assert.match(source, /redevelopment: URBAN_CHANGE_TIERS\.map/);
   assert.match(source, /REDEVELOPMENT_LAYER_IDS, overlays\.redevelopment/);
+});
+
+test("urban search loads its dataset, enables only its overlay and shows the selected detail", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const start = source.indexOf("const selectSearchItem =");
+  const end = source.indexOf("const legendGroups", start);
+  assert.ok(start >= 0 && end > start);
+  const js = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const events = [];
+  const feature = { type: "Feature", geometry: { type: "Point", coordinates: [139.75, 35.69] }, properties: { n: "案件" } };
+  let overlays = { redevelopment: false, roads: true };
+  const bindings = {
+    cancelPendingLocation() {}, mapRef: { current: { flyTo: () => events.push("zoom"), getSource: () => ({ setData() {} }) } },
+    setQuery() {}, setPanelOpen() {}, noticeActionRef: { current: 0 }, setLayerNotice() {},
+    DATASET_LABELS: { redevelopment: "都市更新", core: "町丁目" },
+    ensureDataset: async () => { events.push("load"); return { features: [feature] }; },
+    setOverlays: (update) => { overlays = update(overlays); events.push("enable"); },
+    detailFor: () => ({ title: "案件" }), meta: {}, boundsFor() {}, setDetail: (detail) => { assert.equal(detail.title, "案件"); events.push("detail"); },
+  };
+  const select = new Function(...Object.keys(bindings), `${js}; return selectSearchItem;`)(...Object.values(bindings));
+  await select({ kind: "都市更新", dataset: "redevelopment", featureIndex: 0, layerId: "redevelopment-hit" });
+  assert.deepEqual(events, ["load", "enable", "zoom", "detail"]);
+  assert.deepEqual(overlays, { redevelopment: true, roads: true });
+  events.length = 0;
+  overlays = { redevelopment: false, roads: true };
+  await select({ kind: "町丁目", dataset: "core", featureIndex: 0, layerId: "towns" });
+  assert.deepEqual(events, ["load", "zoom", "detail"]);
+  assert.equal(overlays.redevelopment, false);
 });
 
 test("OSM walking reference layers stay lazy, muted and hidden below zoom 14", async () => {

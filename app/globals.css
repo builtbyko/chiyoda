@@ -679,6 +679,13 @@ button {
   border-radius: 2px;
 }
 
+.legend-note {
+  margin: 9px 0 0;
+  color: #4e5854;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
 .detail-card {
   right: 14px;
   bottom: 25px;

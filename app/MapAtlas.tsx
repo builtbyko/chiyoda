@@ -29,7 +29,7 @@ type OverlayKey =
   | "culturalAssets"
   | "terrain"
   | "buildingHeight";
-type PhotoEpoch = "latest" | "1987" | "1984" | "1979" | "1974" | "1961" | "1945" | "1936";
+type PhotoEpoch = "pale" | "latest" | "1987" | "1984" | "1979" | "1974" | "1961" | "1945" | "1936";
 
 type GeoFeature = {
   type: "Feature";
@@ -165,8 +165,9 @@ const URBAN_CHANGE_TIERS = [
   { suffix: "-m", minzoom: 14, filter: ["all", ["==", ["get", "category"], "large_building"], ["==", ["get", "scale"], "M"]] },
 ];
 const REDEVELOPMENT_LAYER_IDS = URBAN_CHANGE_TIERS.flatMap(({ suffix }) => ["hit", "halo", "points"].map((kind) => `redevelopment-${kind}${suffix}`));
-const URBAN_CHANGE_RADIUS = ["case", ["all", ["==", ["get", "category"], "legal_redevelopment"], ["!", ["has", "grossFloorArea"]]], 5,
-  ["interpolate", ["linear"], ["coalesce", ["get", "grossFloorArea"], 3000], 3000, 3.5, 10000, 4.5, 50000, 6, 100000, 7, 600000, 9]];
+const URBAN_CHANGE_IS_CHIYODA = ["in", "千代田区", ["coalesce", ["get", "w"], ""]];
+const URBAN_CHANGE_RADIUS = ["*", ["case", ["all", ["==", ["get", "category"], "legal_redevelopment"], ["!", ["has", "grossFloorArea"]]], 5,
+  ["interpolate", ["linear"], ["coalesce", ["get", "grossFloorArea"], 3000], 3000, 3.5, 10000, 4.5, 50000, 6, 100000, 7, 600000, 9]], ["case", URBAN_CHANGE_IS_CHIYODA, 1, 0.8]];
 const URBAN_CHANGE_COLOR = ["match", ["get", "category"], "legal_redevelopment", "#d1ad7c", "planning_proposal", "#c6bdca", "#a7bcc4"];
 const CHIYODA_REGION_LAYER_IDS = ["chiyoda-regions-fill", "chiyoda-regions-line", "chiyoda-regions-label"];
 const FUNCTIONAL_KAIWAI_LAYER_IDS = ["functional-kaiwai-fill", "functional-kaiwai-line", "functional-kaiwai-label"];
@@ -366,7 +367,8 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
 };
 
 const PHOTO_OPTIONS: { value: PhotoEpoch; label: string; tile: string; maxzoom: number }[] = [
-  { value: "latest", label: "最新", tile: "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg", maxzoom: 18 },
+  { value: "pale", label: "淡色地図", tile: "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", maxzoom: 18 },
+  { value: "latest", label: "最新航空写真", tile: "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg", maxzoom: 18 },
   { value: "1987", label: "1987–1990年", tile: "https://cyberjapandata.gsi.go.jp/xyz/gazo4/{z}/{x}/{y}.jpg", maxzoom: 17 },
   { value: "1984", label: "1984–1986年", tile: "https://cyberjapandata.gsi.go.jp/xyz/gazo3/{z}/{x}/{y}.jpg", maxzoom: 17 },
   { value: "1979", label: "1979–1983年", tile: "https://cyberjapandata.gsi.go.jp/xyz/gazo2/{z}/{x}/{y}.jpg", maxzoom: 17 },
@@ -1114,7 +1116,7 @@ export function MapAtlas() {
     terrain: false,
     buildingHeight: false,
   });
-  const [photoEpoch, setPhotoEpoch] = useState<PhotoEpoch>("latest");
+  const [photoEpoch, setPhotoEpoch] = useState<PhotoEpoch>("pale");
   const [detail, setDetail] = useState<Detail | null>(null);
   const [searchItems, setSearchItems] = useState<SearchItem[]>([]);
   const [query, setQuery] = useState("");
@@ -1214,9 +1216,9 @@ export function MapAtlas() {
                 type: "raster",
                 source: `photo-${initialPhoto.value}`,
                 paint: {
-                  "raster-saturation": -0.36,
-                  "raster-contrast": -0.08,
-                  "raster-brightness-max": 0.92,
+                  "raster-saturation": 0,
+                  "raster-contrast": 0,
+                  "raster-brightness-max": 1,
                   "raster-fade-duration": 0,
                 },
               }] as never,
@@ -2078,7 +2080,7 @@ export function MapAtlas() {
             paint: {
               "circle-radius": ["+", URBAN_CHANGE_RADIUS, 2] as never,
               "circle-color": "#111916",
-              "circle-opacity": ["case", ["==", ["get", "category"], "planning_proposal"], 0, 0.72],
+              "circle-opacity": ["case", ["==", ["get", "category"], "planning_proposal"], 0, URBAN_CHANGE_IS_CHIYODA, 0.72, 0.3] as never,
             },
           });
           map.addLayer({
@@ -2091,8 +2093,9 @@ export function MapAtlas() {
             paint: {
               "circle-radius": URBAN_CHANGE_RADIUS as never,
               "circle-color": URBAN_CHANGE_COLOR as never,
-              "circle-opacity": ["case", ["==", ["get", "category"], "planning_proposal"], 0, 0.9],
+              "circle-opacity": ["case", ["==", ["get", "category"], "planning_proposal"], 0, URBAN_CHANGE_IS_CHIYODA, 0.9, 0.35] as never,
               "circle-stroke-color": URBAN_CHANGE_COLOR as never,
+              "circle-stroke-opacity": ["case", URBAN_CHANGE_IS_CHIYODA, 1, 0.35] as never,
               "circle-stroke-width": ["case", ["==", ["get", "category"], "planning_proposal"], 1.8, 1.2],
             },
           });
@@ -2468,9 +2471,9 @@ export function MapAtlas() {
         type: "raster",
         source: sourceId,
         paint: {
-          "raster-saturation": option.value === "latest" ? -0.36 : -0.16,
-          "raster-contrast": -0.08,
-          "raster-brightness-max": 0.92,
+          "raster-saturation": option.value === "pale" ? 0 : option.value === "latest" ? -0.36 : -0.16,
+          "raster-contrast": option.value === "pale" ? 0 : -0.08,
+          "raster-brightness-max": option.value === "pale" ? 1 : 0.92,
           "raster-fade-duration": 0,
         },
       }, map.getLayer("terrain-hillshade") ? "terrain-hillshade" : map.getLayer("plateau-building-height-fill") ? "plateau-building-height-fill" : "population-fill");
@@ -2628,6 +2631,9 @@ export function MapAtlas() {
       const feature = collection.features[item.featureIndex];
       if (!feature) throw new Error("検索した地物を読み込めませんでした");
       setLayerNotice(null);
+      if (item.kind === "都市更新") {
+        setOverlays((current) => ({ ...current, redevelopment: true }));
+      }
       if (feature.geometry.type === "Point") {
         const coordinate = feature.geometry.coordinates as [number, number];
         map.flyTo({ center: coordinate, zoom: 15.5, duration: 650 });
@@ -2708,7 +2714,7 @@ export function MapAtlas() {
     if (overlays.shelters) add("指定避難所", "概略位置を確認し、実際の避難時は各区の最新案内を見る。", meta?.sheltersDate ?? "取得時点", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
     if (overlays.boundaries) add("町丁目境界", "統計の集計単位を確認する補助線。", `${meta?.boundaryYear ?? 2020}年国勢調査`, "CODH", "https://geoshape.ex.nii.ac.jp/ka/resource/");
     const photo = PHOTO_OPTIONS.find((option) => option.value === photoEpoch);
-    add("航空写真", "年代ごとの市街地の変化を見る。古い写真は未整備箇所が空白になる。", photo?.label ?? "最新", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
+    add("背景地図", photoEpoch === "pale" ? "淡色地図で都市計画・都市更新の重なりを読む。" : "年代ごとの市街地の変化を見る。古い写真は未整備箇所が空白になる。", photo?.label ?? "淡色地図", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html");
     return items;
   }, [areaLayer, overlays, photoEpoch, meta]);
 
@@ -2794,7 +2800,7 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <label className="section-title" htmlFor="photo-epoch">航空写真</label>
+              <label className="section-title" htmlFor="photo-epoch">背景地図</label>
               <select
                 id="photo-epoch"
                 className="photo-select"
@@ -2842,15 +2848,21 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <h2 className="section-title">計画・変化</h2>
+              <h2 className="section-title">都市計画</h2>
               <div className="toggle-list">
                 <Toggle label="地区計画" active={overlays.districtPlans} onClick={() => toggleOverlay("districtPlans")} />
                 <Toggle label="高度地区" active={overlays.heightDistricts} onClick={() => toggleOverlay("heightDistricts")} />
                 <Toggle label="容積・再開発等の特例" active={overlays.specialZones} onClick={() => toggleOverlay("specialZones")} />
+              </div>
+            </section>
+
+            <section>
+              <h2 className="section-title">変化・主体</h2>
+              <div className="toggle-list">
                 <Toggle label="都市更新" active={overlays.redevelopment} onClick={() => toggleOverlay("redevelopment")} />
+                <Toggle label="まちづくりの動き" active={overlays.planningMovements} onClick={() => toggleOverlay("planningMovements")} />
                 <Toggle label="公開空地" active={overlays.openSpaces} onClick={() => toggleOverlay("openSpaces")} />
                 <Toggle label="まちづくり団体" active={overlays.areaManagement} onClick={() => toggleOverlay("areaManagement")} />
-                <Toggle label="まちづくりの動き" active={overlays.planningMovements} onClick={() => toggleOverlay("planningMovements")} />
               </div>
             </section>
 
@@ -2922,6 +2934,13 @@ export function MapAtlas() {
                           </div>
                         ))}
                       </div>
+                      {group.title === "都市更新" && (
+                        <p className="legend-note">
+                          点の大きさ＝延べ面積の目安<br />
+                          M 3千㎡〜 / L 1万㎡〜 / XL 5万㎡〜 / XXL 10万㎡〜<br />
+                          隣接区は薄く表示
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
