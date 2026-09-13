@@ -56,7 +56,7 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /<button(?=[^>]*aria-pressed="false")[^>]*><span>再開発・大規模建替え<\/span>/);
   assert.doesNotMatch(html, /<span>事業中の再開発<\/span>/);
   assert.match(html, /千代田区の7地域/);
-  for (const label of ["界隈（都市機能・文化）", "公開空地", "エリアマネジメント・まちづくり団体", "歴史・文化資源", "地形・陰影", "建物高さ", "駅出入口", "地下歩行リンク", "地域まちづくり（検討・方針）"]) {
+  for (const label of ["都市機能・文化の界隈", "公開空地", "エリアマネジメント・まちづくり団体", "歴史・文化資源", "地形・陰影", "建物高さ", "駅出入口", "地下歩行リンク", "地域まちづくり（検討・方針）"]) {
     assert.match(html, new RegExp(`<button(?=[^>]*aria-pressed="false")[^>]*><span>${label}</span>`));
   }
   assert.doesNotMatch(html, /<span>景観まちづくり重要物件<\/span>/);
@@ -75,7 +75,19 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /都市計画<\/h2>/);
   assert.match(html, /再開発・まちづくり<\/h2>/);
   const sections = [...html.matchAll(/class="section-title">([^<]+)<\/h2>/g)].map((match) => match[1]);
-  assert.deepEqual(sections, ["土地利用・規制", "都市構造・交通", "都市計画", "再開発・まちづくり", "地域・歴史", "統計・防災"]);
+  assert.deepEqual(sections, ["土地利用・規制", "交通・公共空間", "都市構造", "都市計画", "再開発・まちづくり", "地域・歴史", "統計・参考", "防災"]);
+  const menu = [...html.matchAll(/<section><h2 class="section-title">([^<]+)<\/h2>([\s\S]*?)<\/section>/g)].map(([, title, content]) => [title, [...content.matchAll(/<button[^>]*>(?:<span>)?([^<]+)/g)].map(([, label]) => label)]);
+  assert.deepEqual(menu, [
+    ["土地利用・規制", ["用途地域", "実土地利用", "防火指定"]],
+    ["交通・公共空間", ["鉄道・駅", "主要道路", "駅出入口", "地下歩行リンク", "公園・緑地", "公開空地"]],
+    ["都市構造", ["地形・陰影", "建物高さ", "町丁目境界"]],
+    ["都市計画", ["地区計画", "都市計画道路", "高度地区", "都市計画の特例（容積・再開発等）"]],
+    ["再開発・まちづくり", ["再開発・大規模建替え", "地域まちづくり（検討・方針）", "エリアマネジメント・まちづくり団体"]],
+    ["地域・歴史", ["千代田区の7地域", "都市機能・文化の界隈", "歴史・文化資源"]],
+    ["統計・参考", ["住民密度", "昼間人口", "地価公示"]],
+    ["防災", ["洪水浸水", "指定避難所"]],
+  ]);
+  assert.doesNotMatch(html, /界隈（都市機能・文化）/);
   assert.doesNotMatch(html, /<span>まちの記憶(?:保存プレート)?<\/span>/);
   assert.doesNotMatch(html, /表示なし/);
   assert.doesNotMatch(html, /計画・変化<\/h2>/);
@@ -270,7 +282,7 @@ test("active guides distinguish official GIS, prepared records, derived data and
   for (const match of source.matchAll(/const (\w+(?:SOURCE|NOTE)) = "([^"]+)";/g)) bindings[match[1]] = match[2];
   const guides = new Function(...Object.keys(bindings), `${js}; return activeGuides;`)(...Object.values(bindings));
   const nature = (label) => guides.find((guide) => guide.label === label)?.nature;
-  assert.equal(nature("界隈（都市機能・文化）"), "公式GIS");
+  assert.equal(nature("都市機能・文化の界隈"), "公式GIS");
   assert.equal(nature("千代田区の7地域"), "派生データ");
   assert.equal(nature("地域まちづくり（検討・方針）"), "公式資料をATLASで整理");
   assert.equal(nature("再開発・大規模建替え"), "公式資料をATLASで整理");

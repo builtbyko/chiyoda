@@ -328,7 +328,7 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   specialZones: "都市計画の特例（容積・再開発等）",
   redevelopment: "再開発・大規模建替え",
   chiyodaRegions: "千代田区の7地域",
-  functionalKaiwai: "界隈（都市機能・文化）",
+  functionalKaiwai: "都市機能・文化の界隈",
   openSpaces: "公開空地",
   areaManagement: "エリアマネジメント・まちづくり団体",
   planningMovements: "地域まちづくり（検討・方針）",
@@ -355,7 +355,7 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   specialZones: "都市計画の特例（容積・再開発等）",
   redevelopment: "再開発・大規模建替え",
   chiyodaRegions: "千代田区の7地域",
-  functionalKaiwai: "界隈（都市機能・文化）",
+  functionalKaiwai: "都市機能・文化の界隈",
   openSpaces: "公開空地",
   areaManagement: "エリアマネジメント・まちづくり団体",
   planningMovements: "地域まちづくり（検討・方針）",
@@ -1428,7 +1428,7 @@ export function MapAtlas() {
             type: "geojson",
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
-            attribution: `界隈（都市機能・文化）：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+            attribution: `都市機能・文化の界隈：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
           });
           map.addSource("open-spaces", {
             type: "geojson",
@@ -2747,7 +2747,7 @@ export function MapAtlas() {
     if (overlays.specialZones) add("都市計画の特例（容積・再開発等）", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.redevelopment) add("再開発・大規模建替え", "市街地再開発・大規模建替え・都市計画提案を区別。点の大きさは延べ面積の目安。Mはズーム14以上。位置・基準日は各点の詳細へ。", `区内：${meta?.urbanChangeDate ?? "2026-09-13"}取得／隣接区：2025-10-31時点`, "千代田区・東京都公式一覧／建築物環境計画書等をATLASで整理", "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html", "公式資料をATLASで整理");
     if (overlays.chiyodaRegions) add("千代田区の7地域", "都市計画マスタープランの公式町丁目対応を町丁目境界へ結合。政策・まちづくり上の7地域。", meta?.chiyodaRegionDate ?? "2021-05", "千代田区", "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf", "派生データ");
-    if (overlays.functionalKaiwai) add("界隈（都市機能・文化）", "古書店街、学生街、秋葉原電気街など、都市機能・文化の集積から見た16の界隈。", "公式ページ2025-06-06", "千代田区公式GIS「界隈」", OFFICIAL_ELEMENT_SOURCE);
+    if (overlays.functionalKaiwai) add("都市機能・文化の界隈", "古書店街、学生街、秋葉原電気街など、都市機能・文化の集積から見た16の界隈。", "公式ページ2025-06-06", "千代田区公式GIS「界隈」", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.openSpaces) add("公開空地", "公式GISに掲載された公開空地。自由な利用の可否・条件は現地等で確認。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.areaManagement) add("エリアマネジメント・まちづくり団体", "公式GISの団体活動区域。複数団体を含む区域もある。", "公式ページ2025-06-06", "千代田区", OFFICIAL_ELEMENT_SOURCE);
     if (overlays.planningMovements) add("地域まちづくり（検討・方針）", "検討・対話・地域ルール形成を見る。位置は町丁目代表点。千代田区公式資料をATLASで整理したレイヤーで、単一の公式GISではありません。", "基準日は各点に表示", "千代田区公式資料をATLASで整理", PLANNING_MOVEMENT_SOURCE, "公式資料をATLASで整理");
@@ -2870,13 +2870,20 @@ export function MapAtlas() {
             </section>
 
             <section>
-              <h2 className="section-title">都市構造・交通</h2>
+              <h2 className="section-title">交通・公共空間</h2>
               <div className="toggle-list">
                 <Toggle label="鉄道・駅" active={overlays.rail} onClick={() => toggleOverlay("rail")} />
                 <Toggle label="主要道路" active={overlays.roads} onClick={() => toggleOverlay("roads")} />
                 <Toggle label="駅出入口" active={overlays.stationEntrances} onClick={() => toggleOverlay("stationEntrances")} />
                 <Toggle label="地下歩行リンク" active={overlays.undergroundWalkways} onClick={() => toggleOverlay("undergroundWalkways")} />
                 <Toggle label="公園・緑地" active={overlays.parks} onClick={() => toggleOverlay("parks")} />
+                <Toggle label="公開空地" active={overlays.openSpaces} onClick={() => toggleOverlay("openSpaces")} />
+              </div>
+            </section>
+
+            <section>
+              <h2 className="section-title">都市構造</h2>
+              <div className="toggle-list">
                 <Toggle label="地形・陰影" active={overlays.terrain} onClick={() => toggleOverlay("terrain")} />
                 <Toggle label="建物高さ" active={overlays.buildingHeight} onClick={() => toggleOverlay("buildingHeight")} />
                 <Toggle label="町丁目境界" active={overlays.boundaries} onClick={() => toggleOverlay("boundaries")} />
@@ -2899,7 +2906,6 @@ export function MapAtlas() {
                 <Toggle label="再開発・大規模建替え" active={overlays.redevelopment} onClick={() => toggleOverlay("redevelopment")} />
                 <Toggle label="地域まちづくり（検討・方針）" active={overlays.planningMovements} onClick={() => toggleOverlay("planningMovements")} />
                 <Toggle label="エリアマネジメント・まちづくり団体" active={overlays.areaManagement} onClick={() => toggleOverlay("areaManagement")} />
-                <Toggle label="公開空地" active={overlays.openSpaces} onClick={() => toggleOverlay("openSpaces")} />
               </div>
             </section>
 
@@ -2907,20 +2913,28 @@ export function MapAtlas() {
               <h2 className="section-title">地域・歴史</h2>
               <div className="toggle-list">
                 <Toggle label="千代田区の7地域" active={overlays.chiyodaRegions} onClick={() => toggleOverlay("chiyodaRegions")} />
-                <Toggle label="界隈（都市機能・文化）" active={overlays.functionalKaiwai} onClick={() => toggleOverlay("functionalKaiwai")} />
+                <Toggle label="都市機能・文化の界隈" active={overlays.functionalKaiwai} onClick={() => toggleOverlay("functionalKaiwai")} />
                 <Toggle label="歴史・文化資源" active={overlays.culturalAssets} onClick={() => toggleOverlay("culturalAssets")} />
               </div>
             </section>
 
             <section>
-              <h2 className="section-title">統計・防災</h2>
+              <h2 className="section-title">統計・参考</h2>
               <div className="area-choice-grid">
-                <AreaButton label="洪水浸水" active={areaLayer === "flood"} onClick={() => changeArea("flood")} />
                 <AreaButton label="住民密度" active={areaLayer === "population"} onClick={() => changeArea("population")} />
                 <AreaButton label="昼間人口" active={areaLayer === "daytime"} onClick={() => changeArea("daytime")} />
               </div>
               <div className="toggle-list">
                 <Toggle label="地価公示" active={overlays.landPrices} onClick={() => toggleOverlay("landPrices")} />
+              </div>
+            </section>
+
+            <section>
+              <h2 className="section-title">防災</h2>
+              <div className="area-choice-grid">
+                <AreaButton label="洪水浸水" active={areaLayer === "flood"} onClick={() => changeArea("flood")} />
+              </div>
+              <div className="toggle-list">
                 <Toggle label="指定避難所" active={overlays.shelters} onClick={() => toggleOverlay("shelters")} />
               </div>
             </section>
