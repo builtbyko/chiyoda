@@ -1,11 +1,11 @@
 {
-  "auditedAt": "2026-09-13T15:51:27.057Z",
-  "referenceCommit": "4b0cecfbf47fcfec6f10f046189280ff113f9fa6",
+  "auditedAt": "2026-09-14T08:44:47.870Z",
+  "referenceCommit": "4c92bd6779078840241b9dab83105a305eeebe69",
   "scope": "Working-tree files at auditedAt; referenceCommit is HEAD, not a claim that uncommitted files equal HEAD. No live source freshness or topology verification. Dates are field distributions, not inferred acquisition dates. Repeated names are not automatically errors; districtPlans/specialZones have no stable exported ID.",
   "core": {
     "file": "public/data/map-data.json",
-    "sha256": "eadc27c92deb1bc4a06c9d732b6723b02ee9a9adc69bb71d9b212384bb247b71",
-    "bytes": 177275,
+    "sha256": "963b5b097d5f3589696218c7f4e0474b36b871cdf3188425f57a168712d00779",
+    "bytes": 179437,
     "metadata": {
       "populationDate": "2026-01-01",
       "population": 1339649,
@@ -46,7 +46,10 @@
       "chiyodaRegionCount": 7,
       "landscapePropertyCount": 64,
       "urbanPlanningRoadCount": 24,
-      "urbanChangeDate": "2026-09-14"
+      "urbanChangeDate": "2026-09-14",
+      "slopesCount": 54,
+      "slopesRetrievedDate": "2026-09-14",
+      "slopesSourceDate": "2023-03-08"
     }
   },
   "mappings": {
@@ -119,6 +122,9 @@
       "culturalAssets": [
         "culturalAssets",
         "memoryPlates"
+      ],
+      "slopes": [
+        "slopes"
       ],
       "terrain": [],
       "buildingHeight": []
@@ -4628,6 +4634,88 @@
       ],
       "geometryErrorCount": 0,
       "geometryErrors": []
+    },
+    "slopes": {
+      "label": "坂",
+      "file": "public/data/layers/slopes.json",
+      "sha256": "9fc89912b071ec6a3c6b6be45a18975481a42bda3fff9a05371a622c212f5590",
+      "bytes": 45620,
+      "featureCount": 54,
+      "geometryTypes": {
+        "Point": 54
+      },
+      "coordinateCount": 54,
+      "bounds": [
+        139.733982,
+        35.672238,
+        139.768324,
+        35.701409
+      ],
+      "wards": {
+        "千代田区": 54
+      },
+      "sourceDates": {
+        "2023-03-08": 54
+      },
+      "retrievedDates": {
+        "2026-09-14": 54
+      },
+      "compiledDates": {
+        "(missing)": 54
+      },
+      "featureDates": null,
+      "coordinateQualities": {
+        "tourism-guide-point": 54
+      },
+      "dataQualities": {
+        "(missing)": 54
+      },
+      "missingNames": 0,
+      "identityCoverage": 54,
+      "duplicateIdCount": 0,
+      "duplicateIds": [],
+      "repeatedNameCount": 5,
+      "repeatedNames": [
+        [
+          "千代田区|新坂",
+          [
+            4,
+            23,
+            40
+          ]
+        ],
+        [
+          "千代田区|富士見坂",
+          [
+            10,
+            21,
+            46
+          ]
+        ],
+        [
+          "千代田区|中坂",
+          [
+            26,
+            45
+          ]
+        ],
+        [
+          "千代田区|鍋割坂",
+          [
+            27,
+            42
+          ]
+        ],
+        [
+          "千代田区|三年坂",
+          [
+            41,
+            51
+          ]
+        ]
+      ],
+      "geometryErrorCount": 0,
+      "geometryErrors": []
     }
   },
   "inactiveFiles": [
@@ -4635,13 +4723,14 @@
     "redevelopment.json"
   ],
   "search": {
-    "count": 2078,
+    "count": 2132,
     "byDataset": {
       "chiyodaRegions": 7,
       "culturalAssets": 111,
       "districtPlans": 117,
       "parks": 735,
       "redevelopment": 77,
+      "slopes": 54,
       "specialZones": 232,
       "stations": 141,
       "towns": 658

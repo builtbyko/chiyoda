@@ -26,6 +26,7 @@ type OverlayKey =
   | "areaManagement"
   | "planningMovements"
   | "culturalAssets"
+  | "slopes"
   | "terrain"
   | "buildingHeight";
 type PhotoEpoch = "pale" | "osm" | "latest" | "1987" | "1984" | "1979" | "1974" | "1961" | "1945" | "1936";
@@ -66,6 +67,7 @@ type DatasetKey =
   | "areaManagement"
   | "memoryPlates"
   | "culturalAssets"
+  | "slopes"
   | "planningMovements";
 
 type AtlasData = {
@@ -110,6 +112,9 @@ type AtlasData = {
     chiyodaRegionCount: number;
     landscapePropertyCount: number;
     urbanPlanningRoadCount: number;
+    slopesCount?: number;
+    slopesSourceDate?: string;
+    slopesRetrievedDate?: string;
   };
   scope: GeoFeature;
   city: GeoFeature;
@@ -125,7 +130,7 @@ type AtlasData = {
 type SearchItem = {
   name: string;
   ward: string;
-  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発・大規模建替え" | "7地域" | "歴史・文化資源";
+  kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発・大規模建替え" | "7地域" | "歴史・文化資源" | "坂";
   layerId: string;
   dataset: DatasetKey;
   featureIndex: number;
@@ -176,6 +181,9 @@ const OPEN_SPACE_LAYER_IDS = ["open-spaces-fill", "open-spaces-line"];
 const AREA_MANAGEMENT_LAYER_IDS = ["area-management-fill", "area-management-line", "area-management-points", "area-management-hit"];
 const MEMORY_PLATE_LAYER_IDS = ["memory-plates-hit", "memory-plates-halo", "memory-plates-points"];
 const CULTURAL_ASSET_LAYER_IDS = ["cultural-assets-hit", "cultural-assets-halo", "cultural-assets-points", "cultural-assets-fill", "cultural-assets-line"];
+const SLOPE_LAYER_IDS = ["slopes-hit", "slopes-halo", "slopes-points", "slopes-label"];
+const SLOPE_TOURISM_SOURCE = "https://visit-chiyoda.tokyo/app/spot?searchSubCategory%5B0%5D=16";
+const SLOPE_POSITION_NOTE = "位置は千代田区観光協会の地図掲載地点です。坂の全区間や勾配を示すものではありません。";
 const OFFICIAL_ELEMENT_SOURCE = "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html";
 const PLATEAU_BUILDING_SOURCE = "https://github.com/indigo-lab/plateau-tokyo23ku-building-mvt-2020";
 const OSM_REFERENCE_SOURCE = "https://www.openstreetmap.org/copyright";
@@ -211,6 +219,7 @@ const OVERLAY_INTERACTIVE_LAYERS: Partial<Record<OverlayKey, string[]>> = {
   areaManagement: ["area-management-hit", "area-management-fill"],
   planningMovements: ["planning-movements-hit"],
   culturalAssets: ["cultural-assets-hit", "cultural-assets-fill", "memory-plates-hit"],
+  slopes: ["slopes-points", "slopes-hit", "slopes-label"],
   buildingHeight: ["plateau-building-height-fill"],
 };
 
@@ -242,6 +251,7 @@ const DATASET_FILES: Record<DatasetKey, string> = {
   planningMovements: "planning-movements.json",
   memoryPlates: "memory-plates.json",
   culturalAssets: "cultural-assets.json",
+  slopes: "slopes.json",
 };
 
 const DATASET_SOURCES: Record<DatasetKey, string> = {
@@ -270,6 +280,7 @@ const DATASET_SOURCES: Record<DatasetKey, string> = {
   planningMovements: "planning-movements",
   memoryPlates: "memory-plates",
   culturalAssets: "cultural-assets",
+  slopes: "slopes",
 };
 
 const AREA_DATASETS: Partial<Record<AreaLayer, DatasetKey>> = {
@@ -301,6 +312,7 @@ const OVERLAY_DATASETS: Record<OverlayKey, DatasetKey[]> = {
   areaManagement: ["areaManagement"],
   planningMovements: ["planningMovements"],
   culturalAssets: ["culturalAssets", "memoryPlates"],
+  slopes: ["slopes"],
   terrain: [],
   buildingHeight: [],
 };
@@ -334,6 +346,7 @@ const LAYER_LABELS: Record<AreaLayer | OverlayKey, string> = {
   areaManagement: "エリアマネジメント・まちづくり団体",
   planningMovements: "地域まちづくり（検討・方針）",
   culturalAssets: "歴史・文化資源",
+  slopes: "坂",
 };
 
 const DATASET_LABELS: Record<DatasetKey, string> = {
@@ -362,6 +375,7 @@ const DATASET_LABELS: Record<DatasetKey, string> = {
   planningMovements: "地域まちづくり（検討・方針）",
   memoryPlates: "まちの記憶保存プレート",
   culturalAssets: "歴史・文化資源",
+  slopes: "坂",
 };
 
 const PHOTO_OPTIONS: { value: PhotoEpoch; label: string; tile: string; maxzoom: number }[] = [
@@ -750,6 +764,22 @@ function detailFor(
         label: "千代田区都市計画マスタープラン",
         url: String(p.u ?? "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf"),
       }],
+    };
+  }
+  if (layerId.startsWith("slopes-")) {
+    return {
+      eyebrow: "坂",
+      title: String(p.n ?? "坂"),
+      rows: [
+        { label: "読み", value: textValue(p.r) },
+        { label: "所在地", value: textValue(p.a) },
+        { label: "由来・特徴", value: textValue(p.summary) },
+      ].filter((row) => row.value !== "—"),
+      note: [p.positionNote, SLOPE_POSITION_NOTE].filter(Boolean).join(" "),
+      sources: [
+        ...(p.citySourceUrl ? [{ label: "千代田区の坂案内", url: String(p.citySourceUrl) }] : []),
+        { label: "千代田区観光協会の坂案内・位置", url: String(p.sourceUrl ?? SLOPE_TOURISM_SOURCE) },
+      ],
     };
   }
   if (["functional-kaiwai", "open-spaces", "area-management", "memory-plates", "cultural-assets"].some((id) => layerId.startsWith(id))) {
@@ -1163,6 +1193,7 @@ export function MapAtlas() {
     areaManagement: false,
     planningMovements: false,
     culturalAssets: false,
+    slopes: false,
     terrain: false,
     buildingHeight: false,
   });
@@ -1481,6 +1512,12 @@ export function MapAtlas() {
             data: EMPTY_COLLECTION as never,
             ...geoJsonOptions,
             attribution: `歴史・文化資源：<a href="${OFFICIAL_ELEMENT_SOURCE}" target="_blank">千代田区公式GISを加工</a>`,
+          });
+          map.addSource("slopes", {
+            type: "geojson",
+            data: EMPTY_COLLECTION as never,
+            ...geoJsonOptions,
+            attribution: `坂：<a href="${SLOPE_TOURISM_SOURCE}" target="_blank">千代田区観光協会の公開情報を整理</a>`,
           });
           map.addSource("selection", {
             type: "geojson",
@@ -2192,6 +2229,45 @@ export function MapAtlas() {
             },
           });
           map.addLayer({
+            id: "slopes-hit", type: "circle", source: "slopes",
+            minzoom: 13,
+            layout: { visibility: "none" },
+            paint: { "circle-radius": 12, "circle-color": "#ffffff", "circle-opacity": 0 },
+          });
+          map.addLayer({
+            id: "slopes-halo", type: "circle", source: "slopes",
+            minzoom: 13,
+            layout: { visibility: "none" },
+            paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 5, 17, 6], "circle-color": "#302b26", "circle-opacity": 0.65 },
+          });
+          map.addLayer({
+            id: "slopes-points", type: "circle", source: "slopes",
+            minzoom: 13,
+            layout: { visibility: "none" },
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 3.3, 17, 4.3],
+              "circle-color": "#8f7867",
+              "circle-stroke-color": "#fffefa",
+              "circle-stroke-width": 1.5,
+            },
+          });
+          map.addLayer({
+            id: "slopes-label", type: "symbol", source: "slopes",
+            minzoom: 14,
+            layout: {
+              visibility: "none",
+              "text-field": ["get", "n"],
+              "text-font": ["Noto Sans Regular"],
+              "text-size": ["interpolate", ["linear"], ["zoom"], 14, 11, 17, 12],
+              "text-anchor": "left",
+              "text-offset": [0.8, 0],
+              "text-padding": 4,
+              "text-allow-overlap": false,
+              "text-ignore-placement": false,
+            },
+            paint: { "text-color": "#4b3f36", "text-halo-color": "#fffefa", "text-halo-width": 1.5 },
+          });
+          map.addLayer({
             id: "ward-boundaries-halo",
             type: "line",
             source: "wards",
@@ -2525,6 +2601,7 @@ export function MapAtlas() {
     setLayerVisibility(map, PLANNING_MOVEMENT_LAYER_IDS, overlays.planningMovements);
     setLayerVisibility(map, MEMORY_PLATE_LAYER_IDS, overlays.culturalAssets);
     setLayerVisibility(map, CULTURAL_ASSET_LAYER_IDS, overlays.culturalAssets);
+    setLayerVisibility(map, SLOPE_LAYER_IDS, overlays.slopes);
     setLayerVisibility(map, ["terrain-hillshade"], overlays.terrain);
     setLayerVisibility(map, ["plateau-building-height-fill"], overlays.buildingHeight);
   }, [overlays, ready]);
@@ -2714,6 +2791,9 @@ export function MapAtlas() {
       if (item.kind === "再開発・大規模建替え") {
         setOverlays((current) => ({ ...current, redevelopment: true }));
       }
+      if (item.kind === "坂") {
+        setOverlays((current) => ({ ...current, slopes: true }));
+      }
       if (feature.geometry.type === "Point") {
         const coordinate = feature.geometry.coordinates as [number, number];
         map.flyTo({ center: coordinate, zoom: 15.5, duration: 650 });
@@ -2757,6 +2837,7 @@ export function MapAtlas() {
     if (overlays.culturalAssets) groups.push({ title: "歴史・文化資源", items: CULTURAL_ASSET_LEGEND });
     if (overlays.planningMovements) groups.push({ title: "地域まちづくり（検討・方針）", items: [["町丁目代表点", "#d7cde0"]] });
     if (overlays.buildingHeight) groups.push({ title: "建物高さ（m・2020年度）", items: BUILDING_HEIGHT_LEGEND });
+    if (overlays.slopes) groups.push({ title: "坂", items: [["観光案内の掲載地点", "#8f7867"]] });
     return groups;
   }, [areaLayer, overlays]);
 
@@ -2794,6 +2875,7 @@ export function MapAtlas() {
     if (overlays.culturalAssets) add("まちの記憶保存プレート", "歴史的な出来事・人物のゆかりを伝える保存プレートの所在地。", "公式GISページ2025-06-06", "千代田区「まちの記憶保存プレート」", "https://www.city.chiyoda.lg.jp/koho/kurashi/volunteer/kioku/index.html");
     if (overlays.culturalAssets) add("歴史・文化資源", "国・都・区文化財、景観資源、まちの記憶保存プレートをまとめて見る。公式GISと既存指定一覧を統合。", "公式GIS・既存指定一覧", "千代田区", OFFICIAL_ELEMENT_SOURCE, "公式GIS／公式資料をATLASで整理");
     if (overlays.terrain) add("地形・陰影", "陰影起伏から台地・谷・崖の連続性を見る。標高値は示さない。", "地理院タイル", "国土地理院", "https://maps.gsi.go.jp/development/ichiran.html", "派生データ");
+    if (overlays.slopes) add("坂", `坂名・読み・短い由来から地形と街の歴史を読む。${SLOPE_POSITION_NOTE}`, `区の坂一覧：${meta?.slopesSourceDate ?? "2023-03-08"}／協会地点の取得：${meta?.slopesRetrievedDate ?? "未記録"}`, "千代田区・千代田区観光協会", SLOPE_TOURISM_SOURCE, "公式資料をATLASで整理");
     if (overlays.buildingHeight) add("建物高さ", "2020年度の市街地の高さ構造を学ぶ。最新建物情報ではなく、広域ズームでは小規模建物が省略される。", "2020年度", "PLATEAU / indigo-lab MVT", PLATEAU_BUILDING_SOURCE, "派生データ");
     if (overlays.parks) add("公園・緑地", "まとまりとネットワークを周辺区まで連続して見る。", meta?.parksDate ?? "公開時点", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d2000000024");
     if (overlays.landPrices) add("地価公示", "標準地の点比較。個別不動産の価格ではない。", meta?.landPriceDate ?? "2026-01-01", "国土交通省", "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-L01-2026.html", "公式統計・公式表");
@@ -2939,6 +3021,7 @@ export function MapAtlas() {
               <h2 className="section-title">都市構造</h2>
               <div className="toggle-list">
                 <Toggle label="地形・陰影" active={overlays.terrain} onClick={() => toggleOverlay("terrain")} />
+                <Toggle label="坂" active={overlays.slopes} onClick={() => toggleOverlay("slopes")} />
                 <Toggle label="建物高さ" active={overlays.buildingHeight} onClick={() => toggleOverlay("buildingHeight")} />
                 <Toggle label="町丁目境界" active={overlays.boundaries} onClick={() => toggleOverlay("boundaries")} />
               </div>

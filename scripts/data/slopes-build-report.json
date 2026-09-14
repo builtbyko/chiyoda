@@ -1,0 +1,568 @@
+{
+  "builtDate": "2026-09-14",
+  "citySourceUrl": "https://www.city.chiyoda.lg.jp/koho/kuse/gaiyo/yokoso/saka.html",
+  "citySourceDate": "2023-03-08",
+  "cityRetrievedDate": "2026-09-14",
+  "tourismCatalogUrl": "https://visit-chiyoda.tokyo/app/spot?page=1&searchSubCategory%5B0%5D=16",
+  "tourismSpotCount": 56,
+  "featureCount": 54,
+  "actualNetworkRequestCount": 0,
+  "positionType": "tourism-guide-point",
+  "coordinatePrecision": "publisher coordinates retained",
+  "coordinateBoundaryValidation": "EPSG:6677 metre distances; normal rounding tolerance 2m; only officially described 昌平坂 (spot 199) accepts <=10m, unchanged position.",
+  "boundaryExceptions": [
+    {
+      "id": 199,
+      "name": "昌平坂",
+      "outsideMeters": 6.6,
+      "citySourceUrl": "https://www.city.chiyoda.lg.jp/koho/kuse/gaiyo/yokoso/saka.html",
+      "reason": "Municipal text explicitly identifies a ward-boundary slope; published point unchanged; projected distance <=10m."
+    }
+  ],
+  "officialGisFound": false,
+  "officialGisCheck": "Saved municipal ArcGIS catalog: 11 services / 70 layers; no named-slope dataset identified. No geometry inferred.",
+  "sources": [
+    {
+      "id": 510,
+      "name": "梅林坂",
+      "address": "千代田1　皇居東御苑内",
+      "coordinates": [
+        139.7562025,
+        35.6888052
+      ]
+    },
+    {
+      "id": 197,
+      "name": "明神男坂",
+      "address": "外神田二丁目",
+      "coordinates": [
+        139.768324,
+        35.701409
+      ]
+    },
+    {
+      "id": 511,
+      "name": "九段坂",
+      "address": "千代田区九段北一丁目～九段南一丁目",
+      "coordinates": [
+        139.7431542,
+        35.6928831
+      ]
+    },
+    {
+      "id": 174,
+      "name": "三宅坂",
+      "address": "隼町、永田町一丁目、霞が関二丁目",
+      "coordinates": [
+        139.744211,
+        35.682229
+      ]
+    },
+    {
+      "id": 159,
+      "name": "新坂",
+      "address": "永田町二丁目",
+      "coordinates": [
+        139.739575,
+        35.676557
+      ]
+    },
+    {
+      "id": 165,
+      "name": "山王坂",
+      "address": "永田町二丁目",
+      "coordinates": [
+        139.743119,
+        35.675058
+      ]
+    },
+    {
+      "id": 166,
+      "name": "山王男坂",
+      "address": "永田町二丁目",
+      "coordinates": [
+        139.740556,
+        35.674642
+      ]
+    },
+    {
+      "id": 167,
+      "name": "山王女坂",
+      "address": "永田町二丁目",
+      "coordinates": [
+        139.740384,
+        35.674279
+      ]
+    },
+    {
+      "id": 168,
+      "name": "三べ坂",
+      "address": "永田町二丁目",
+      "coordinates": [
+        139.739291,
+        35.67795
+      ]
+    },
+    {
+      "id": 171,
+      "name": "梨木坂",
+      "address": "永田町二丁目",
+      "coordinates": [
+        139.745094,
+        35.679147
+      ]
+    },
+    {
+      "id": 172,
+      "name": "富士見坂",
+      "address": "永田町二丁目",
+      "coordinates": [
+        139.738665,
+        35.678708
+      ]
+    },
+    {
+      "id": 175,
+      "name": "錦華坂",
+      "address": "猿楽町一丁目～神田駿河台一丁目",
+      "coordinates": [
+        139.760841,
+        35.697839
+      ]
+    },
+    {
+      "id": 177,
+      "name": "男坂",
+      "address": "猿楽町二丁目",
+      "coordinates": [
+        139.759815,
+        35.699722
+      ]
+    },
+    {
+      "id": 178,
+      "name": "女坂",
+      "address": "神田猿楽町二丁目",
+      "coordinates": [
+        139.758854,
+        35.700411
+      ]
+    },
+    {
+      "id": 180,
+      "name": "小栗坂",
+      "address": "三崎町一丁目～猿楽町二丁目",
+      "coordinates": [
+        139.756845,
+        35.70121
+      ]
+    },
+    {
+      "id": 181,
+      "name": "甲賀坂",
+      "address": "神田駿河台1丁目",
+      "coordinates": [
+        139.76295,
+        35.697524
+      ]
+    },
+    {
+      "id": 182,
+      "name": "池田坂",
+      "address": "神田駿河台四丁目",
+      "coordinates": [
+        139.763812,
+        35.697533
+      ]
+    },
+    {
+      "id": 183,
+      "name": "雁木坂",
+      "address": "神田駿河台一丁目",
+      "coordinates": [
+        139.763962,
+        35.698406
+      ]
+    },
+    {
+      "id": 185,
+      "name": "皀角坂",
+      "address": "神田駿河台二丁目",
+      "coordinates": [
+        139.757997,
+        35.70118
+      ]
+    },
+    {
+      "id": 186,
+      "name": "胸突坂",
+      "address": "神田駿河台三丁目",
+      "coordinates": [
+        139.723455,
+        35.71242
+      ]
+    },
+    {
+      "id": 189,
+      "name": "紅梅坂",
+      "address": "神田駿河台四丁目",
+      "coordinates": [
+        139.765136,
+        35.698444
+      ]
+    },
+    {
+      "id": 190,
+      "name": "幽霊坂",
+      "address": "神田駿河台四丁目",
+      "coordinates": [
+        139.766229,
+        35.698424
+      ]
+    },
+    {
+      "id": 191,
+      "name": "富士見坂",
+      "address": "神田小川町三丁目",
+      "coordinates": [
+        139.761402,
+        35.696639
+      ]
+    },
+    {
+      "id": 192,
+      "name": "淡路坂",
+      "address": "神田駿河台四丁目",
+      "coordinates": [
+        139.7656,
+        35.699304
+      ]
+    },
+    {
+      "id": 193,
+      "name": "新坂",
+      "address": "神田駿河台四丁目～神田淡路町二丁目",
+      "coordinates": [
+        139.766606,
+        35.697148
+      ]
+    },
+    {
+      "id": 199,
+      "name": "昌平坂",
+      "address": "外神田二丁目",
+      "coordinates": [
+        139.766993,
+        35.699756
+      ]
+    },
+    {
+      "id": 121,
+      "name": "紀伊国坂",
+      "address": "北の丸公園3",
+      "coordinates": [
+        139.753669,
+        35.689471
+      ]
+    },
+    {
+      "id": 123,
+      "name": "中坂",
+      "address": "千代田区平河町一丁目～二丁目",
+      "coordinates": [
+        139.740817,
+        35.682157
+      ]
+    },
+    {
+      "id": 124,
+      "name": "鍋割坂",
+      "address": "千代田区隼町",
+      "coordinates": [
+        139.743117,
+        35.682683
+      ]
+    },
+    {
+      "id": 125,
+      "name": "貝坂",
+      "address": "平河町一丁目",
+      "coordinates": [
+        139.739347,
+        35.682588
+      ]
+    },
+    {
+      "id": 126,
+      "name": "清水谷坂",
+      "address": "麹町四丁目～紀尾井町",
+      "coordinates": [
+        139.736552,
+        35.682947
+      ]
+    },
+    {
+      "id": 127,
+      "name": "諏訪坂",
+      "address": "紀尾井町～平河町二丁目",
+      "coordinates": [
+        139.738321,
+        35.680844
+      ]
+    },
+    {
+      "id": 128,
+      "name": "紀尾井坂",
+      "address": "千代田区紀尾井町",
+      "coordinates": [
+        139.733982,
+        35.682164
+      ]
+    },
+    {
+      "id": 129,
+      "name": "善国寺坂",
+      "address": "麹町三丁目～四丁目",
+      "coordinates": [
+        139.737567,
+        35.684198
+      ]
+    },
+    {
+      "id": 130,
+      "name": "正和坂",
+      "address": "麹町二丁目",
+      "coordinates": [
+        139.739203,
+        35.685654
+      ]
+    },
+    {
+      "id": 131,
+      "name": "五味坂",
+      "address": "一番町、三番町",
+      "coordinates": [
+        139.74305,
+        35.688492
+      ]
+    },
+    {
+      "id": 132,
+      "name": "南法眼坂",
+      "address": "一番町",
+      "coordinates": [
+        139.740919,
+        35.687431
+      ]
+    },
+    {
+      "id": 133,
+      "name": "袖摺坂",
+      "address": "一番町",
+      "coordinates": [
+        139.742129,
+        35.687968
+      ]
+    },
+    {
+      "id": 134,
+      "name": "永井坂",
+      "address": "一番町",
+      "coordinates": [
+        139.743339,
+        35.659958
+      ]
+    },
+    {
+      "id": 135,
+      "name": "御厩谷坂",
+      "address": "千代田区三番町",
+      "coordinates": [
+        139.743631,
+        35.692139
+      ]
+    },
+    {
+      "id": 136,
+      "name": "東郷坂",
+      "address": "千代田区三番町～四番町",
+      "coordinates": [
+        139.739742,
+        35.690367
+      ]
+    },
+    {
+      "id": 137,
+      "name": "行人坂",
+      "address": "三番町～四番町",
+      "coordinates": [
+        139.740249,
+        35.689195
+      ]
+    },
+    {
+      "id": 138,
+      "name": "新坂",
+      "address": "五番町",
+      "coordinates": [
+        139.735359,
+        35.68978
+      ]
+    },
+    {
+      "id": 139,
+      "name": "三年坂",
+      "address": "五番町",
+      "coordinates": [
+        139.734536,
+        35.689197
+      ]
+    },
+    {
+      "id": 140,
+      "name": "鍋割坂",
+      "address": "東京都千代田区三番町",
+      "coordinates": [
+        139.74641,
+        35.691414
+      ]
+    },
+    {
+      "id": 141,
+      "name": "帯坂",
+      "address": "千代田区九段南四丁目～五番町",
+      "coordinates": [
+        139.736941,
+        35.690162
+      ]
+    },
+    {
+      "id": 142,
+      "name": "冬青木坂",
+      "address": "千代田区富士見一丁目、飯田橋一丁目、九段北一丁目",
+      "coordinates": [
+        139.749319,
+        35.696838
+      ]
+    },
+    {
+      "id": 143,
+      "name": "中坂",
+      "address": "千代田区九段北一丁目",
+      "coordinates": [
+        139.749986,
+        35.6965
+      ]
+    },
+    {
+      "id": 144,
+      "name": "富士見坂",
+      "address": "千代田区富士見二丁目～九段北三丁目",
+      "coordinates": [
+        139.742311,
+        35.695436
+      ]
+    },
+    {
+      "id": 145,
+      "name": "一口坂",
+      "address": "千代田区九段北三丁目～四丁目",
+      "coordinates": [
+        139.740633,
+        35.693176
+      ]
+    },
+    {
+      "id": 146,
+      "name": "二合半坂",
+      "address": "千代田区富士見一丁目",
+      "coordinates": [
+        139.748205,
+        35.698108
+      ]
+    },
+    {
+      "id": 147,
+      "name": "霞ヶ関坂",
+      "address": "霞が関二丁目",
+      "coordinates": [
+        139.750263,
+        35.673345
+      ]
+    },
+    {
+      "id": 148,
+      "name": "潮見坂",
+      "address": "霞が関二丁目～三丁目",
+      "coordinates": [
+        139.749026,
+        35.673625
+      ]
+    },
+    {
+      "id": 149,
+      "name": "三年坂",
+      "address": "霞が関三丁目",
+      "coordinates": [
+        139.747976,
+        35.672238
+      ]
+    },
+    {
+      "id": 150,
+      "name": "茱萸坂",
+      "address": "永田町一丁目",
+      "coordinates": [
+        139.746374,
+        35.67418
+      ]
+    },
+    {
+      "id": 11,
+      "name": "汐見坂〔しおみざか〕",
+      "address": "千代田区千代田1　皇居東御苑内",
+      "coordinates": [
+        139.756676,
+        35.68761
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "id": 186,
+      "url": "https://visit-chiyoda.tokyo/app/spot/detail/186",
+      "reason": "Published point is 2178.1m outside Chiyoda; published address is 神田駿河台三丁目. No inferred coordinate correction applied.",
+      "name": "胸突坂",
+      "address": "神田駿河台三丁目",
+      "coordinates": [
+        139.723455,
+        35.71242
+      ]
+    },
+    {
+      "id": 134,
+      "url": "https://visit-chiyoda.tokyo/app/spot/detail/134",
+      "reason": "Published point is 1128.2m outside Chiyoda; published address is 一番町. No inferred coordinate correction applied.",
+      "name": "永井坂",
+      "address": "一番町",
+      "coordinates": [
+        139.743339,
+        35.659958
+      ]
+    }
+  ],
+  "cityEntriesNotRepresented": [
+    {
+      "number": 23,
+      "name": "永井坂",
+      "reading": "ながいざか",
+      "url": "https://www.city.chiyoda.lg.jp/koho/kuse/gaiyo/yokoso/saka.html"
+    },
+    {
+      "number": 53,
+      "name": "観音坂",
+      "reading": "かんのんざか",
+      "url": "https://www.city.chiyoda.lg.jp/koho/kuse/gaiyo/yokoso/saka.html"
+    }
+  ]
+}

@@ -29,6 +29,7 @@
 - 都市機能・文化の界隈16界隈、公開空地173区域、エリアマネジメント・まちづくり団体12区域、まちの記憶23地点を公式GISで確認
 - 国・都・区文化財と景観資源111地点を統合。既存景観物件64件の指定日・個別公式資料も保持
 - 地形・陰影と2020年度PLATEAU建物高さを、必要なときだけタイルで表示
+- 坂54地点を表示し、拡大で坂名、クリックで読み・短い由来と出典を確認。坂名検索にも対応
 - 防火地域・準防火地域と、洪水浸水想定区域（想定最大規模）を確認
 - 主要道路を「首都高速／国道／都道・幹線／地区幹線」に整理
 - 6区の都市計画道路（PLATEAU 2020年度）を、一般道の計画線・高速道路等・広場の3色で表示
@@ -79,6 +80,7 @@ PCでは操作開始前に既存の軽量な描画比率へ切り替え、操作
 | OSM背景地図 | 閲覧時取得・参考 | [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)。背景選択中は地図右上にも出典を表示 |
 | 都市機能・文化の界隈・公開空地・エリアマネジメント・まちづくり団体・まちの記憶・文化財・景観資源 | 公式GIS公開ページ2025-06-06更新。景観物件は既存指定一覧も統合 | [千代田区「まちなかのウォーカブルな要素の分布状況」](https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html) |
 | 地形・陰影 | 閲覧時取得 | [国土地理院・陰影起伏タイル](https://maps.gsi.go.jp/development/ichiran.html) |
+| 坂 | 区一覧更新2023-03-08／観光協会の掲載地点2026-09-14取得 | [千代田区「千代田区内の坂」](https://www.city.chiyoda.lg.jp/koho/kuse/gaiyo/yokoso/saka.html)／[千代田区観光協会の坂案内](https://visit-chiyoda.tokyo/app/spot?searchSubCategory%5B0%5D=16)。公式資料をATLASで整理（公式GISではない） |
 | 建物高さ | 2020年度・学習用 | [Project PLATEAU](https://www.mlit.go.jp/plateau/)／[indigo-labによる建築物MVT（CC BY 4.0）](https://github.com/indigo-lab/plateau-tokyo23ku-building-mvt-2020) |
 | 駅出入口・地下歩行リンク | 取得日未記録・参考 | [OpenStreetMap contributors（ODbL）](https://www.openstreetmap.org/copyright) |
 | 地区計画内部区分 | 2026-09-13取得 | [千代田区公式ArcGIS・地区計画](https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/chikukeikaku/MapServer/6) |
@@ -198,6 +200,10 @@ python scripts/build_map_data.py --source-root ../work/chiyoda_map/data
 
 ## 注意事項
 
+坂データは `python -m pip install -r scripts/requirements-slopes.txt`、`python scripts/build_slopes.py` で保存済みの公式HTMLから再生成します。再取得時のみ `--refresh` を指定してください。原HTML60ページと取得記録は `../work/chiyoda_map/data/next-stage/slopes`、軽量な点データのみ `public/data/layers/slopes.json` に保存します。`python tests/test_slopes_builder.py` で位置・同名照合・取得日・検索索引の安全性を確認できます。
+
+坂は初期OFF、ズーム13以上で小さな点、14以上で重複を避けた名称を表示します。「都市構造」の「地形・陰影」と重ねると地形を読みやすくなります。位置は観光協会の案内掲載地点で、坂の全区間・勾配・坂上や坂下を示しません。昌平坂は区公式資料に記載された区境の坂として掲載位置を保持しています。永井坂・胸突坂は掲載座標が所在地と矛盾するため除外し、観音坂は協会カテゴリに掲載地点がないため未収録です。区の56坂を完全収録したレイヤーではありません。照合・除外記録は `scripts/data/slopes-build-report.json` に残しています。
+
 この地図は、異なる時点・定義の公開データを組み合わせた学習・概況把握用の資料です。行政上・法令上の正式な判断には使用できません。
 
 - 人口密度は2026年1月1日の住民基本台帳人口を2020年国勢調査の町丁目面積で割った概算値です。
@@ -227,6 +233,7 @@ python scripts/build_map_data.py --source-root ../work/chiyoda_map/data
 
 ## 更新履歴
 
+- 2026-09-14：公式坂案内から54地点の坂レイヤーを追加。初期OFF・遅延読込で、拡大時の名称・読みと由来・検索に対応。未確認位置を推測補完せず、公式GISとは区別
 - 2026-09-13：「事業中の再開発」を都市更新へ置換。区内48件と隣接区29件を分類・規模別の控えめな点で表示し、検索索引を同期。初期OFF・遅延読込・既存の軽量化を維持
 - 2026-09-13：公式地区計画内部区分181件を地区計画へ統合し、同梱registryの「まちづくりの動き」6件を初期OFF・遅延読込で追加。常設UIは増やさず、新規メニューは1項目のみ
 - 2026-09-13：駅出入口・地下歩行ネットワークをOSM参考レイヤーとして追加。12景観界隈は公式GISを特定できず保留。都市計画道路を都市構造、7地域を暮らし・景観へ移動

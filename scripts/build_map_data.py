@@ -1553,6 +1553,9 @@ def main():
     # The separately prepared official layers retain their own source/schema pipeline.
     from prepare_chiyoda_official_layers import update_search_index
     update_search_index(args.output)
+    if (layer_root / "slopes.json").exists():
+        from build_slopes import update_search_index as update_slopes_search_index
+        update_slopes_search_index(args.output)
     if urban_change_path.exists():
         core = load_json(args.output)
         core["meta"]["urbanChangeDate"] = max(f["properties"].get("retrievedDate", "") for f in redevelopment_search)

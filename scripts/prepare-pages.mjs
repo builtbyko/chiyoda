@@ -36,6 +36,7 @@ const layerFiles = [
   "area-management.json",
   "memory-plates.json",
   "cultural-assets.json",
+  "slopes.json",
 ];
 
 await Promise.all([

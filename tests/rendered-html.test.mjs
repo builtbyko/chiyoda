@@ -56,7 +56,7 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   assert.match(html, /<button(?=[^>]*aria-pressed="false")[^>]*><span>再開発・大規模建替え<\/span>/);
   assert.doesNotMatch(html, /<span>事業中の再開発<\/span>/);
   assert.match(html, /千代田区の7地域/);
-  for (const label of ["都市機能・文化の界隈", "公開空地", "エリアマネジメント・まちづくり団体", "歴史・文化資源", "地形・陰影", "建物高さ", "駅出入口", "地下歩行リンク", "地域まちづくり（検討・方針）"]) {
+  for (const label of ["都市機能・文化の界隈", "公開空地", "エリアマネジメント・まちづくり団体", "歴史・文化資源", "地形・陰影", "坂", "建物高さ", "駅出入口", "地下歩行リンク", "地域まちづくり（検討・方針）"]) {
     assert.match(html, new RegExp(`<button(?=[^>]*aria-pressed="false")[^>]*><span>${label}</span>`));
   }
   assert.doesNotMatch(html, /<span>景観まちづくり重要物件<\/span>/);
@@ -85,13 +85,13 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
     ["地域・歴史", ["千代田区の7地域", "都市機能・文化の界隈", "歴史・文化資源"]],
     ["土地利用・規制", ["用途地域", "実土地利用", "防火指定"]],
     ["交通・公共空間", ["鉄道・駅", "主要道路", "駅出入口", "地下歩行リンク", "公園・緑地", "公開空地"]],
-    ["都市構造", ["地形・陰影", "建物高さ", "町丁目境界"]],
+    ["都市構造", ["地形・陰影", "坂", "建物高さ", "町丁目境界"]],
     ["統計・参考", ["住民密度", "昼間人口", "地価公示"]],
     ["防災", ["洪水浸水", "指定避難所"]],
   ]);
   const sidebar = html.slice(html.indexOf('id="layer-panel"'), html.indexOf('class="map-stage"'));
-  assert.equal([...sidebar.matchAll(/class="toggle-row /g)].length, 27);
-  assert.equal([...sidebar.matchAll(/class="switch"/g)].length, 27);
+  assert.equal([...sidebar.matchAll(/class="toggle-row /g)].length, 28);
+  assert.equal([...sidebar.matchAll(/class="switch"/g)].length, 28);
   assert.doesNotMatch(sidebar, /segment-button|area-choice-grid|<select/);
   assert.doesNotMatch(html, /界隈（都市機能・文化）/);
   assert.doesNotMatch(html, /<span>まちの記憶(?:保存プレート)?<\/span>/);
@@ -132,6 +132,7 @@ test("map data includes the recommended reference layers", async () => {
     areaManagement: "area-management.json",
     memoryPlates: "memory-plates.json",
     culturalAssets: "cultural-assets.json",
+    slopes: "slopes.json",
   };
   const layers = Object.fromEntries(
     await Promise.all(
@@ -158,7 +159,8 @@ test("map data includes the recommended reference layers", async () => {
     const searchType = mapData.searchTypes[typeIndex];
     const target = layers[searchType.d]?.features[featureIndex];
     assert.ok(target, `${name} search target should resolve`);
-    assert.equal(target.properties.n, name);
+    if (searchType.d === "slopes") assert.ok(name === target.properties.n || name.startsWith(`${target.properties.n}（`));
+    else assert.equal(target.properties.n, name);
     assert.equal(String(target.properties.w ?? (searchType.d.startsWith("chiyoda") || searchType.d === "culturalAssets" ? "千代田区" : "")), ward);
     assert.equal(typeof searchType.k, "string");
     assert.equal(typeof searchType.l, "string");
@@ -284,7 +286,7 @@ test("active guides distinguish official GIS, prepared records, derived data and
   const start = source.indexOf("const activeGuides =");
   const end = source.indexOf("\n  return (", start);
   const js = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const bindings = { useMemo: (fn) => fn(), areaLayer: "none", overlays: { culturalAssets: true, functionalKaiwai: true, planningMovements: true, chiyodaRegions: true, stationEntrances: true, undergroundWalkways: true, redevelopment: true, urbanPlanningRoads: true }, meta: {}, photoEpoch: "pale", PHOTO_OPTIONS: [{ value: "pale", label: "淡色地図" }] };
+  const bindings = { useMemo: (fn) => fn(), areaLayer: "none", overlays: { culturalAssets: true, functionalKaiwai: true, planningMovements: true, chiyodaRegions: true, stationEntrances: true, undergroundWalkways: true, redevelopment: true, urbanPlanningRoads: true, slopes: true }, meta: {}, photoEpoch: "pale", PHOTO_OPTIONS: [{ value: "pale", label: "淡色地図" }] };
   for (const match of source.matchAll(/const (\w+(?:SOURCE|NOTE)) = "([^"]+)";/g)) bindings[match[1]] = match[2];
   const guides = new Function(...Object.keys(bindings), `${js}; return activeGuides;`)(...Object.values(bindings));
   const nature = (label) => guides.find((guide) => guide.label === label)?.nature;
@@ -295,6 +297,8 @@ test("active guides distinguish official GIS, prepared records, derived data and
   assert.equal(nature("駅出入口"), "OpenStreetMap参考");
   assert.equal(nature("地下歩行リンク"), "OpenStreetMap参考");
   assert.equal(nature("まちの記憶保存プレート"), "公式GIS");
+  assert.equal(nature("坂"), "公式資料をATLASで整理");
+  assert.match(guides.find(({ label }) => label === "坂").text, /観光協会の地図掲載地点/);
   assert.equal(nature("第五次事業化計画（参考）"), "公式統計・公式表");
   const priority = guides.find(({ label }) => label === "第五次事業化計画（参考）");
   assert.match(priority.text, /区間形状は表示していません/);
@@ -372,10 +376,10 @@ test("desktop map keeps its low-cost rendering settings", async () => {
   assert.doesNotMatch(source, /id: `base-photo-\$\{option\.value\}`/);
   assert.match(source, /if \(!map\.getSource\(sourceId\) \|\| !map\.getLayer\("base-photo"\)\)/);
   assert.match(source, /\{ buffer: 64, tolerance: 1\.25 \}/);
-  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 23);
+  assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 24);
   assert.equal(
     source.match(/"(?:fill|line|circle)-opacity": 0(?:,|\s*})/g)?.length,
-    16,
+    17,
   );
   assert.doesNotMatch(source, /"(?:fill|line|circle)-opacity": 0\.01/);
   assert.match(source, /urbanPlanningRoads: false/);
@@ -656,7 +660,7 @@ test("urban point selection prefers the nearest screen centre and rendered order
   assert.match(source, /feature\?\.layer\.id\.startsWith\("redevelopment-"\)/);
 });
 
-test("urban search loads its dataset, enables only its overlay and shows the selected detail", async () => {
+test("urban and slope searches load data, enable only their overlay and show the selected detail", async () => {
   const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
   const start = source.indexOf("const selectSearchItem =");
   const end = source.indexOf("const legendGroups", start);
@@ -666,7 +670,7 @@ test("urban search loads its dataset, enables only its overlay and shows the sel
   const feature = { type: "Feature", geometry: { type: "Point", coordinates: [139.75, 35.69] }, properties: { n: "案件" } };
   let overlays = { redevelopment: false, roads: true };
   const bindings = {
-    cancelPendingLocation() {}, mapRef: { current: { flyTo: () => events.push("zoom"), getSource: () => ({ setData() {} }) } },
+    cancelPendingLocation() {}, mapRef: { current: { flyTo: (options) => { assert.equal(options.zoom, 15.5); events.push("zoom"); }, getSource: () => ({ setData() {} }) } },
     setQuery() {}, setPanelOpen() {}, noticeActionRef: { current: 0 }, setLayerNotice() {},
     DATASET_LABELS: { redevelopment: "再開発・大規模建替え", core: "町丁目" },
     ensureDataset: async () => { events.push("load"); return { features: [feature] }; },
@@ -682,6 +686,104 @@ test("urban search loads its dataset, enables only its overlay and shows the sel
   await select({ kind: "町丁目", dataset: "core", featureIndex: 0, layerId: "towns" });
   assert.deepEqual(events, ["load", "zoom", "detail"]);
   assert.equal(overlays.redevelopment, false);
+  events.length = 0;
+  overlays = { redevelopment: false, roads: true, slopes: false };
+  await select({ kind: "坂", dataset: "slopes", featureIndex: 0, layerId: "slopes-points" });
+  assert.deepEqual(events, ["load", "enable", "zoom", "detail"]);
+  assert.deepEqual(overlays, { redevelopment: false, roads: true, slopes: true });
+});
+
+test("named slopes retain publisher guide coordinates and a synchronized search index", async () => {
+  const layer = JSON.parse(await readFile(new URL("../public/data/layers/slopes.json", import.meta.url), "utf8"));
+  const report = JSON.parse(await readFile(new URL("../scripts/data/slopes-build-report.json", import.meta.url), "utf8"));
+  const notes = JSON.parse(await readFile(new URL("../scripts/data/slopes-notes.json", import.meta.url), "utf8"));
+  const core = JSON.parse(await readFile(new URL("../public/data/map-data.json", import.meta.url), "utf8"));
+  assert.equal(layer.type, "FeatureCollection");
+  assert.ok(layer.features.length > 0);
+  assert.equal(layer.features.length, report.featureCount);
+  assert.equal(new Set(layer.features.map(({ properties }) => properties.i)).size, layer.features.length);
+  for (const { properties: p, geometry: g } of layer.features) {
+    assert.equal(g.type, "Point", "guide points must not be turned into guessed slope routes");
+    assert.equal(g.coordinates.length, 2);
+    assert.ok(g.coordinates.every(Number.isFinite));
+    assert.equal(p._coordinate_quality, "tourism-guide-point");
+    assert.equal(p.positionSourceUrl, p.sourceUrl);
+    assert.match(p.sourceUrl, /^https:\/\/visit-chiyoda\.tokyo\/app\/spot\/detail\/\d+$/);
+    assert.match(p.dataNature, /公式資料をATLASで整理/);
+    assert.ok(p.n && p.r && p.a && p.summary);
+    const published = report.sources.find((item) => `visit-chiyoda-${item.id}` === p.i);
+    assert.ok(published);
+    assert.ok(p.n === published.name || notes.items.some((item) => item.name === p.n && item.tourismName === published.name && `visit-chiyoda-${item.tourismSpotId}` === p.i));
+    assert.equal(p.a, published.address);
+    assert.deepEqual(g.coordinates, published.coordinates);
+    if (p.citySourceUrl) assert.match(p.citySourceUrl, /^https:\/\/www\.city\.chiyoda\.lg\.jp\/koho\/kuse\/gaiyo\/yokoso\/saka\.html(?:#.*)?$/);
+  }
+  const types = core.searchTypes.map((type, index) => ({ ...type, index })).filter(({ d }) => d === "slopes");
+  assert.equal(types.length, 1);
+  assert.equal(types[0].k, "坂");
+  assert.equal(types[0].l, "slopes-points");
+  const entries = core.search.filter((row) => row[2] === types[0].index);
+  assert.equal(entries.length, layer.features.length);
+  assert.deepEqual(entries.map((row) => row[3]).sort((a, b) => a - b), layer.features.map((_, index) => index));
+  assert.ok(entries.every((row) => row[1] === "千代田区"));
+  for (const name of ["三年坂", "富士見坂", "新坂", "中坂", "鍋割坂"]) {
+    const indices = layer.features.map(({ properties: p }, index) => p.n === name ? index : -1).filter((index) => index >= 0);
+    if (indices.length < 2) continue;
+    const labels = entries.filter((row) => indices.includes(row[3])).map((row) => row[0]);
+    assert.equal(new Set(labels).size, indices.length, "same-named slopes need distinct published town labels");
+  }
+});
+
+test("slopes stay lazy and muted, with collision-managed names only above zoom 14", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  assert.match(source, /slopes: false/);
+  assert.match(source, /slopes: \["slopes"\]/);
+  assert.match(source, /map\.addSource\("slopes", \{\s*type: "geojson",\s*data: EMPTY_COLLECTION/);
+  assert.match(source, /SLOPE_LAYER_IDS, overlays\.slopes/);
+  const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const layers = [];
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && node.expression.getText(tree) === "map.addLayer") {
+      const object = node.arguments[0];
+      if (object && /^\{\s*id: "slopes-/.test(object.getText(tree))) {
+        const js = ts.transpileModule(`const layer = ${object.getText(tree)};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+        layers.push(new Function(`${js}; return layer;`)());
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.deepEqual(layers.map(({ id }) => id), ["slopes-hit", "slopes-halo", "slopes-points", "slopes-label"]);
+  assert.ok(layers.every((layer) => layer.layout.visibility === "none"));
+  assert.equal(layers.find(({ id }) => id === "slopes-points").minzoom, 13);
+  const label = layers.find(({ id }) => id === "slopes-label");
+  assert.equal(label.minzoom, 14);
+  assert.equal(label.layout["text-allow-overlap"], false);
+  assert.equal(label.layout["text-ignore-placement"], false);
+  assert.deepEqual(label.layout["text-field"], ["get", "n"]);
+  assert.ok(label.paint["text-halo-width"] > 0);
+  assert.deepEqual(validateStyleMin({ version: 8, glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf", sources: { slopes: { type: "geojson", data: { type: "FeatureCollection", features: [] } } }, layers }), []);
+});
+
+test("slope details are short and distinguish guide points from slope extent or gradient", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const note = source.match(/const SLOPE_POSITION_NOTE = "([^"]+)";/)[1];
+  const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", {
+    textValue: (value) => value == null || value === "" ? "—" : String(value),
+    SLOPE_POSITION_NOTE: note,
+    SLOPE_TOURISM_SOURCE: "https://visit-chiyoda.tokyo/app/spot?searchSubCategory%5B0%5D=16",
+  });
+  const layer = JSON.parse(await readFile(new URL("../public/data/layers/slopes.json", import.meta.url), "utf8"));
+  for (const { properties: p } of layer.features) {
+    const detail = detailFor("slopes-points", p);
+    assert.equal(detail.eyebrow, "坂");
+    assert.equal(detail.title, p.n);
+    assert.deepEqual(detail.rows, [{ label: "読み", value: p.r }, { label: "所在地", value: p.a }, { label: "由来・特徴", value: p.summary }]);
+    assert.match(detail.note, /全区間や勾配を示すものではありません/);
+    assert.ok(detail.sources.some(({ url }) => url === p.sourceUrl));
+    assert.equal(detail.sources.some(({ label }) => label === "千代田区の坂案内"), Boolean(p.citySourceUrl));
+  }
+  assert.deepEqual(detailFor("slopes-hit", {}).rows, []);
 });
 
 test("OSM walking reference layers stay lazy, muted and hidden below zoom 14", async () => {

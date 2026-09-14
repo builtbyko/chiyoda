@@ -133,7 +133,9 @@ for (const [index, [name, ward, typeIndex, featureIndex]] of core.search.entries
   if (!type) errors.push("missing_search_type");
   if (!feature) errors.push("missing_target");
   else {
-    if (feature.properties?.n !== name) errors.push("name_mismatch");
+    const featureName = feature.properties?.n;
+    const slopeTownLabel = type.d === "slopes" && featureName && name.startsWith(`${featureName}（`) && name.endsWith("）");
+    if (featureName !== name && !slopeTownLabel) errors.push("name_mismatch");
     const actualWard = String(feature.properties?.w ?? (type.d === "chiyodaRegions" || type.d === "culturalAssets" ? "千代田区" : ""));
     if (actualWard !== ward) errors.push("ward_mismatch");
   }
