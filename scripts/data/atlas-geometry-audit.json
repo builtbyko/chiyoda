@@ -1,0 +1,323 @@
+{
+  "auditedAt": "2026-09-13T15:51:30.008566+00:00",
+  "dataAuditTimestamp": "2026-09-13T15:51:27.057Z",
+  "shapelyVersion": "2.1.2",
+  "scope": "Existing six-ward geometry union, not the map camera bbox. EPSG:6677 metrics.",
+  "limitations": "Strict boundary excess includes coordinate rounding/simplification. It is reported, not automatically corrected. No live source or legal-area verification.",
+  "datasets": {
+    "towns": {
+      "features": 658,
+      "geometryTypes": {
+        "Polygon": 654,
+        "MultiPolygon": 4
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 42,
+      "outsideAreaSqm": 91.069,
+      "outsideLengthM": 0.0
+    },
+    "zoning": {
+      "features": 967,
+      "geometryTypes": {
+        "Polygon": 924,
+        "MultiPolygon": 43
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 128,
+      "outsideAreaSqm": 592.592,
+      "outsideLengthM": 0.0
+    },
+    "fire": {
+      "features": 226,
+      "geometryTypes": {
+        "Polygon": 207,
+        "MultiPolygon": 19
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 40,
+      "outsideAreaSqm": 406.498,
+      "outsideLengthM": 0.0
+    },
+    "flood": {
+      "features": 4,
+      "geometryTypes": {
+        "MultiPolygon": 4
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 4,
+      "outsideAreaSqm": 1858.29,
+      "outsideLengthM": 0.0
+    },
+    "parks": {
+      "features": 735,
+      "geometryTypes": {
+        "MultiPolygon": 65,
+        "Polygon": 670
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 17,
+      "outsideAreaSqm": 33.77,
+      "outsideLengthM": 0.0
+    },
+    "landPrices": {
+      "features": 383,
+      "geometryTypes": {
+        "Point": 383
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "shelters": {
+      "features": 374,
+      "geometryTypes": {
+        "Point": 374
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "roads": {
+      "features": 751,
+      "geometryTypes": {
+        "LineString": 496,
+        "MultiLineString": 255
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 71,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 11.639
+    },
+    "urbanPlanningRoads": {
+      "features": 24,
+      "geometryTypes": {
+        "MultiLineString": 23,
+        "LineString": 1
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 10,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 21.274
+    },
+    "rail": {
+      "features": 32,
+      "geometryTypes": {
+        "MultiLineString": 15,
+        "LineString": 17
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 26,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 11.346
+    },
+    "stations": {
+      "features": 141,
+      "geometryTypes": {
+        "Point": 141
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "stationEntrances": {
+      "features": 243,
+      "geometryTypes": {
+        "Point": 243
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "undergroundWalkways": {
+      "features": 1357,
+      "geometryTypes": {
+        "LineString": 1357
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "districtPlans": {
+      "features": 117,
+      "geometryTypes": {
+        "Polygon": 108,
+        "MultiPolygon": 9
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 17,
+      "outsideAreaSqm": 106.847,
+      "outsideLengthM": 0.0
+    },
+    "districtPlanSubareas": {
+      "features": 181,
+      "geometryTypes": {
+        "Polygon": 180,
+        "MultiPolygon": 1
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 2,
+      "outsideAreaSqm": 1.988,
+      "outsideLengthM": 0.0
+    },
+    "heightDistricts": {
+      "features": 584,
+      "geometryTypes": {
+        "Polygon": 529,
+        "MultiPolygon": 55
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 175,
+      "outsideAreaSqm": 720.543,
+      "outsideLengthM": 0.0
+    },
+    "specialZones": {
+      "features": 232,
+      "geometryTypes": {
+        "Polygon": 230,
+        "MultiPolygon": 2
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 7,
+      "outsideAreaSqm": 67.979,
+      "outsideLengthM": 0.0
+    },
+    "redevelopment": {
+      "features": 77,
+      "geometryTypes": {
+        "Point": 77
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "chiyodaRegions": {
+      "features": 7,
+      "geometryTypes": {
+        "Polygon": 7
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 1,
+      "outsideAreaSqm": 2.713,
+      "outsideLengthM": 0.0
+    },
+    "functionalKaiwai": {
+      "features": 16,
+      "geometryTypes": {
+        "MultiPolygon": 1,
+        "Polygon": 15
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "openSpaces": {
+      "features": 173,
+      "geometryTypes": {
+        "Polygon": 172,
+        "MultiPolygon": 1
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "areaManagement": {
+      "features": 12,
+      "geometryTypes": {
+        "Polygon": 12
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "planningMovements": {
+      "features": 6,
+      "geometryTypes": {
+        "Point": 6
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "memoryPlates": {
+      "features": 23,
+      "geometryTypes": {
+        "Point": 23
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    },
+    "culturalAssets": {
+      "features": 111,
+      "geometryTypes": {
+        "Point": 111
+      },
+      "empty": 0,
+      "invalid": 0,
+      "pointsOutsideWards": 0,
+      "strictBoundaryOutsideFeatures": 0,
+      "outsideAreaSqm": 0.0,
+      "outsideLengthM": 0.0
+    }
+  },
+  "errorCount": 0
+}

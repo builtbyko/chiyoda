@@ -236,6 +236,10 @@ def feature_collection(
             if key != "geometry" and clean_scalar(value) is not None
         }
 
+        # Preserve the confirmed official name when regenerating the source DBF typo.
+        if source.key == "memory_plates" and props.get("件名") == "有島武郎・有島生馬・里見?旧居跡":
+            props["件名"] = "有島武郎・有島生馬・里見弴旧居跡"
+
         source_id = pick_id(props)
         name = pick(props, NAME_KEYS, ("名称", "界隈", "団体", "文化財", "物件", "テーマ"))
         if not name and force_kaiwai_names and source_id in KAIWAI_NAMES:

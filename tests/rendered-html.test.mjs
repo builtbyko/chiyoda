@@ -70,23 +70,29 @@ test("server-renders the Chiyoda and adjacent wards atlas shell", async () => {
   );
   assert.doesNotMatch(html, /id="atlas-info-panel"/);
   assert.match(html, /背景地図/);
-  assert.match(html, /value="pale"[^>]*selected/);
+  assert.match(html, /value="latest"[^>]*selected/);
   assert.match(html, /最新航空写真/);
+  assert.match(html, /<select(?=[^>]*id="background-map")(?=[^>]*aria-label="背景地図")[^>]*>/);
+  assert.match(html, /<option value="osm">OSM<\/option>/);
   assert.match(html, /都市計画<\/h2>/);
   assert.match(html, /再開発・まちづくり<\/h2>/);
   const sections = [...html.matchAll(/class="section-title">([^<]+)<\/h2>/g)].map((match) => match[1]);
-  assert.deepEqual(sections, ["土地利用・規制", "交通・公共空間", "都市構造", "都市計画", "再開発・まちづくり", "地域・歴史", "統計・参考", "防災"]);
+  assert.deepEqual(sections, ["都市計画", "再開発・まちづくり", "地域・歴史", "土地利用・規制", "交通・公共空間", "都市構造", "統計・参考", "防災"]);
   const menu = [...html.matchAll(/<section><h2 class="section-title">([^<]+)<\/h2>([\s\S]*?)<\/section>/g)].map(([, title, content]) => [title, [...content.matchAll(/<button[^>]*>(?:<span>)?([^<]+)/g)].map(([, label]) => label)]);
   assert.deepEqual(menu, [
-    ["土地利用・規制", ["用途地域", "実土地利用", "防火指定"]],
-    ["交通・公共空間", ["鉄道・駅", "主要道路", "駅出入口", "地下歩行リンク", "公園・緑地", "公開空地"]],
-    ["都市構造", ["地形・陰影", "建物高さ", "町丁目境界"]],
     ["都市計画", ["地区計画", "都市計画道路", "高度地区", "都市計画の特例（容積・再開発等）"]],
     ["再開発・まちづくり", ["再開発・大規模建替え", "地域まちづくり（検討・方針）", "エリアマネジメント・まちづくり団体"]],
     ["地域・歴史", ["千代田区の7地域", "都市機能・文化の界隈", "歴史・文化資源"]],
+    ["土地利用・規制", ["用途地域", "実土地利用", "防火指定"]],
+    ["交通・公共空間", ["鉄道・駅", "主要道路", "駅出入口", "地下歩行リンク", "公園・緑地", "公開空地"]],
+    ["都市構造", ["地形・陰影", "建物高さ", "町丁目境界"]],
     ["統計・参考", ["住民密度", "昼間人口", "地価公示"]],
     ["防災", ["洪水浸水", "指定避難所"]],
   ]);
+  const sidebar = html.slice(html.indexOf('id="layer-panel"'), html.indexOf('class="map-stage"'));
+  assert.equal([...sidebar.matchAll(/class="toggle-row /g)].length, 27);
+  assert.equal([...sidebar.matchAll(/class="switch"/g)].length, 27);
+  assert.doesNotMatch(sidebar, /segment-button|area-choice-grid|<select/);
   assert.doesNotMatch(html, /界隈（都市機能・文化）/);
   assert.doesNotMatch(html, /<span>まちの記憶(?:保存プレート)?<\/span>/);
   assert.doesNotMatch(html, /表示なし/);
@@ -369,7 +375,7 @@ test("desktop map keeps its low-cost rendering settings", async () => {
   assert.equal(source.match(/\.\.\.geoJsonOptions/g)?.length, 23);
   assert.equal(
     source.match(/"(?:fill|line|circle)-opacity": 0(?:,|\s*})/g)?.length,
-    15,
+    16,
   );
   assert.doesNotMatch(source, /"(?:fill|line|circle)-opacity": 0\.01/);
   assert.match(source, /urbanPlanningRoads: false/);
@@ -379,6 +385,59 @@ test("desktop map keeps its low-cost rendering settings", async () => {
   for (const id of ["casing", "line", "hit"]) {
     assert.match(source, new RegExp(`id: "urban-planning-roads-${id}",[^}]*visibility: "none"`));
   }
+});
+
+test("background switching keeps one raster source, readable map colours and correct attribution", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const declarations = [];
+  let callback;
+  const visit = (node) => {
+    if (ts.isVariableDeclaration(node) && node.name.getText(tree) === "PHOTO_OPTIONS") declarations.push(`const ${node.getText(tree)};`);
+    if (ts.isFunctionDeclaration(node) && node.name?.text === "backgroundRasterPaint") declarations.push(node.getText(tree));
+    if (ts.isCallExpression(node) && node.expression.getText(tree) === "useEffect" && node.arguments[0].getText(tree).includes("const option = PHOTO_OPTIONS.find")) callback = node.arguments[0].getText(tree);
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.equal(declarations.length, 2);
+  const definitions = ts.transpileModule(declarations.join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const { PHOTO_OPTIONS, backgroundRasterPaint } = new Function(`${definitions}; return { PHOTO_OPTIONS, backgroundRasterPaint };`)();
+  assert.equal(PHOTO_OPTIONS[0].value, "latest");
+  assert.match(source, /useState<PhotoEpoch>\("latest"\)/);
+  assert.equal(PHOTO_OPTIONS.find(({ value }) => value === "osm").tile, "https://tile.openstreetmap.org/{z}/{x}/{y}.png");
+  assert.equal(PHOTO_OPTIONS.length, 10, "eight photo epochs plus OSM and pale map");
+  assert.ok(callback);
+  const js = ts.transpileModule(`const change = ${callback};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const sources = { "photo-latest": { type: "raster", tiles: [PHOTO_OPTIONS[0].tile] }, towns: { type: "geojson", data: { type: "FeatureCollection", features: [] } } };
+  const layers = [{ id: "base-photo", type: "raster", source: "photo-latest" }, { id: "population-fill", type: "fill", source: "towns" }];
+  let zoom = 12;
+  const map = {
+    getSource: (id) => sources[id], getLayer: (id) => layers.find((layer) => layer.id === id),
+    removeSource(id) { assert.ok(sources[id]); delete sources[id]; },
+    removeLayer(id) { const index = layers.findIndex((layer) => layer.id === id); assert.ok(index >= 0); layers.splice(index, 1); },
+    addSource(id, data) { assert.equal(sources[id], undefined); sources[id] = data; },
+    addLayer(layer, beforeId) { assert.equal(this.getLayer(layer.id), undefined); const index = layers.findIndex(({ id }) => id === beforeId); assert.ok(index >= 0); layers.splice(index, 0, layer); },
+    getZoom: () => zoom, easeTo(value) { zoom = value.zoom; },
+  };
+  for (const epoch of ["osm", "pale", "latest", "1936", "1987", "osm", "osm"]) {
+    const change = new Function("mapRef", "ready", "PHOTO_OPTIONS", "photoEpoch", "backgroundRasterPaint", `${js}; return change;`)({ current: map }, true, PHOTO_OPTIONS, epoch, backgroundRasterPaint);
+    change();
+    const backgrounds = Object.keys(sources).filter((id) => id.startsWith("photo-"));
+    assert.deepEqual(backgrounds, [`photo-${epoch}`]);
+    assert.deepEqual(layers.map(({ id }) => id), ["base-photo", "population-fill"]);
+    assert.deepEqual(validateStyleMin({ version: 8, sources, layers }), []);
+    const raster = layers[0].paint;
+    assert.equal(raster["raster-fade-duration"], 0);
+    if (epoch === "osm" || epoch === "pale") {
+      assert.equal(raster["raster-saturation"], 0);
+      assert.equal(raster["raster-contrast"], 0);
+      assert.equal(raster["raster-brightness-max"], 1);
+    }
+    assert.match(sources[`photo-${epoch}`].attribution, epoch === "osm" ? /OpenStreetMap/ : /国土地理院/);
+    if (epoch === "1936") assert.equal(zoom, 13);
+  }
+  assert.match(source, /photoEpoch === "osm" && \(\s*<a className="background-map-credit"/);
+  assert.match(source, /paint: backgroundRasterPaint\(initialPhoto.value\)/);
 });
 
 test("prepared official layers retain names, provenance and unique identities", async () => {
@@ -485,7 +544,7 @@ test("urban change popups distinguish project categories and omit unknown comple
   const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
   const numberValue = sourceFunction(source, "numberValue", "percentValue", { NUMBER: new Intl.NumberFormat("ja-JP") });
   const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", { numberValue });
-  const p = { n: "建替え計画", categoryLabel: "大規模建替え・新築", status: "計画", grossFloorArea: 15000, uses: "事務所", sourceDate: "2026-09-08", locationQuality: "gsi_geocode", sourceName: "千代田区公式一覧", sourceUrl: "https://www.city.chiyoda.lg.jp/example.html" };
+  const p = { n: "建替え計画", category: "large_building", categoryLabel: "大規模建替え・新築", status: "計画", grossFloorArea: 15000, uses: "事務所", sourceDate: "2026-09-08", locationQuality: "gsi_geocode", sourceName: "千代田区公式一覧", sourceUrl: "https://www.city.chiyoda.lg.jp/example.html" };
   const detail = detailFor("redevelopment-hit-m", p);
   assert.equal(detail.eyebrow, "再開発・大規模建替え");
   assert.ok(detail.rows.some(({ label, value }) => label === "区分" && value === p.categoryLabel));
@@ -493,6 +552,8 @@ test("urban change popups distinguish project categories and omit unknown comple
   assert.ok(!detail.rows.some(({ label }) => label === "竣工予定"));
   assert.match(detail.note, /住所検索による参考位置/);
   assert.match(detail.note, /敷地境界・事業区域を示しません/);
+  assert.ok(detail.rows.some(({ label, value }) => label === "公表区分" && value === "計画"));
+  assert.match(detail.note, /着工・完成状況ではありません/);
   assert.equal(detail.sources[0].url, p.sourceUrl);
   const proposal = detailFor("redevelopment-hit", { ...p, categoryLabel: "構想・都市計画提案", locationQuality: "town_centroid", proposalUrl: "https://www.toshiseibi.metro.tokyo.lg.jp/documents/example" });
   assert.match(proposal.note, /町丁目の代表点/);
@@ -762,7 +823,7 @@ test("new planning styles are lazy, quiet and integrated into the existing distr
   }
   assert.match(source, /planningMovements: false/);
   assert.match(source, /planningMovements: \["planningMovements"\]/);
-  assert.match(source, /districtPlans: \["districtPlans", "districtPlanSubareas"\]/);
+  assert.match(source, /districtPlans: \["districtPlans", "districtPlanSubareas", "specialZones"\]/);
   assert.match(source, /PLANNING_MOVEMENT_LAYER_IDS, overlays\.planningMovements/);
   const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const layers = [];
@@ -795,11 +856,81 @@ test("new planning styles are lazy, quiet and integrated into the existing distr
   const js = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const pick = new Function("rendered", `${js}; return feature;`);
   const outer = { layer: { id: "district-plans-hit" } };
+  const promotion = { layer: { id: "district-plans-promotion-hit" } };
   const inner = { layer: { id: "district-plan-subareas-fill" } };
   const point = { layer: { id: "planning-movements-hit" } };
   assert.equal(pick([outer, inner]), inner);
   assert.equal(pick([point, outer, inner]), point);
   assert.equal(pick([outer]), outer);
+  assert.equal(pick([promotion, inner]), inner);
+  assert.equal(pick([promotion]), promotion);
+});
+
+test("official promotion district outlines reuse the shared lazy source without new toggles", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const tree = ts.createSourceFile("MapAtlas.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const layers = [];
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && node.expression.getText(tree) === "map.addLayer") {
+      const object = node.arguments[0];
+      if (object && /^\{\s*id: "district-plans-promotion-/.test(object.getText(tree))) {
+        const js = ts.transpileModule(`const layer = ${object.getText(tree)};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+        layers.push(new Function(`${js}; return layer;`)());
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.equal(layers.length, 3);
+  for (const layer of layers) {
+    assert.equal(layer.source, "special-zones");
+    assert.equal(layer.layout.visibility, "none");
+    assert.deepEqual(layer.filter, ["==", ["get", "c"], "redevelopmentPlan"]);
+  }
+  assert.deepEqual(validateStyleMin({ version: 8, sources: { "special-zones": { type: "geojson", data: { type: "FeatureCollection", features: [] } } }, layers }), []);
+  assert.match(source, /DISTRICT_PLAN_PROMOTION_LAYER_IDS, overlays\.districtPlans && !overlays\.specialZones/);
+  const specials = JSON.parse(await readFile(new URL("../public/data/layers/special-zones.json", import.meta.url), "utf8"));
+  const parents = specials.features.filter(({ properties }) => properties.c === "redevelopmentPlan");
+  assert.equal(parents.length, 59);
+  assert.ok(parents.every(({ properties }) => properties.t === "再開発等促進区"));
+  assert.ok(parents.some(({ properties }) => properties.n === "九段南一丁目地区"));
+  const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", {
+    textValue: (value) => String(value ?? "—"), numberValue: (value) => String(value ?? "—"),
+  });
+  const detail = detailFor("district-plans-promotion-hit", parents[0].properties);
+  assert.equal(detail.rows[0].value, "再開発等促進区");
+  assert.match(detail.note, /異なる時点/);
+});
+
+test("all co-located memory plates are readable without changing official coordinates", async () => {
+  const source = await readFile(new URL("../app/MapAtlas.tsx", import.meta.url), "utf8");
+  const atLocation = sourceFunction(source, "culturalPropertiesAtLocation", "MapAtlas");
+  const groupDetail = sourceFunction(source, "culturalGroupDetail", "culturalPropertiesAtLocation", {
+    textValue: (value) => String(value ?? "—"),
+    OFFICIAL_ELEMENT_SOURCE: "https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html",
+  });
+  const plates = JSON.parse(await readFile(new URL("../public/data/layers/memory-plates.json", import.meta.url), "utf8"));
+  const rendered = plates.features.map((feature) => ({ ...feature, layer: { id: "memory-plates-hit" } }));
+  let sharedPoints = 0;
+  for (const selected of rendered) {
+    const expected = rendered.filter((item) => JSON.stringify(item.geometry.coordinates) === JSON.stringify(selected.geometry.coordinates));
+    const properties = atLocation([...rendered, selected], selected);
+    assert.equal(properties.length, expected.length, "tile repetitions must not duplicate items");
+    assert.ok(properties.some((item) => item.i === selected.properties.i));
+    if (properties.length > 1) {
+      sharedPoints++;
+      const detail = groupDetail(properties);
+      assert.equal(detail.eyebrow, "まちの記憶保存プレート");
+      assert.equal(detail.items.length, expected.length);
+      assert.ok(detail.items.every((item) => item.type === "まちの記憶保存プレート" && item.url.endsWith("/kioku/index.html")));
+    }
+  }
+  assert.equal(sharedPoints, 11);
+  const mixed = { ...rendered[0], layer: { id: "cultural-assets-hit" }, properties: { i: "culture:1", n: "文化財", t: "文化財" } };
+  const nearby = { ...mixed, properties: { ...mixed.properties, i: "culture:2" }, geometry: { type: "Point", coordinates: [0, 0] } };
+  const grouped = atLocation([rendered[0], mixed, nearby], mixed);
+  assert.equal(grouped.length, 2);
+  assert.equal(groupDetail(grouped).eyebrow, "歴史・文化資源");
 });
 
 test("remote tile overlays are created once with valid 2D styles and stable background order", async () => {

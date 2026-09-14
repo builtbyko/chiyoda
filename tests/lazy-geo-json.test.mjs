@@ -85,19 +85,19 @@ for (const [key, filename, label] of [
   });
 }
 
-test("district plan selection fetches outer boundaries and internal divisions once", async () => {
+test("district plans and exceptions share promotion boundaries and fetch every source once", async () => {
   const calls = [];
   const loader = createLazyGeoJsonLoader({
-    files: { districtPlans: "district-plans.json", districtPlanSubareas: "district-plan-subareas.json" },
-    labels: { districtPlans: "地区計画", districtPlanSubareas: "内部区分" },
+    files: { districtPlans: "district-plans.json", districtPlanSubareas: "district-plan-subareas.json", specialZones: "special-zones.json" },
+    labels: { districtPlans: "地区計画", districtPlanSubareas: "内部区分", specialZones: "都市計画の特例" },
     fetcher: async (url) => { calls.push(url); return { ok: true, json: async () => collection(url) }; },
   });
   const getSource = () => ({ setData() {} });
   assert.deepEqual(calls, []);
-  const select = () => Promise.all([loader.ensure("districtPlans", getSource), loader.ensure("districtPlanSubareas", getSource)]);
-  await Promise.all([select(), select()]);
+  const select = () => Promise.all([loader.ensure("districtPlans", getSource), loader.ensure("districtPlanSubareas", getSource), loader.ensure("specialZones", getSource)]);
+  await Promise.all([select(), select(), loader.ensure("specialZones", getSource)]);
   await select();
-  assert.deepEqual(calls.sort(), ["data/layers/district-plan-subareas.json", "data/layers/district-plans.json"]);
+  assert.deepEqual(calls.sort(), ["data/layers/district-plan-subareas.json", "data/layers/district-plans.json", "data/layers/special-zones.json"]);
 });
 
 test("history resource selection fetches culture and memory plates once", async () => {

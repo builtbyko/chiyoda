@@ -1,8 +1,20 @@
 # CHiYODA ATLAS
 
-都市・地理・まちづくりを横断して千代田区を理解するための、自分用の都市アトラスです。千代田区と、境界を接する中央区・港区・新宿区・文京区・台東区を同じ条件で見比べられます。
+都市・地理・まちづくりを横断して千代田区を理解するための、自分用の都市アトラスです。基礎データは千代田区と、境界を接する中央区・港区・新宿区・文京区・台東区を表示します。区独自GIS・駅出入口・地下歩行リンク等は千代田区中心の収録で、レイヤーごとに対象範囲・時点・網羅性が異なります。
 
 公開URL：<https://builtbyko.github.io/chiyoda/>
+
+## データの精査記録
+
+2026-09-14に、保存済み原資料と基準main `4b0cecf` をオフライン精査しました。最新公式資料を全件取り直したという意味ではありません。
+
+- [全27表示レイヤーの台帳](docs/audit/layer-ledger.md)：目的・範囲・資料時点・取得日・加工・更新方法
+- [課題一覧と修正記録](docs/audit/issue-list.md)：確認済み不具合と、原資料へ戻る未解決事項を区別
+- [地区計画の精査](docs/audit/district-plans-audit.md)：通常117・促進区59・内部181件の保存原資料との照合
+- [再開発・大規模建替えの精査](docs/audit/urban-change-audit.md)：77件の収録条件・位置・規模・進捗の読み方
+- [検証結果と再現コマンド](docs/audit/validation.md)：テスト成功範囲とWindowsビルド終了エラーを区別
+
+再点検は `node scripts/audit_atlas_data.mjs`、続けてShapely・pyproj導入済み環境で `python scripts/audit_atlas_geometry.py`。データを変更せず、`scripts/data/atlas-data-audit.json`／`atlas-geometry-audit.json`だけを生成します。資料の最新性・法的解釈は機械検査の対象外です。
 
 ## できること
 
@@ -28,17 +40,17 @@
 - 「現在地」で端末の位置と測位精度の範囲を表示
 - 最新から1936〜1942年頃まで、8区分の航空写真を切替
 
-背景は国土地理院の淡色地図が初期表示です。「背景地図」から最新・歴史航空写真へ切り替えられます。航空写真は少し減彩し、主題レイヤーを用途別の高コントラスト色にしています。千代田区は黄線、6区の区界は白線で常時表示します。
+背景は国土地理院の最新航空写真が初期表示です。地図右上の「背景地図」から、OSM・淡色地図・最新／歴史航空写真へ切り替えられます。背景タイルは1種類ずつ表示し、航空写真は少し減彩しています。千代田区は黄線、6区の区界は白線で常時表示します。
 
 PCでは操作開始前に既存の軽量な描画比率へ切り替え、操作停止の約260ms後に1〜1.25倍へ戻して文字・航空写真を鮮明に描き直します。ドラッグ中は解像度を変更しません。モバイルの描画比率は従来どおりです。
 
 ## 操作
 
-1. 左側のカテゴリから、面で見る情報を一つ選びます。
-2. 土地利用・規制、交通・公共空間、都市構造、都市計画、再開発・まちづくり、地域・歴史、統計・参考、防災のレイヤーを必要な分だけ重ねます。
+1. 左側のレイヤーはすべて同じON/OFFトグルです。用途地域・実土地利用・防火指定・洪水浸水・住民密度・昼間人口は、異なるカテゴリでも同時に1種類だけの面表示です。選択中のトグルをもう一度押すとOFFになります。
+2. 都市計画、再開発・まちづくり、地域・歴史、土地利用・規制、交通・公共空間、都市構造、統計・参考、防災の順に並ぶレイヤーを、必要な分だけ重ねます。
 3. 右上の情報ボタンを押すと、千代田区の統計、各レイヤーの見方・データ時点・出典を確認できます。パネルは初期状態では閉じています。
 4. 地図上の面・線・点をクリックすると詳細が表示されます。凡例は左下で開閉できます。
-5. 航空写真の年代を切り替えて、市街地の変化を比較できます。
+5. 地図右上で背景を切り替えます。最新航空写真・OSM・淡色地図に加え、歴史航空写真の年代から市街地の変化を比較できます。
 6. 「現在地」を押して位置情報を許可すると、現在地とおおよその精度範囲が青色で表示されます。
 
 ## データ時点・出典
@@ -53,7 +65,7 @@ PCでは操作開始前に既存の軽量な描画比率へ切り替え、操作
 | 防火指定 | 2025年度（東京都は2026-07-01修正版） | [国土交通省「都市計画決定GISデータ」](https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html) |
 | 地区計画 | 2025-05-02現在 | [東京都「都市計画決定情報GISデータ」](https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028) |
 | 高度地区・各種特例地区 | 2024-11-11〜2025-03-31現在 | [東京都「都市計画決定情報GISデータ」](https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028) |
-| 再開発・大規模建替え | 区内2026-09-13取得／隣接区2025-10-31時点 | [千代田区・事業中の市街地再開発](https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/yotochiiki/saikaihatsu.html)、[環境計画書等一覧](https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html)、[東京都・都市計画提案図書](https://www.toshiseibi.metro.tokyo.lg.jp/basic/singikai/aramashi/seido_3)。各点にも公式出典・基準日を保持 |
+| 再開発・大規模建替え | 区内2026-09-14整理（資料基準日は各点）／隣接区2025-10-31時点 | [千代田区・事業中の市街地再開発](https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/yotochiiki/saikaihatsu.html)、[環境計画書等一覧](https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html)、[東京都・都市計画提案図書](https://www.toshiseibi.metro.tokyo.lg.jp/basic/singikai/aramashi/seido_3)。取得記録なしの過去キャッシュに取得日は付けない |
 | 千代田区の7地域 | 2021-05 | [千代田区「千代田区都市計画マスタープラン」第4章](https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf)／[地域区分と町丁目の対応表](https://www.city.chiyoda.lg.jp/documents/26577/r2shingikai1-shiryo2-4-1.pdf) |
 | 景観まちづくり重要物件 | 2024-12現在（一覧ページ更新2026-02-05） | [千代田区「景観まちづくり重要物件一覧表」](https://www.city.chiyoda.lg.jp/koho/machizukuri/kekan/ichiranhyo.html)／[千代田区GIS公開案内](https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html) |
 | 洪水浸水想定区域 | 2025年度（2026-05更新） | [国土数値情報「洪水浸水想定区域」](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-A31a-2025.html) |
@@ -63,11 +75,12 @@ PCでは操作開始前に既存の軽量な描画比率へ切り替え、操作
 | 鉄道・駅 | 2025-12-31 | [国土数値情報「鉄道データ」](https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html) |
 | 主要道路 | 2026-08-30取得 | [OpenStreetMap](https://www.openstreetmap.org/)／[BBBike 東京抽出データ](https://download.bbbike.org/osm/bbbike/Tokyo/) |
 | 都市計画道路 | 2020年度データ | [国土交通省PLATEAU「東京都23区（3D Tiles / GeoPackage / JSON 2020年度）」都市計画道路](https://www.geospatial.jp/ckan/dataset/plateau-tokyo23ku-3dtiles-2020) |
-| 航空写真 | 閲覧時取得 | [国土地理院「地理院タイル一覧」](https://maps.gsi.go.jp/development/ichiran.html) |
+| 航空写真・淡色地図 | 閲覧時取得 | [国土地理院「地理院タイル一覧」](https://maps.gsi.go.jp/development/ichiran.html) |
+| OSM背景地図 | 閲覧時取得・参考 | [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)。背景選択中は地図右上にも出典を表示 |
 | 都市機能・文化の界隈・公開空地・エリアマネジメント・まちづくり団体・まちの記憶・文化財・景観資源 | 公式GIS公開ページ2025-06-06更新。景観物件は既存指定一覧も統合 | [千代田区「まちなかのウォーカブルな要素の分布状況」](https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/walkable/yoso-bumpujokyo.html) |
 | 地形・陰影 | 閲覧時取得 | [国土地理院・陰影起伏タイル](https://maps.gsi.go.jp/development/ichiran.html) |
 | 建物高さ | 2020年度・学習用 | [Project PLATEAU](https://www.mlit.go.jp/plateau/)／[indigo-labによる建築物MVT（CC BY 4.0）](https://github.com/indigo-lab/plateau-tokyo23ku-building-mvt-2020) |
-| 駅出入口・地下歩行リンク | 2026-09-13取得・参考 | [OpenStreetMap contributors（ODbL）](https://www.openstreetmap.org/copyright) |
+| 駅出入口・地下歩行リンク | 取得日未記録・参考 | [OpenStreetMap contributors（ODbL）](https://www.openstreetmap.org/copyright) |
 | 地区計画内部区分 | 2026-09-13取得 | [千代田区公式ArcGIS・地区計画](https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/chikukeikaku/MapServer/6) |
 | 地域まちづくり（検討・方針） | 同梱registryの各基準日 | `scripts/data/planning-movements-registry.json` の千代田区公式ページ6件。状態・基準日は各点の詳細に表示 |
 
@@ -84,7 +97,7 @@ npm install
 npm run dev
 ```
 
-航空写真タイルの表示にはインターネット接続が必要です。
+背景地図・陰影・建物高さタイルの表示にはインターネット接続が必要です。
 
 ```bash
 npm run lint

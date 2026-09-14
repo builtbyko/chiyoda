@@ -111,6 +111,26 @@ def source_date(html: str) -> str | None:
     return updated["datetime"] if updated else None
 
 
+def fetch_record_path(cache_path: Path) -> Path:
+    return cache_path.with_suffix(cache_path.suffix + ".fetch.json")
+
+
+def cached_retrieved_date(url: str, cache_path: Path) -> str | None:
+    """Return a recorded HTTP acquisition date, never infer it from file age."""
+    try:
+        record = json.loads(fetch_record_path(cache_path).read_text(encoding="utf-8"))
+        if not isinstance(record, dict) or record.get("sourceUrl") != url:
+            return None
+        value = record.get("retrievedDate")
+        if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            return None
+        if date.fromisoformat(value) > date.today():
+            return None
+        return value
+    except (OSError, UnicodeError, ValueError):
+        return None
+
+
 def fetch_text(url: str, cache_path: Path, force: bool = False) -> str:
     if cache_path.exists() and not force:
         return cache_path.read_text(encoding="utf-8")
@@ -120,6 +140,11 @@ def fetch_text(url: str, cache_path: Path, force: bool = False) -> str:
     response.encoding = response.apparent_encoding or "utf-8"
     text = response.text
     cache_path.write_text(text, encoding="utf-8")
+    fetch_record_path(cache_path).write_text(
+        json.dumps({"sourceUrl": url, "retrievedDate": date.today().isoformat()},
+                   ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     return text
 
 
@@ -177,7 +202,7 @@ def extract_completion(text: str) -> str | None:
 
 def extract_construction_type(text: str) -> str | None:
     value = compact(text)
-    for token in ("新築", "新設", "増築", "改築", "建替", "建て替え"):
+    for token in ("新築", "新設", "増改修", "増築", "改築", "建替", "建て替え"):
         if token in value:
             return token
     return None
@@ -337,7 +362,7 @@ def parse_env_page(url: str, html: str):
             status = extract_status(status_text)
 
             construction_type = extract_construction_type(use_text + " " + completion_text)
-            uses = re.sub(r"\b(新築|増築|改築)\b", "", use_text).strip(" 、,\n")
+            uses = re.sub(r"\b(新築|新設|増改修|増築|改築|建替|建て替え)\b", "", use_text).strip(" 、,\n")
 
             results.append({
                 "name": name,
@@ -595,6 +620,17 @@ def adjacent_redevelopment_features():
     return features
 
 
+def stamp_feature_dates(features, source_retrieved_dates, compiled_date: str):
+    for feature in features:
+        props = feature["properties"]
+        props["compiledDate"] = compiled_date
+        # Earlier builds used the generation day as an acquisition date.
+        props.pop("retrievedDate", None)
+        retrieved = source_retrieved_dates.get(props.get("sourceUrl"))
+        if retrieved:
+            props["retrievedDate"] = retrieved
+
+
 def update_search_index(path=None):
     path = path or ROOT / "public/data/map-data.json"
     core = json.loads(path.read_text(encoding="utf-8"))
@@ -604,7 +640,7 @@ def update_search_index(path=None):
     core["search"] = [item for item in core["search"] if item[2] != kind]
     core["search"].extend([[f["properties"]["n"], f["properties"]["w"], kind, i] for i, f in enumerate(data["features"])])
     core["meta"]["redevelopmentCount"] = len(data["features"])
-    core["meta"]["urbanChangeDate"] = max(f["properties"].get("retrievedDate", "") for f in data["features"])
+    core["meta"]["urbanChangeDate"] = max(f["properties"].get("compiledDate", "") for f in data["features"])
     path.write_text(json.dumps(core, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
@@ -619,6 +655,7 @@ def main():
     pages_cache = cache / "pages"
     geocode_cache = cache / "geocode"
     town_centroids = load_town_centroids()
+    source_retrieved_dates = {}
 
     env_index = fetch_text(ENV_INDEX, pages_cache / "env-index.html", args.force)
     urls = env_pages(env_index)
@@ -630,12 +667,15 @@ def main():
     for idx, url in enumerate(urls):
         filename = f"env-{idx:02d}-{url.rsplit('/', 1)[-1]}"
         html = fetch_text(url, pages_cache / filename, args.force)
+        source_retrieved_dates[url] = cached_retrieved_date(url, pages_cache / filename)
         records = parse_env_page(url, html)
         all_building_records.extend(records)
         parsed_pages.append({"url": url, "records": len(records)})
 
     redev_html = fetch_text(REDEV_PAGE, pages_cache / "redevelopment.html", args.force)
     proposal_html = fetch_text(PROPOSAL_PAGE, pages_cache / "planning-proposals.html", args.force)
+    source_retrieved_dates[REDEV_PAGE] = cached_retrieved_date(REDEV_PAGE, pages_cache / "redevelopment.html")
+    source_retrieved_dates[PROPOSAL_PAGE] = cached_retrieved_date(PROPOSAL_PAGE, pages_cache / "planning-proposals.html")
     if args.fetch_only:
         print(json.dumps({"environmentPages": parsed_pages, "rawLargeBuildingRecords": len(all_building_records)}, ensure_ascii=False, indent=2))
         return
@@ -655,8 +695,7 @@ def main():
     for feature in features:
         p = feature["properties"]
         p["i"] = "urban-change:" + hashlib.sha256((p["category"] + "|" + p["n"] + "|" + p["w"]).encode("utf-8")).hexdigest()[:16]
-        if "千代田区" in p["w"]:
-            p["retrievedDate"] = str(date.today())
+    stamp_feature_dates(features, source_retrieved_dates, date.today().isoformat())
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(
