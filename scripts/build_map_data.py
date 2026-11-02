@@ -34,6 +34,8 @@ from shapely.geometry import (
 )
 from shapely.ops import linemerge, transform, unary_union
 
+from apply_district_plan_updates import annotate as annotate_district_plans
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE_ROOT = ROOT.parent / "work" / "chiyoda_map" / "data"
@@ -1389,6 +1391,7 @@ def main():
     district_plans, height_districts, special_zones = build_planning(
         source_root, scope, ward_geometries
     )
+    annotate_district_plans({"district-plans": district_plans, "special-zones": special_zones})
     redevelopment, redevelopment_snapshot = build_redevelopment(towns)
     urban_change_path = args.output.parent / "layers" / "urban-change-projects.json"
     redevelopment_search = (
@@ -1459,8 +1462,15 @@ def main():
             str(item["properties"].get("w") or default_ward),
             type_index,
             feature_index,
+            *(
+                [str(item["properties"]["o"])]
+                if dataset == "districtPlans"
+                and str(item["properties"].get("o", "")).endswith("区")
+                and item["properties"].get("o") != item["properties"].get("w")
+                else []
+            ),
         ]
-        for type_index, (_, _, _, items, default_ward) in enumerate(searchable)
+        for type_index, (dataset, _, _, items, default_ward) in enumerate(searchable)
         for feature_index, item in enumerate(items)
     ]
 

@@ -1,0 +1,96 @@
+{
+  "checkedOn": "2026-11-01",
+  "updates": [
+    {
+      "layer": "district-plans",
+      "name": "神田佐久間町地区",
+      "ward": "千代田区",
+      "sourceDecision": "2004-06-21",
+      "currentDecision": "2025-07-07",
+      "source": "https://www.city.chiyoda.lg.jp/documents/4355/07sakuma-r70707.pdf",
+      "note": "現行の地区内区分は千代田区公式GISの内部区分レイヤに反映。外枠は同GISと概況照合済み。"
+    },
+    {
+      "layer": "district-plans",
+      "name": "大手町・丸の内・有楽町地区",
+      "ward": "千代田区",
+      "sourceDecision": "2015-01-09",
+      "currentDecision": "2025-06-27",
+      "source": "https://www.city.chiyoda.lg.jp/documents/4355/14daimaruyu-r70627.pdf",
+      "note": "千代田区側の変更。中央区側の同名地物は別の決定であり、変更日は適用しない。"
+    },
+    {
+      "layer": "district-plans",
+      "name": "日本橋兜町・茅場町一丁目地区",
+      "ward": "中央区",
+      "sourceDecision": "2019-07-01",
+      "currentDecision": "2025-05-23",
+      "source": "https://www.city.chuo.lg.jp/documents/17577/2025082605.pdf",
+      "note": "A-2街区を追加。計画全体は約10.7haのまま。地区内部の区分変更は外枠図に表されない。"
+    },
+    {
+      "layer": "district-plans",
+      "name": "新宿駅東口地区",
+      "ward": "新宿区",
+      "sourceDecision": "2025-05-02",
+      "currentDecision": "2026-04-28",
+      "source": "https://www.city.shinjuku.lg.jp/kusei/keikan01_002178.html",
+      "note": "2026年の変更では外枠約18.9haと方針付図1は変更なし。沿道の規制変更は外枠図に表されない。"
+    },
+    {
+      "layer": "special-zones",
+      "name": "後楽二丁目地区",
+      "ward": "文京区",
+      "sourceDecision": "H160813",
+      "currentDecision": "2026-03-05",
+      "sourceArea": 4.0,
+      "currentArea": 6.6,
+      "boundaryStatus": "outdated",
+      "source": "https://www.city.bunkyo.lg.jp/documents/4348/20260305-bunkyo-chikukeikaku-koraku2_non-sokatsu.pdf",
+      "note": "現行区域は約6.6haに拡大。地図の線は旧4.0ha区域で、現行の区域を示さない。"
+    },
+    {
+      "layer": "special-zones",
+      "name": "田町駅東口地区",
+      "ward": "港区",
+      "sourceDecision": "R050308",
+      "currentDecision": "2025-12-22",
+      "sourceArea": 5.7,
+      "currentArea": 6.4,
+      "boundaryStatus": "outdated",
+      "source": "https://www.sonicweb-asp.jp/minato/files/pdf/09.pdf",
+      "note": "現行区域は約6.4haに拡大。地図の線は旧5.7ha区域で、現行の区域を示さない。"
+    },
+    {
+      "layer": "special-zones",
+      "name": "品川駅西口地区",
+      "ward": "港区",
+      "sourceDecision": "R041109",
+      "currentDecision": "2025-12-22",
+      "source": "https://www.sonicweb-asp.jp/minato/files/pdf/39.pdf",
+      "note": "計画全体の公表面積は約14.7haのまま。地区整備計画区域の変更はこの外枠図に表されない。"
+    }
+  ],
+  "fieldCorrections": [
+    {
+      "layer": "district-plans",
+      "name": "田町駅西口駅前地区",
+      "ward": "港区",
+      "field": "d",
+      "sourceValue": "2024-06-08",
+      "correctValue": "2024-04-08",
+      "source": "https://www.sonicweb-asp.jp/minato/files/pdf/48.pdf",
+      "note": "港区の現行一覧と決定図書では当初決定が2024年4月8日で、後発の変更決定は記載されていない。"
+    },
+    {
+      "layer": "district-plans",
+      "name": "赤坂四丁目薬研坂地区",
+      "ward": "港区",
+      "field": "i",
+      "sourceValue": "2020-04-26",
+      "correctValue": "2002-04-26",
+      "source": "https://www.sonicweb-asp.jp/minato/files/chikukei.html",
+      "note": "港区の現行一覧にある当初決定は平成14年4月26日。"
+    }
+  ]
+}

@@ -124,12 +124,13 @@ type AtlasData = {
     k: SearchItem["kind"];
     l: string;
   }[];
-  search: [name: string, ward: string, typeIndex: number, featureIndex: number][];
+  search: [name: string, ward: string, typeIndex: number, featureIndex: number, inquiry?: string][];
 };
 
 type SearchItem = {
   name: string;
   ward: string;
+  inquiry?: string;
   kind: "町丁目" | "駅" | "公園" | "地区計画" | "特例地区" | "再開発・大規模建替え" | "7地域" | "歴史・文化資源" | "坂";
   layerId: string;
   dataset: DatasetKey;
@@ -160,10 +161,10 @@ const PARK_LAYER_IDS = ["parks-fill", "parks-outline"];
 const LAND_PRICE_LAYER_IDS = ["land-prices-hit", "land-prices-halo", "land-prices"];
 const SHELTER_LAYER_IDS = ["shelters-hit", "shelters-halo", "shelters"];
 const DISTRICT_PLAN_LAYER_IDS = ["district-plans-casing", "district-plans-line", "district-plans-hit", "district-plan-subareas-fill", "district-plan-subareas-line", "district-plan-subareas-label"];
-const DISTRICT_PLAN_PROMOTION_LAYER_IDS = ["district-plans-promotion-casing", "district-plans-promotion-line", "district-plans-promotion-hit"];
+const DISTRICT_PLAN_PROMOTION_LAYER_IDS = ["district-plans-promotion-casing", "district-plans-promotion-line", "district-plans-promotion-old-label", "district-plans-promotion-hit"];
 const PLANNING_MOVEMENT_LAYER_IDS = ["planning-movements-hit", "planning-movements-points"];
 const HEIGHT_DISTRICT_LAYER_IDS = ["height-districts-fill", "height-districts-line"];
-const SPECIAL_ZONE_LAYER_IDS = ["special-zones-fill", "special-zones-line", "special-zones-hit"];
+const SPECIAL_ZONE_LAYER_IDS = ["special-zones-fill", "special-zones-line", "special-zones-old-label", "special-zones-hit"];
 const URBAN_CHANGE_TIERS = [
   { suffix: "", minzoom: 12.5, filter: ["any", ["!=", ["get", "category"], "large_building"], ["in", ["get", "scale"], ["literal", ["XL", "XXL"]]]] },
   { suffix: "-l", minzoom: 13, filter: ["all", ["==", ["get", "category"], "large_building"], ["==", ["get", "scale"], "L"]] },
@@ -189,6 +190,8 @@ const PLATEAU_BUILDING_SOURCE = "https://github.com/indigo-lab/plateau-tokyo23ku
 const OSM_REFERENCE_SOURCE = "https://www.openstreetmap.org/copyright";
 const UNDERGROUND_WALKWAY_NOTE = "OpenStreetMap上の地下・屋内歩行リンク。網羅性は保証されません。";
 const DISTRICT_PLAN_SUBAREA_SOURCE = "https://tokei-gis2.chiyodatoshikei.jp/server/rest/services/Map_services/chikukeikaku/MapServer/6";
+const AOMI_DISTRICT_PLAN_NAME = "臨海副都心青海地区";
+const AOMI_DISTRICT_PLAN_SOURCE = "https://www.city.koto.lg.jp/390111/machizukuri/toshi/chiku/kekaku/documents/toshikeikakutosyo_aomi.pdf";
 const PLANNING_MOVEMENT_SOURCE = "https://www.city.chiyoda.lg.jp/";
 
 const AREA_INTERACTIVE_LAYERS: Record<Exclude<AreaLayer, "none">, string[]> = {
@@ -499,7 +502,10 @@ const SHELTER_LEGEND = [
   ["福祉避難所", "#be185d"],
 ];
 
-const DISTRICT_PLAN_LEGEND = [["地区計画区域", "#00c2d7"]];
+const DISTRICT_PLAN_LEGEND = [
+  ["地区計画区域", "#00c2d7"],
+  ["旧区域・現行図へ", "#94a3b8"],
+];
 
 const HEIGHT_DISTRICT_LEGEND = [
   ["第一種", "#d8ccff"],
@@ -510,6 +516,7 @@ const HEIGHT_DISTRICT_LEGEND = [
 
 const SPECIAL_ZONE_LEGEND = [
   ["再開発等促進区", "#f97316"],
+  ["旧区域・現行図へ", "#94a3b8"],
   ["高度利用地区", "#9333ea"],
   ["特定街区", "#eab308"],
   ["都市再生特別地区", "#e11d48"],
@@ -742,6 +749,28 @@ function numberValue(value: unknown, unit = ""): string {
   return Number.isFinite(numeric) ? `${NUMBER.format(numeric)}${unit}` : "—";
 }
 
+function planningDateValue(value: unknown): string {
+  const raw = String(value ?? "");
+  const era = /^([HR])(\d{2})(\d{2})(\d{2})$/.exec(raw);
+  if (era) {
+    const year = (era[1] === "H" ? 1988 : 2018) + Number(era[2]);
+    return `${year}-${era[3]}-${era[4]}`;
+  }
+  return textValue(value);
+}
+
+function isAomiPromotionFragment(p: Record<string, unknown>): boolean {
+  return p.n === AOMI_DISTRICT_PLAN_NAME && p.c === "redevelopmentPlan" && p.w === "港区";
+}
+
+function searchWardLabel(item: SearchItem): string {
+  if (item.inquiry) return `${item.ward}側の一部（照会先：${item.inquiry}）`;
+  if (item.dataset === "specialZones" && item.name === AOMI_DISTRICT_PLAN_NAME && item.ward === "港区") {
+    return "港区側の一部（計画の位置：江東区・品川区）";
+  }
+  return item.ward;
+}
+
 function percentValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   const numeric = Number(value);
@@ -884,20 +913,33 @@ function detailFor(
       ],
     };
   }
-  if (layerId.includes("district-plan")) {
+  if (layerId.includes("district-plan") || p.c === "redevelopmentPlan") {
+    const isAomiFragment = isAomiPromotionFragment(p);
+    const isAdjacentWardFragment = isAomiFragment || (p.c !== "redevelopmentPlan" &&
+      typeof p.o === "string" && p.o.endsWith("区") && p.o !== p.w);
+    const isOldBoundary = p._boundary_status === "outdated";
+    const hasCurrentDecision = typeof p._current_decision === "string";
+    const hasCurrentArea = typeof p._current_area_ha === "number";
     return {
       eyebrow: "District plan",
       title: String(p.n ?? "地区計画"),
       rows: [
         ...(p.c === "redevelopmentPlan" ? [{ label: "制度", value: textValue(p.t) }] : []),
-        { label: "区", value: textValue(p.w) },
-        { label: "計画面積", value: numberValue(p.a, " ha") },
-        { label: "当初決定", value: textValue(p.i) },
-        { label: "最終決定", value: textValue(p.d) },
+        { label: isAdjacentWardFragment ? "表示部分の区" : "区", value: textValue(p.w) },
+        { label: hasCurrentArea ? "旧資料の計画面積" : isAdjacentWardFragment ? "計画全体の面積" : "計画面積", value: numberValue(p.a, " ha") },
+        ...(hasCurrentArea ? [{ label: "現行公表面積", value: numberValue(p._current_area_ha, " ha") }] : []),
+        ...(isAomiFragment ? [{ label: "計画図書の位置", value: "江東区青海一・二丁目、品川区東八潮" }] : []),
+        { label: "当初決定", value: planningDateValue(p.i) },
+        { label: hasCurrentDecision ? "外枠元データの最終決定" : "最終決定", value: planningDateValue(p.d) },
+        ...(hasCurrentDecision ? [{ label: "現行最終変更", value: textValue(p._current_decision) }] : []),
         { label: "照会先", value: textValue(p.o) },
       ],
-      note: "区域の概況表示です。外枠と内部区分は異なる時点の資料を使用しています。個別敷地の制限・最新の決定内容は計画書・計画図で確認してください。",
-      sources: [{ label: "東京都・都市計画GIS", url: "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028" }],
+      note: `${isOldBoundary ? "灰色の線は旧区域です。現行区域は地図に反映できていません。" : ""}${p._update_note ? `${textValue(p._update_note)} ` : ""}${isAdjacentWardFragment ? "区境で切り出された計画の小片です。表示部分だけで計画全体の所在や面積を判断しないでください。" : ""}個別敷地の制限・区域は公式計画図で確認してください。`,
+      sources: [
+        { label: "東京都・都市計画GIS", url: "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028" },
+        ...(p._current_source_url ? [{ label: "現行の計画図書・決定資料", url: String(p._current_source_url) }] : []),
+        ...(isAomiFragment ? [{ label: "江東区・臨海副都心青海地区計画図書", url: AOMI_DISTRICT_PLAN_SOURCE }] : []),
+      ],
     };
   }
   if (layerId.includes("height-district")) {
@@ -1217,7 +1259,7 @@ export function MapAtlas() {
     const value = query.trim().toLocaleLowerCase("ja");
     if (!value) return [];
     return searchItems
-      .filter((item) => `${item.name}${item.ward}`.toLocaleLowerCase("ja").includes(value))
+      .filter((item) => `${item.name}${searchWardLabel(item)}`.toLocaleLowerCase("ja").includes(value))
       .sort((a, b) => {
         const score = (item: SearchItem) => {
           const name = item.name.toLocaleLowerCase("ja");
@@ -1794,14 +1836,15 @@ export function MapAtlas() {
             layout: { visibility: "none" },
             paint: {
               "fill-color": [
-                "match", ["get", "c"],
-                "redevelopmentPlan", "#f97316",
-                "highUse", "#9333ea",
-                "specialBlock", "#eab308",
-                "urbanRegeneration", "#e11d48",
-                "#64748b",
+                "case", ["==", ["get", "_boundary_status"], "outdated"], "#94a3b8",
+                ["match", ["get", "c"],
+                  "redevelopmentPlan", "#f97316",
+                  "highUse", "#9333ea",
+                  "specialBlock", "#eab308",
+                  "urbanRegeneration", "#e11d48",
+                  "#64748b"],
               ],
-              "fill-opacity": 0.34,
+              "fill-opacity": ["case", ["==", ["get", "_boundary_status"], "outdated"], 0.08, 0.34],
             },
           });
           map.addLayer({
@@ -1811,15 +1854,22 @@ export function MapAtlas() {
             layout: { visibility: "none" },
             paint: {
               "line-color": [
-                "match", ["get", "c"],
-                "redevelopmentPlan", "#f97316",
-                "highUse", "#9333ea",
-                "specialBlock", "#eab308",
-                "urbanRegeneration", "#e11d48",
-                "#64748b",
+                "case", ["==", ["get", "_boundary_status"], "outdated"], "#94a3b8",
+                ["match", ["get", "c"],
+                  "redevelopmentPlan", "#f97316",
+                  "highUse", "#9333ea",
+                  "specialBlock", "#eab308",
+                  "urbanRegeneration", "#e11d48",
+                  "#64748b"],
               ],
               "line-width": ["interpolate", ["linear"], ["zoom"], 11, 1.4, 17, 3],
             },
+          });
+          map.addLayer({
+            id: "special-zones-old-label", type: "symbol", source: "special-zones",
+            filter: ["==", ["get", "_boundary_status"], "outdated"],
+            layout: { visibility: "none", "text-field": "旧区域", "text-size": 12, "text-allow-overlap": true },
+            paint: { "text-color": "#475569", "text-halo-color": "#ffffff", "text-halo-width": 1.5 },
           });
           map.addLayer({
             id: "special-zones-hit",
@@ -1875,13 +1925,19 @@ export function MapAtlas() {
             id: "district-plans-promotion-casing", type: "line", source: "special-zones",
             filter: ["==", ["get", "c"], "redevelopmentPlan"],
             layout: { visibility: "none" },
-            paint: { "line-color": "#102a35", "line-width": ["interpolate", ["linear"], ["zoom"], 11, 3.2, 17, 5.2], "line-opacity": 0.9 },
+            paint: { "line-color": ["case", ["==", ["get", "_boundary_status"], "outdated"], "#cbd5e1", "#102a35"], "line-width": ["interpolate", ["linear"], ["zoom"], 11, 3.2, 17, 5.2], "line-opacity": 0.9 },
           });
           map.addLayer({
             id: "district-plans-promotion-line", type: "line", source: "special-zones",
             filter: ["==", ["get", "c"], "redevelopmentPlan"],
             layout: { visibility: "none" },
-            paint: { "line-color": "#00c2d7", "line-width": ["interpolate", ["linear"], ["zoom"], 11, 1.7, 17, 3.2], "line-dasharray": [2.2, 1.3] },
+            paint: { "line-color": ["case", ["==", ["get", "_boundary_status"], "outdated"], "#94a3b8", "#00c2d7"], "line-width": ["interpolate", ["linear"], ["zoom"], 11, 1.7, 17, 3.2], "line-dasharray": [2.2, 1.3] },
+          });
+          map.addLayer({
+            id: "district-plans-promotion-old-label", type: "symbol", source: "special-zones",
+            filter: ["==", ["get", "_boundary_status"], "outdated"],
+            layout: { visibility: "none", "text-field": "旧区域", "text-size": 12, "text-allow-overlap": true },
+            paint: { "text-color": "#475569", "text-halo-color": "#ffffff", "text-halo-width": 1.5 },
           });
           map.addLayer({
             id: "district-plans-promotion-hit", type: "fill", source: "special-zones",
@@ -2461,11 +2517,12 @@ export function MapAtlas() {
               .addTo(map);
           });
 
-          const allSearch: SearchItem[] = data.search.map(([name, ward, typeIndex, featureIndex]) => {
+          const allSearch: SearchItem[] = data.search.map(([name, ward, typeIndex, featureIndex, inquiry]) => {
             const searchType = data.searchTypes[typeIndex];
             return {
               name,
               ward,
+              inquiry,
               kind: searchType.d === "redevelopment" ? "再開発・大規模建替え" : searchType.d === "culturalAssets" ? "歴史・文化資源" : searchType.k,
               layerId: searchType.l,
               dataset: searchType.d,
@@ -2861,11 +2918,11 @@ export function MapAtlas() {
     if (overlays.stationEntrances) add("駅出入口", "千代田区付近の参考点をズーム14以上で表示。出口・バリアフリー属性は駅の最新案内で再確認。", "現行収録版・取得日未記録", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE, "OpenStreetMap参考");
     if (overlays.undergroundWalkways) add("地下歩行リンク", `千代田区内の参考リンク。${UNDERGROUND_WALKWAY_NOTE}`, "現行収録版・取得日未記録", "OpenStreetMap（参考）", OSM_REFERENCE_SOURCE, "OpenStreetMap参考");
     if (overlays.districtPlans) {
-      add("地区計画", "通常地区計画と再開発等促進区の公式外枠。外枠と内部区分の資料時点は異なります。最新の決定内容は計画図書へ。", `通常外枠：${meta?.districtPlanDate ?? "2025-05-02"}／促進区：2025-03-31`, "外枠：東京都・都市計画GIS", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
+      add("地区計画", "東京都の外枠に各区の現行変更情報を補記。後楽二丁目・田町駅東口の灰色の線は旧区域で、現行区域は未反映です。計画図書は地物をクリックして確認できます。", `通常外枠元データ：${meta?.districtPlanDate ?? "2025-05-02"}／促進区元データ：2025-03-31／変更情報：2026-11-01確認`, "外枠：東京都・都市計画GIS／変更情報：各区公式資料", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
       add("地区計画・内部区分", "千代田区の内部区分はズーム14以上、区分名は16以上。公式区分が重なる場合もあり、敷地の制限は計画書で確認。", "2026-09-13取得／各区分に最終決定日", "内部：千代田区公式ArcGIS", DISTRICT_PLAN_SUBAREA_SOURCE);
     }
     if (overlays.heightDistricts) add("高度地区", "千代田区・中央区は指定なし。隣接4区の種別と数値指定を用途地域と合わせて確認。", meta?.heightDistrictDate ?? "2025-03-31", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
-    if (overlays.specialZones) add("都市計画の特例（容積・再開発等）", "制度の重なりを発見する層。実効値は個別図書で確認。", meta?.specialZoneDate ?? "2024–2025", "東京都", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
+    if (overlays.specialZones) add("都市計画の特例（容積・再開発等）", "制度の重なりを発見する層。後楽二丁目・田町駅東口の灰色の線は旧区域で、現行区域は未反映です。現行の計画図書は地物の詳細から確認できます。", `${meta?.specialZoneDate ?? "2024–2025"}元データ／変更情報：2026-11-01確認`, "東京都・各区公式資料", "https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028");
     if (overlays.redevelopment) add("再開発・大規模建替え", "市街地再開発・大規模建替え・選択した都市計画提案を区別。面積未取得は一定サイズ。環境計画書の公表区分は着工状況ではありません。位置・基準日は各点の詳細へ。", `区内：${meta?.urbanChangeDate ?? "2026-09-13"}整理／隣接区：2025-10-31時点（資料基準日は各点）`, "千代田区・東京都公式一覧／建築物環境計画書等をATLASで整理", "https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html", "公式資料をATLASで整理");
     if (overlays.chiyodaRegions) add("千代田区の7地域", "都市計画マスタープランの公式町丁目対応を町丁目境界へ結合。政策・まちづくり上の7地域。", meta?.chiyodaRegionDate ?? "2021-05", "千代田区", "https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf", "派生データ");
     if (overlays.functionalKaiwai) add("都市機能・文化の界隈", "古書店街、学生街、秋葉原電気街など、都市機能・文化の集積から見た16の界隈。", "公式ページ2025-06-06", "千代田区公式GIS「界隈」", OFFICIAL_ELEMENT_SOURCE);
@@ -2961,7 +3018,7 @@ export function MapAtlas() {
                 <div className="search-results">
                   {filteredSearch.map((item, index) => (
                     <button className="search-result" key={`${item.kind}-${item.ward}-${item.name}-${index}`} onClick={() => void selectSearchItem(item)}>
-                      <span>{item.name}</span><small>{item.kind} · {item.ward}</small>
+                      <span>{item.name}</span><small>{item.kind} · {searchWardLabel(item)}</small>
                     </button>
                   ))}
                 </div>

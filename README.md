@@ -11,6 +11,7 @@
 - [全27表示レイヤーの台帳](docs/audit/layer-ledger.md)：目的・範囲・資料時点・取得日・加工・更新方法
 - [課題一覧と修正記録](docs/audit/issue-list.md)：確認済み不具合と、原資料へ戻る未解決事項を区別
 - [地区計画の精査](docs/audit/district-plans-audit.md)：通常117・促進区59・内部181件の保存原資料との照合
+- [地区計画の現行資料照合](docs/audit/district-plans-current-2026-11.md)：6区の変更情報、旧区域表示、区境片の扱い
 - [再開発・大規模建替えの精査](docs/audit/urban-change-audit.md)：77件の収録条件・位置・規模・進捗の読み方
 - [検証結果と再現コマンド](docs/audit/validation.md)：テスト成功範囲とWindowsビルド終了エラーを区別
 
@@ -64,7 +65,7 @@ PCでは操作開始前に既存の軽量な描画比率へ切り替え、操作
 | 町丁目境界・面積 | 2020年国勢調査 | [国勢調査町丁・字等別境界データセット](https://geoshape.ex.nii.ac.jp/ka/resource/) |
 | 用途地域 | 2025年度（東京都は2026-07-01修正版） | [国土交通省「都市計画決定GISデータ」](https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html) |
 | 防火指定 | 2025年度（東京都は2026-07-01修正版） | [国土交通省「都市計画決定GISデータ」](https://www.mlit.go.jp/toshi/tosiko/toshi_tosiko_tk_000087.html) |
-| 地区計画 | 2025-05-02現在 | [東京都「都市計画決定情報GISデータ」](https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028) |
+| 地区計画 | 外枠元データ：通常2025-05-02・促進区2025-03-31／個別の変更情報：2026-11-01確認 | [東京都「都市計画決定情報GISデータ」](https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028)、各区の現行計画図書（地物詳細にリンク） |
 | 高度地区・各種特例地区 | 2024-11-11〜2025-03-31現在 | [東京都「都市計画決定情報GISデータ」](https://catalog.data.metro.tokyo.lg.jp/dataset/t000008d0000000028) |
 | 再開発・大規模建替え | 区内2026-09-14整理（資料基準日は各点）／隣接区2025-10-31時点 | [千代田区・事業中の市街地再開発](https://www.city.chiyoda.lg.jp/koho/machizukuri/toshi/yotochiiki/saikaihatsu.html)、[環境計画書等一覧](https://www.city.chiyoda.lg.jp/koho/machizukuri/kankyo/gaiyoichiran/index.html)、[東京都・都市計画提案図書](https://www.toshiseibi.metro.tokyo.lg.jp/basic/singikai/aramashi/seido_3)。取得記録なしの過去キャッシュに取得日は付けない |
 | 千代田区の7地域 | 2021-05 | [千代田区「千代田区都市計画マスタープラン」第4章](https://www.city.chiyoda.lg.jp/documents/17862/toshimasu-4_2.pdf)／[地域区分と町丁目の対応表](https://www.city.chiyoda.lg.jp/documents/26577/r2shingikai1-shiryo2-4-1.pdf) |
@@ -131,6 +132,8 @@ python scripts/fetch_map_sources.py --source-root ../work/chiyoda_map/data
 python scripts/build_map_data.py --source-root ../work/chiyoda_map/data
 python scripts/normalize_geojson.py
 ```
+
+`build_map_data.py` は `scripts/data/district-plan-official-updates.json` の確認済み変更情報も地区計画へ付加します。既存の地区計画GeoJSONだけを更新するときは `python scripts/apply_district_plan_updates.py` を実行します。元データの日付・面積は残し、現行公表値を別属性として表示します。
 
 今回の公式GISレイヤーは添付前処理スクリプトを利用し、基礎データとは別に再生成します。原ZIPは `../work/chiyoda_map/data/chiyoda/official-layers` に保存し、軽量GeoJSONと属性スキーマだけをリポジトリへ生成します。生成時に旧景観検索索引を統合済み歴史・文化資源の単一索引へ置き換えます。基礎データ再生成後にも既存の統合済み索引を復元します。
 
@@ -211,6 +214,7 @@ python scripts/build_map_data.py --source-root ../work/chiyoda_map/data
 - 実土地利用は東京都の2021年度調査を町丁目単位に面積集計したものです。公開版には元の筆・画地ポリゴンを含めず、主用途と構成上位だけを収録しています。色の主用途判定では道路・鉄道・水面を除外しています。
 - 用途地域を個別敷地について確認する場合は、各区・東京都の都市計画図等の公式資料を参照してください。
 - 地区計画・高度地区・各種特例地区は区域を探すための索引です。高度地区は千代田区・中央区には指定がなく、地図には隣接4区の指定だけが表示されます。区域の重なりから実効容積率・実効高さを算定していません。個別敷地は公式の計画書・計画図で確認してください。
+- 地区計画の後楽二丁目・田町駅東口は現行の区域が拡大しました。灰色の線は旧区域を示し、現行区域は未反映です。最新の区域は地物詳細から公式計画図を確認してください。
 - 地区計画内部区分は千代田区の公式GIS属性を概況表示しています。区分名が「制限なし」等でも、他制度を含む敷地の制限全体がないことを意味するものとして判定しません。
 - 地域まちづくり（検討・方針）は各基準日時点の情報です。町丁目代表点であり事業敷地・対象区域ではありません。未記載の次ステップや丁目は推測せず、検討中案件を確定事業として扱いません。
 - 再開発・大規模建替えの点は住所検索・町丁目の参考位置であり、敷地・施行区域を示しません。市街地再開発・大規模建替え・構想提案を同じ意味で「再開発」と呼ばず、基準日・位置精度を各点に表示します。隣接区の再開発は従来の2025-10-31時点のスナップショットで、今回の最新確認範囲は千代田区です。
