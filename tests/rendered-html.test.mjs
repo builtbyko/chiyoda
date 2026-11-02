@@ -983,11 +983,13 @@ test("official promotion district outlines reuse the shared lazy source without 
     ts.forEachChild(node, visit);
   };
   visit(tree);
-  assert.equal(layers.length, 3);
+  assert.equal(layers.length, 4);
   for (const layer of layers) {
     assert.equal(layer.source, "special-zones");
     assert.equal(layer.layout.visibility, "none");
-    assert.deepEqual(layer.filter, ["==", ["get", "c"], "redevelopmentPlan"]);
+    assert.deepEqual(layer.filter, layer.id.endsWith("old-label")
+      ? ["==", ["get", "_boundary_status"], "outdated"]
+      : ["==", ["get", "c"], "redevelopmentPlan"]);
   }
   assert.deepEqual(validateStyleMin({ version: 8, sources: { "special-zones": { type: "geojson", data: { type: "FeatureCollection", features: [] } } }, layers }), []);
   assert.match(source, /DISTRICT_PLAN_PROMOTION_LAYER_IDS, overlays\.districtPlans && !overlays\.specialZones/);
@@ -996,12 +998,23 @@ test("official promotion district outlines reuse the shared lazy source without 
   assert.equal(parents.length, 59);
   assert.ok(parents.every(({ properties }) => properties.t === "再開発等促進区"));
   assert.ok(parents.some(({ properties }) => properties.n === "九段南一丁目地区"));
+  const textValue = (value) => String(value ?? "—");
+  const planningDateValue = sourceFunction(source, "planningDateValue", "isAomiPromotionFragment", { textValue });
+  const isAomiPromotionFragment = sourceFunction(source, "isAomiPromotionFragment", "searchWardLabel", {
+    AOMI_DISTRICT_PLAN_NAME: "臨海副都心青海地区",
+  });
   const detailFor = sourceFunction(source, "detailFor", "culturalGroupDetail", {
-    textValue: (value) => String(value ?? "—"), numberValue: (value) => String(value ?? "—"),
+    textValue, numberValue: (value) => String(value ?? "—"), planningDateValue, isAomiPromotionFragment,
   });
   const detail = detailFor("district-plans-promotion-hit", parents[0].properties);
   assert.equal(detail.rows[0].value, "再開発等促進区");
-  assert.match(detail.note, /異なる時点/);
+  assert.match(detail.note, /個別敷地の制限・区域/);
+  const old = parents.find(({ properties }) => properties.n === "後楽二丁目地区");
+  const oldDetail = detailFor("district-plans-promotion-hit", old.properties);
+  assert.match(oldDetail.note, /灰色の線は旧区域/);
+  assert.equal(oldDetail.rows.find(({ label }) => label === "現行公表面積").value, "6.6");
+  assert.equal(oldDetail.rows.find(({ label }) => label === "現行最終変更").value, "2026-03-05");
+  assert.ok(oldDetail.sources.some(({ url }) => url === old.properties._current_source_url));
 });
 
 test("all co-located memory plates are readable without changing official coordinates", async () => {
